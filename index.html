@@ -6,17 +6,23 @@
   <title>Mehfil Lyrics Search</title>
 
   <style>
+    * {
+      box-sizing: border-box;
+    }
+
     body {
       font-family: Arial, sans-serif;
       background: #111;
       color: white;
       margin: 0;
-      padding: 20px;
+      padding: 12px;
+      overflow-x: hidden;
     }
 
     .container {
+      width: 100%;
       max-width: 700px;
-      margin: auto;
+      margin: 0 auto;
     }
 
     h1 {
@@ -24,38 +30,73 @@
       margin-bottom: 16px;
     }
 
+    .info {
+      color: #aaa;
+      margin-bottom: 12px;
+    }
+
+    .admin-box {
+      background: #1d1d1d;
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 20px;
+    }
+
+    .admin-box h2 {
+      margin-top: 0;
+      font-size: 20px;
+    }
+
+    .admin-box input,
+    .admin-box textarea {
+      width: 100%;
+      margin-bottom: 10px;
+      padding: 12px;
+      font-size: 16px;
+      border-radius: 10px;
+      border: none;
+      outline: none;
+    }
+
+    .admin-box textarea {
+      min-height: 140px;
+      resize: vertical;
+    }
+
     .search-bar {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 16px;
-  position: sticky;
-  top: 0;
-  background: #111;
-  padding-bottom: 10px;
-}
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+      width: 100%;
+    }
 
-   input {
-  flex: 1;
-  padding: 16px;
-  font-size: 20px;
-  border-radius: 12px;
-  border: none;
-  outline: none;
-}
+    input {
+      flex: 1;
+      min-width: 0;
+      width: 100%;
+      padding: 14px;
+      font-size: 18px;
+      border-radius: 10px;
+      border: none;
+      outline: none;
+    }
 
- button {
-  padding: 16px 18px;
-  font-size: 20px;
-  border: none;
-  border-radius: 12px;
-  cursor: pointer;
-}
+    button {
+      padding: 14px 16px;
+      font-size: 18px;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
 
     .card {
       background: #1d1d1d;
       border-radius: 12px;
       padding: 16px;
       margin-bottom: 12px;
+      width: 100%;
+      overflow-wrap: break-word;
     }
 
     .title {
@@ -71,109 +112,170 @@
 
     .lyrics {
       line-height: 1.6;
+      white-space: pre-wrap;
     }
 
-    .info {
-      color: #aaa;
-      margin-bottom: 12px;
+    @media (max-width: 480px) {
+      body {
+        padding: 10px;
+      }
+
+      h1 {
+        font-size: 22px;
+      }
+
+      input,
+      button {
+        font-size: 16px;
+        padding: 12px;
+      }
+
+      .title {
+        font-size: 18px;
+      }
     }
   </style>
 </head>
 <body>
   <div class="container">
     <h1>Mehfil Lyrics Search</h1>
-    <div class="info" id="status"></div>
+    <div class="info" id="status">Loading...</div>
 
-  <div class="search-bar">
-  <button id="micBtn" type="button">🎤</button>
-  <input id="searchInput" type="text" placeholder="Type or speak 2-3 words..." />
-  <button id="clearBtn" type="button">❌</button>
-</div>
+    <div class="admin-box">
+      <h2>Add Song</h2>
+      <form id="addSongForm">
+        <input id="songTitle" type="text" placeholder="Song title" />
+        <input id="songMovie" type="text" placeholder="Movie name" />
+        <input id="songSinger" type="text" placeholder="Singer name" />
+        <textarea id="songLyrics" placeholder="Paste full lyrics"></textarea>
+        <button type="submit">Save Song</button>
+        <div id="formStatus" class="info"></div>
+      </form>
+    </div>
+
+    <div class="search-bar">
+      <input id="searchInput" type="text" placeholder="Type 2-3 words..." />
+      <button id="clearBtn" type="button">❌</button>
+    </div>
 
     <div id="results"></div>
   </div>
 
-  <script src="songs.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <script>
-    
+    const SUPABASE_URL = "https://fppyrhsnqgisfxkdbkka.supabase.co";
+    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZwcHlyaHNucWdpc2Z4a2Ria2thIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM1MzAxMjMsImV4cCI6MjA4OTEwNjEyM30.pXf_6qzEVw_fQpalyWsfxXgHrlbs1IA9BBmwfqmurDo";
+
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    let songs = [];
 
     function normalize(text) {
-      return String(text)
+      return String(text || "")
         .toLowerCase()
         .replace(/[^\w\s]/g, "")
         .replace(/\s+/g, " ")
         .trim();
     }
 
-   function searchSongs(query) {
-  const q = normalize(query);
-  if (!q) return [];
+    async function loadSongs() {
+      const status = document.getElementById("status");
+      status.textContent = "Loading songs...";
 
-  const words = q.split(" ").filter(Boolean);
+      const { data, error } = await supabaseClient
+        .from("songs")
+        .select("*")
+        .order("id", { ascending: false });
 
-  return songs.filter(song => {
-    const fullText = normalize(
-      song.title + " " + song.movie + " " + song.singer + " " + song.lyrics
-    );
+      if (error) {
+        console.error("Load error:", error);
+        status.textContent = "Failed to load songs";
+        return;
+      }
 
-    return words.every(word => fullText.includes(word));
-  }).slice(0, 5);
-}
+      songs = data || [];
+      status.textContent = `Loaded ${songs.length} songs`;
+    }
+
+    function searchSongs(query) {
+      const q = normalize(query);
+      if (!q) return [];
+
+      const words = q.split(" ").filter(Boolean);
+
+      return songs.filter(song => {
+        const fullText = normalize(
+          `${song.title || ""} ${song.movie || ""} ${song.singer || ""} ${song.lyrics || ""}`
+        );
+
+        return words.every(word => fullText.includes(word));
+      }).slice(0, 10);
+    }
 
     function renderResults(results) {
       const resultsDiv = document.getElementById("results");
 
-      if (results.length === 0) {
+      if (!results.length) {
         resultsDiv.innerHTML = "";
         return;
       }
 
       resultsDiv.innerHTML = results.map(song => `
         <div class="card">
-          <div class="title">${song.title}</div>
-          <div class="meta">${song.movie} • ${song.singer}</div>
-          <div class="lyrics">${song.lyrics}</div>
+          <div class="title">${song.title || ""}</div>
+          <div class="meta">${song.movie || ""} • ${song.singer || ""}</div>
+          <div class="lyrics">${song.lyrics || ""}</div>
         </div>
       `).join("");
     }
 
-    function init() {
-      const micBtn = document.getElementById("micBtn");
+    async function addSong(event) {
+      event.preventDefault();
+
+      const title = document.getElementById("songTitle").value.trim();
+      const movie = document.getElementById("songMovie").value.trim();
+      const singer = document.getElementById("songSinger").value.trim();
+      const lyrics = document.getElementById("songLyrics").value.trim();
+      const formStatus = document.getElementById("formStatus");
+
+      if (!title || !lyrics) {
+        formStatus.textContent = "Title and lyrics are required";
+        return;
+      }
+
+      formStatus.textContent = "Saving...";
+
+      const { error } = await supabaseClient
+        .from("songs")
+        .insert([{ title, movie, singer, lyrics }]);
+
+      if (error) {
+        console.error("Insert error:", error);
+        formStatus.textContent = "Failed to save song";
+        return;
+      }
+
+      formStatus.textContent = "Song added";
+
+      document.getElementById("songTitle").value = "";
+      document.getElementById("songMovie").value = "";
+      document.getElementById("songSinger").value = "";
+      document.getElementById("songLyrics").value = "";
+
+      await loadSongs();
+
+      const input = document.getElementById("searchInput");
+      renderResults(searchSongs(input.value));
+    }
+
+    async function init() {
       const input = document.getElementById("searchInput");
       const clearBtn = document.getElementById("clearBtn");
-      const status = document.getElementById("status");
+      const addSongForm = document.getElementById("addSongForm");
 
-      status.textContent = `Loaded ${songs.length} songs`;
-micBtn.addEventListener("click", () => {
-  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-
-  if (!SpeechRecognition) {
-    alert("Mic not supported here. Use your keyboard mic.");
-    return;
-  }
-
-  const recognition = new SpeechRecognition();
-  recognition.lang = "hi-IN";
-  recognition.interimResults = false;
-  recognition.maxAlternatives = 1;
-
-  recognition.onresult = (event) => {
-    const spokenText = event.results[0][0].transcript;
-    input.value = spokenText;
-    const results = searchSongs(spokenText);
-    renderResults(results);
-  };
-
-  recognition.onerror = () => {
-    alert("Mic failed. Try again or use keyboard mic.");
-  };
-
-  recognition.start();
-});
       input.addEventListener("input", () => {
-        const results = searchSongs(input.value);
-        renderResults(results);
+        renderResults(searchSongs(input.value));
       });
 
       clearBtn.addEventListener("click", () => {
@@ -182,6 +284,9 @@ micBtn.addEventListener("click", () => {
         input.focus();
       });
 
+      addSongForm.addEventListener("submit", addSong);
+
+      await loadSongs();
       input.focus();
     }
 
