@@ -1226,6 +1226,21 @@
    async function ensureProfile(user, fallbackName = "") {
   if (!user) return null;
 
+  const { data: existing, error: fetchError } = await supabaseClient
+    .from("profiles")
+    .select("*")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if (fetchError) {
+    console.error("PROFILE FETCH ERROR:", fetchError);
+    throw fetchError;
+  }
+
+  if (existing) {
+    return existing;
+  }
+
   const payload = {
     id: user.id,
     email: user.email || "",
@@ -1234,49 +1249,18 @@
     role: "user"
   };
 
-  const { error: upsertError } = await supabaseClient
+  const { data, error: insertError } = await supabaseClient
     .from("profiles")
-    .upsert([payload], { onConflict: "id" });
-
-  if (upsertError) {
-    console.error("PROFILE UPSERT ERROR:", upsertError);
-    throw upsertError;
-  }
-
-  const { data, error: fetchError } = await supabaseClient
-    .from("profiles")
-    .select("*")
-    .eq("id", user.id)
+    .insert([payload])
+    .select()
     .single();
 
-  if (fetchError) {
-    console.error("PROFILE FETCH AFTER UPSERT ERROR:", fetchError);
-    throw fetchError;
+  if (insertError) {
+    console.error("PROFILE INSERT ERROR:", insertError);
+    throw insertError;
   }
 
   return data;
-}
-    async function loadProfile() {
-  if (!session?.user) {
-    profile = null;
-    return null;
-  }
-
-  await ensureProfile(session.user, "");
-
-  const { data, error } = await supabaseClient
-    .from("profiles")
-    .select("*")
-    .eq("id", session.user.id)
-    .single();
-
-  if (error) {
-    console.error("LOAD PROFILE ERROR:", error);
-    throw error;
-  }
-
-  profile = data;
-  return profile;
 }
 
     async function signUpRequest() {
