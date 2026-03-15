@@ -1181,54 +1181,43 @@
     // =========================
     // AUTH / PROFILE
     // =========================
-    async function ensureProfile(user, fallbackName = "") {
-      if (!user) return null;
+   async function ensureProfile(user, fallbackName = "") {
+  if (!user) return null;
 
-      const { data: existing, error: fetchError } = await supabaseClient
-        .from("profiles")
-        .select("*")
-        .eq("id", user.id)
-        .maybeSingle();
+  const { data: existing, error: fetchError } = await supabaseClient
+    .from("profiles")
+    .select("*")
+    .eq("id", user.id)
+    .maybeSingle();
 
-      if (fetchError) {
-        console.error(fetchError);
-        return null;
-      }
+  if (fetchError) {
+    console.error("PROFILE FETCH ERROR:", fetchError);
+    throw fetchError;
+  }
 
-      if (existing) return existing;
+  if (existing) return existing;
 
-      const insertPayload = {
-        id: user.id,
-        email: user.email || "",
-        name: fallbackName || user.user_metadata?.name || "",
-        approved: false,
-        role: "user"
-      };
+  const insertPayload = {
+    id: user.id,
+    email: user.email || "",
+    name: fallbackName || user.user_metadata?.name || "",
+    approved: false,
+    role: "user"
+  };
 
-      const { data: inserted, error: insertError } = await supabaseClient
-        .from("profiles")
-        .insert([insertPayload])
-        .select()
-        .single();
+  const { data: inserted, error: insertError } = await supabaseClient
+    .from("profiles")
+    .insert([insertPayload])
+    .select()
+    .single();
 
-      if (insertError) {
-        console.error(insertError);
-        return null;
-      }
+  if (insertError) {
+    console.error("PROFILE INSERT ERROR:", insertError);
+    throw insertError;
+  }
 
-      return inserted;
-    }
-
-    async function loadProfile() {
-      if (!session?.user) {
-        profile = null;
-        return null;
-      }
-
-      profile = await ensureProfile(session.user, "");
-      return profile;
-    }
-
+  return inserted;
+}
     async function signUpRequest() {
       const name = document.getElementById("authName").value.trim();
       const email = document.getElementById("authEmail").value.trim();
@@ -1812,24 +1801,55 @@
     // =========================
     // BOOTSTRAP
     // =========================
-    async function bootstrap() {
-      const { data } = await supabaseClient.auth.getSession();
-      session = data.session || null;
+   async function bootstrap() {
+  try {
+    showStatus("authStatus", "", "info");
+    showStatus("appStatus", "", "info");
 
-      if (session?.user) {
-        await loadProfile();
-      } else {
-        profile = null;
-      }
+    const { data, error } = await supabaseClient.auth.getSession();
 
-      renderScreens();
-
-      if (session?.user && profile?.approved) {
-        renderAppShell();
-        await loadSongs();
-        activateTab("search");
-      }
+    if (error) {
+      throw error;
     }
+
+    session = data.session || null;
+
+    if (session?.user) {
+      await loadProfile();
+    } else {
+      profile = null;
+    }
+
+    renderScreens();
+
+    if (!session?.user) {
+      return;
+    }
+
+    if (!profile) {
+      document.getElementById("authScreen").classList.remove("hidden");
+      showStatus("authStatus", "Logged in, but profile could not be loaded.", "error");
+      return;
+    }
+
+    if (!profile.approved) {
+      document.getElementById("pendingScreen").classList.remove("hidden");
+      return;
+    }
+
+    renderAppShell();
+    await loadSongs();
+    activateTab("search");
+  } catch (err) {
+    console.error("BOOTSTRAP ERROR:", err);
+
+    document.getElementById("authScreen").classList.remove("hidden");
+    document.getElementById("pendingScreen").classList.add("hidden");
+    document.getElementById("appScreen").classList.add("hidden");
+
+    showStatus("authStatus", "App failed to start: " + (err?.message || err), "error");
+  }
+}
 
     // =========================
     // EVENTS
@@ -1944,15 +1964,21 @@
       });
 
       supabaseClient.auth.onAuthStateChange(async () => {
-        await bootstrap();
-      });
+  try {
+    await bootstrap();
+  } catch (err) {
+    console.error("AUTH STATE ERROR:", err);
+    document.getElementById("authScreen").classList.remove("hidden");
+    showStatus("authStatus", "Auth state error: " + (err?.message || err), "error");
+  }
+});
     }
 
-   bindEvents();
-bootstrap().catch(err => {
-  console.error(err);
+  bindEvents();
+  bootstrap().catch(err => {
+  console.error("INITIAL START ERROR:", err);
   document.getElementById("authScreen").classList.remove("hidden");
-  showStatus("authStatus", "App failed to start: " + err.message, "error");
+  showStatus("authStatus", "Initial start error: " + (err?.message || err), "error");
 });
   </script>
 </body>
