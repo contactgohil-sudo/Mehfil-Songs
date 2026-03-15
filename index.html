@@ -8,179 +8,267 @@
   <style>
     * { box-sizing: border-box; }
 
+    :root {
+      --bg: #f6f7fb;
+      --card: #ffffff;
+      --text: #111827;
+      --muted: #6b7280;
+      --line: #e5e7eb;
+      --primary: #111827;
+      --primary-soft: #f3f4f6;
+      --danger-soft: #fef2f2;
+      --danger: #b91c1c;
+      --warn-soft: #fff7ed;
+      --warn: #9a3412;
+      --success-soft: #ecfdf5;
+      --success: #166534;
+      --shadow: 0 8px 30px rgba(0,0,0,0.06);
+      --radius: 16px;
+    }
+
     body {
-      font-family: Arial, sans-serif;
-      background: #f5f5f5;
-      color: #111;
       margin: 0;
+      font-family: Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
       padding: 12px;
       overflow-x: hidden;
     }
 
     .container {
       width: 100%;
-      max-width: 900px;
+      max-width: 1100px;
       margin: 0 auto;
     }
 
-    h1 {
-      font-size: 28px;
-      margin: 0 0 8px;
-    }
+    .hidden { display: none !important; }
 
-    .top-row {
+    .topbar {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      gap: 10px;
+      gap: 12px;
+      margin-bottom: 14px;
       flex-wrap: wrap;
-      margin-bottom: 10px;
     }
 
-    .info {
-      color: #444;
+    .brand-wrap {
+      min-width: 0;
+    }
+
+    .brand {
+      margin: 0;
+      font-size: 30px;
+      line-height: 1.15;
+    }
+
+    .sub {
+      color: var(--muted);
       font-size: 14px;
+      margin-top: 4px;
     }
 
-    .error-box {
-      background: #fff3cd;
-      color: #856404;
-      border: 1px solid #ffe69c;
-      padding: 10px 12px;
-      border-radius: 10px;
-      margin-bottom: 12px;
-      display: none;
-      white-space: pre-wrap;
+    .top-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
     }
 
-    .admin-toggle {
-      background: #111;
-      color: white;
-      border: none;
-      border-radius: 10px;
+    .pill {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 999px;
       padding: 10px 14px;
-      font-size: 14px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .btn, .btn-secondary, .btn-danger {
+      border: none;
+      border-radius: 12px;
+      padding: 11px 14px;
       cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
     }
 
-    .admin-box {
-      background: white;
-      border: 1px solid #ddd;
-      border-radius: 14px;
+    .btn {
+      background: var(--primary);
+      color: white;
+    }
+
+    .btn-secondary {
+      background: var(--card);
+      color: var(--text);
+      border: 1px solid var(--line);
+    }
+
+    .btn-danger {
+      background: #111827;
+      color: white;
+    }
+
+    .screen-card, .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+
+    .screen-card {
+      max-width: 540px;
+      margin: 36px auto 0;
+      padding: 18px;
+    }
+
+    .card {
       padding: 16px;
-      margin-bottom: 18px;
-      display: none;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      margin-bottom: 14px;
     }
 
-    .admin-box.show { display: block; }
-
-    .admin-box h2 {
+    .section-title {
       margin: 0 0 10px;
       font-size: 20px;
     }
 
-    .admin-box input,
-    .admin-box textarea {
-      width: 100%;
-      margin-bottom: 10px;
-      padding: 12px;
-      font-size: 16px;
-      border-radius: 10px;
-      border: 1px solid #ccc;
-      outline: none;
-      background: white;
-      color: #111;
-    }
-
-    .admin-box textarea {
-      min-height: 180px;
-      resize: vertical;
-    }
-
-    .admin-actions {
+    .row {
       display: flex;
       gap: 10px;
-      align-items: center;
       flex-wrap: wrap;
     }
 
-    .save-btn,
-    .close-btn,
-    .cancel-edit-btn {
-      border: none;
-      border-radius: 10px;
-      padding: 10px 14px;
+    .row > .field {
+      flex: 1 1 240px;
+    }
+
+    .field {
+      margin-bottom: 10px;
+    }
+
+    .field label {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 13px;
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    .input, .textarea, .select {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 13px 14px;
+      font-size: 15px;
+      background: white;
+      color: var(--text);
+      outline: none;
+    }
+
+    .textarea {
+      min-height: 170px;
+      resize: vertical;
+    }
+
+    .stack-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+      margin-top: 6px;
+    }
+
+    .status-box {
+      margin-bottom: 12px;
+      border-radius: 12px;
+      padding: 12px 14px;
       font-size: 14px;
+      white-space: pre-wrap;
+      display: none;
+    }
+
+    .status-box.show { display: block; }
+    .status-info { background: var(--primary-soft); color: var(--text); border: 1px solid var(--line); }
+    .status-warn { background: var(--warn-soft); color: var(--warn); border: 1px solid #fed7aa; }
+    .status-error { background: var(--danger-soft); color: var(--danger); border: 1px solid #fecaca; }
+    .status-success { background: var(--success-soft); color: var(--success); border: 1px solid #bbf7d0; }
+
+    .tabs {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+    }
+
+    .tab-btn {
+      border: 1px solid var(--line);
+      background: white;
+      color: var(--text);
+      border-radius: 999px;
+      padding: 10px 14px;
       cursor: pointer;
+      font-weight: 600;
+      font-size: 14px;
     }
 
-    .save-btn {
-      background: #111;
+    .tab-btn.active {
+      background: var(--primary);
       color: white;
-    }
-
-    .close-btn,
-    .cancel-edit-btn {
-      background: #ddd;
-      color: #111;
+      border-color: var(--primary);
     }
 
     .search-bar {
       display: flex;
       gap: 8px;
-      margin-bottom: 18px;
-      width: 100%;
       align-items: stretch;
+      margin-bottom: 14px;
     }
 
     .search-input {
       flex: 1;
       min-width: 0;
-      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 14px;
       padding: 16px;
       font-size: 20px;
-      border-radius: 14px;
-      border: 1px solid #ccc;
-      outline: none;
       background: white;
-      color: #111;
+      color: var(--text);
+      outline: none;
     }
 
     .icon-btn {
-      border: 1px solid #ccc;
-      border-radius: 14px;
-      padding: 0 16px;
-      font-size: 24px;
-      cursor: pointer;
-      min-width: 58px;
+      border: 1px solid var(--line);
       background: white;
-      color: #111;
+      color: var(--text);
+      border-radius: 14px;
+      min-width: 56px;
+      padding: 0 14px;
+      font-size: 22px;
+      cursor: pointer;
       flex-shrink: 0;
     }
 
     .mic-listening {
-      background: #ffe5e5;
-      border-color: #ff7b7b;
+      background: #fee2e2;
+      border-color: #fca5a5;
     }
 
-    .result-card {
+    .result-card, .song-row {
       background: white;
-      border: 1px solid #ddd;
+      border: 1px solid var(--line);
       border-radius: 14px;
       padding: 14px;
       margin-bottom: 10px;
-      width: 100%;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
       display: flex;
       justify-content: space-between;
-      gap: 12px;
       align-items: flex-start;
+      gap: 12px;
       cursor: pointer;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.03);
     }
 
-    .result-card:hover {
-      border-color: #bbb;
+    .result-card:hover, .song-row:hover {
+      border-color: #cbd5e1;
     }
 
     .result-main {
@@ -189,57 +277,136 @@
     }
 
     .song-title {
-      font-size: 19px;
-      font-weight: bold;
+      font-size: 18px;
+      font-weight: 700;
       margin-bottom: 4px;
     }
 
     .song-meta {
-      color: #555;
+      color: var(--muted);
       font-size: 14px;
       margin-bottom: 6px;
     }
 
     .song-snippet {
-      color: #333;
+      color: #374151;
       font-size: 14px;
       line-height: 1.5;
       white-space: pre-wrap;
     }
 
     .edit-btn {
-      border: 1px solid #ccc;
+      border: 1px solid var(--line);
       background: white;
-      color: #111;
+      color: var(--text);
       border-radius: 10px;
       width: 38px;
       height: 38px;
       min-width: 38px;
       padding: 0;
-      font-size: 18px;
       cursor: pointer;
+      font-size: 18px;
       flex-shrink: 0;
     }
 
     .empty {
-      color: #666;
-      text-align: center;
-      padding: 20px 10px;
       background: white;
-      border: 1px solid #ddd;
+      border: 1px solid var(--line);
       border-radius: 14px;
+      padding: 18px;
+      color: var(--muted);
+      text-align: center;
     }
 
-    .hint {
-      margin-top: 8px;
-      color: #666;
+    .toolbar {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+
+    .toolbar-left, .toolbar-right {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .group-card {
+      background: white;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      margin-bottom: 12px;
+      overflow: hidden;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.03);
+    }
+
+    .group-head {
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      cursor: pointer;
+      background: #fafafa;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .group-head strong {
+      font-size: 16px;
+    }
+
+    .group-count {
+      color: var(--muted);
       font-size: 13px;
+    }
+
+    .group-body {
+      padding: 10px;
+    }
+
+    .group-body.hidden {
+      display: none;
+    }
+
+    .tiny {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .pending-user {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 12px;
+      background: white;
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .pending-user-main {
+      min-width: 0;
+    }
+
+    .pending-user-title {
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .pending-user-meta {
+      font-size: 13px;
+      color: var(--muted);
+      word-break: break-word;
     }
 
     .modal {
       position: fixed;
       inset: 0;
-      background: rgba(0,0,0,0.45);
+      background: rgba(0,0,0,0.48);
       display: none;
       align-items: center;
       justify-content: center;
@@ -247,19 +414,17 @@
       z-index: 1000;
     }
 
-    .modal.show {
-      display: flex;
-    }
+    .modal.show { display: flex; }
 
     .modal-card {
-      background: white;
       width: 100%;
       max-width: 760px;
-      max-height: 85vh;
+      max-height: 86vh;
       overflow: auto;
-      border-radius: 16px;
-      padding: 16px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.18);
+      background: white;
+      border-radius: 18px;
+      padding: 18px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.18);
     }
 
     .modal-top {
@@ -272,112 +437,259 @@
 
     .modal-title {
       font-size: 24px;
-      font-weight: bold;
+      font-weight: 700;
       margin-bottom: 4px;
     }
 
     .modal-meta {
-      color: #555;
+      color: var(--muted);
       font-size: 14px;
     }
 
     .modal-actions {
       display: flex;
       gap: 8px;
+      flex-wrap: wrap;
       flex-shrink: 0;
     }
 
     .modal-btn {
       border: none;
-      border-radius: 10px;
+      border-radius: 12px;
       padding: 10px 12px;
-      background: #111;
+      background: var(--primary);
       color: white;
       cursor: pointer;
       font-size: 14px;
+      font-weight: 600;
     }
 
     .lyrics-full {
-      line-height: 1.8;
-      white-space: pre-wrap;
-      font-size: 16px;
-      color: #111;
       margin-top: 10px;
+      white-space: pre-wrap;
+      line-height: 1.8;
+      font-size: 16px;
+      color: var(--text);
     }
 
     mark {
-      background: #ffeb3b;
-      color: #111;
+      background: #fde68a;
+      color: #111827;
       padding: 0 2px;
       border-radius: 3px;
     }
 
-    @media (max-width: 480px) {
+    .footer {
+      text-align: center;
+      color: var(--muted);
+      font-size: 13px;
+      padding: 18px 8px 12px;
+    }
+
+    @media (max-width: 640px) {
       body { padding: 10px; }
-      h1 { font-size: 24px; }
+      .brand { font-size: 26px; }
+      .screen-card { margin-top: 18px; }
       .search-input { font-size: 18px; padding: 14px; }
-      .icon-btn { font-size: 22px; min-width: 52px; }
-      .result-card { padding: 12px; }
+      .icon-btn { min-width: 52px; font-size: 20px; }
       .song-title { font-size: 17px; }
-      .song-snippet { font-size: 13px; }
+      .modal-title { font-size: 20px; }
+      .lyrics-full { font-size: 15px; }
       .edit-btn {
         width: 34px;
         height: 34px;
         min-width: 34px;
         font-size: 16px;
       }
-      .modal-title { font-size: 20px; }
-      .lyrics-full { font-size: 15px; }
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>Mehfil Lyrics Search</h1>
+    <!-- AUTH SCREEN -->
+    <section id="authScreen" class="screen-card hidden">
+      <h2 class="section-title">Login / Request Access</h2>
+      <div class="sub">Only approved members can enter the library.</div>
 
-    <div class="top-row">
-      <div class="info" id="status">Loading...</div>
-      <button id="toggleAdminBtn" class="admin-toggle" type="button">+ Add Song</button>
-    </div>
+      <div id="authStatus" class="status-box"></div>
 
-    <div id="errorBox" class="error-box"></div>
-
-    <div class="admin-box" id="adminBox">
-      <h2 id="formHeading">Add Song</h2>
-      <form id="songForm">
-        <input id="songTitle" type="text" placeholder="Song title" />
-        <input id="songMovie" type="text" placeholder="Movie name" />
-        <input id="songSinger" type="text" placeholder="Singer name" />
-        <textarea id="songLyrics" placeholder="Paste full lyrics"></textarea>
-
-        <div class="admin-actions">
-          <button class="save-btn" id="saveSongBtn" type="submit">Save Song</button>
-          <button class="cancel-edit-btn" id="cancelEditBtn" type="button" style="display:none;">Cancel Edit</button>
-          <button class="close-btn" id="closeAdminBtn" type="button">Close</button>
-          <div id="formStatus" class="info"></div>
+      <div class="row" style="margin-top:14px;">
+        <div class="field">
+          <label for="authName">Name</label>
+          <input id="authName" class="input" type="text" placeholder="Your name" />
         </div>
-      </form>
-      <div class="hint">Search shows song list first. Tap a song to open full lyrics. Edit is enabled. Delete is not included.</div>
-    </div>
+      </div>
 
-    <div class="search-bar">
-      <button id="micBtn" class="icon-btn" type="button" title="Speak">🎤</button>
-      <input
-        id="searchInput"
-        class="search-input"
-        type="text"
-        placeholder="Search by lyrics, singer, movie, or song..."
-        autocomplete="off"
-        autocapitalize="none"
-        spellcheck="false"
-        enterkeyhint="search"
-      />
-      <button id="clearBtn" class="icon-btn" type="button" title="Clear">✕</button>
-    </div>
+      <div class="row">
+        <div class="field">
+          <label for="authEmail">Email</label>
+          <input id="authEmail" class="input" type="email" placeholder="name@example.com" />
+        </div>
+      </div>
 
-    <div id="results"></div>
+      <div class="row">
+        <div class="field">
+          <label for="authPassword">Password</label>
+          <input id="authPassword" class="input" type="password" placeholder="Enter password" />
+        </div>
+      </div>
+
+      <div class="stack-actions">
+        <button id="loginBtn" class="btn" type="button">Login</button>
+        <button id="signupBtn" class="btn-secondary" type="button">Request Access</button>
+      </div>
+
+      <div class="tiny" style="margin-top:10px;">
+        Request Access creates your account. An admin must approve it before you can enter.
+      </div>
+    </section>
+
+    <!-- PENDING SCREEN -->
+    <section id="pendingScreen" class="screen-card hidden">
+      <h2 class="section-title">Waiting for Approval</h2>
+      <div class="sub">
+        Your account exists, but access is not approved yet.
+      </div>
+
+      <div id="pendingStatus" class="status-box show status-warn" style="margin-top:14px;">
+        Your request is pending. After an admin approves your account, log in again with the same email and password.
+      </div>
+
+      <div class="stack-actions">
+        <button id="pendingRefreshBtn" class="btn-secondary" type="button">Refresh Status</button>
+        <button id="pendingLogoutBtn" class="btn" type="button">Logout</button>
+      </div>
+    </section>
+
+    <!-- APP SCREEN -->
+    <section id="appScreen" class="hidden">
+      <div class="topbar">
+        <div class="brand-wrap">
+          <h1 class="brand">Mehfil Lyrics Search</h1>
+          <div class="sub" id="welcomeLine">Loading...</div>
+        </div>
+
+        <div class="top-actions">
+          <div id="libraryCountPill" class="pill">0 songs</div>
+          <button id="toggleAddBtn" class="btn hidden" type="button">+ Add Song</button>
+          <button id="logoutBtn" class="btn-secondary" type="button">Logout</button>
+        </div>
+      </div>
+
+      <div id="appStatus" class="status-box"></div>
+
+      <div class="tabs">
+        <button id="tabSearchBtn" class="tab-btn active" type="button">Search</button>
+        <button id="tabListBtn" class="tab-btn" type="button">List of Songs</button>
+        <button id="tabAdminBtn" class="tab-btn hidden" type="button">Pending Requests</button>
+      </div>
+
+      <!-- ADD / EDIT -->
+      <section id="songEditorCard" class="card hidden">
+        <h2 id="editorHeading" class="section-title">Add Song</h2>
+
+        <form id="songForm">
+          <div class="row">
+            <div class="field">
+              <label for="songTitle">Song title</label>
+              <input id="songTitle" class="input" type="text" placeholder="Song title" />
+            </div>
+            <div class="field">
+              <label for="songMovie">Movie name</label>
+              <input id="songMovie" class="input" type="text" placeholder="Movie name" />
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="field">
+              <label for="songSinger">Singer name</label>
+              <input id="songSinger" class="input" type="text" placeholder="Singer name" />
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="songLyrics">Lyrics</label>
+            <textarea id="songLyrics" class="textarea" placeholder="Paste full lyrics"></textarea>
+          </div>
+
+          <div class="stack-actions">
+            <button id="saveSongBtn" class="btn" type="submit">Save Song</button>
+            <button id="cancelEditBtn" class="btn-secondary hidden" type="button">Cancel Edit</button>
+            <button id="closeEditorBtn" class="btn-secondary" type="button">Close</button>
+            <span id="editorStatus" class="tiny"></span>
+          </div>
+
+          <div class="tiny" style="margin-top:10px;">
+            Duplicate songs are blocked using song title + movie name.
+          </div>
+        </form>
+      </section>
+
+      <!-- SEARCH TAB -->
+      <section id="searchTab">
+        <div class="card">
+          <div class="search-bar">
+            <button id="micBtn" class="icon-btn" type="button" title="Speak">🎤</button>
+            <input
+              id="searchInput"
+              class="search-input"
+              type="text"
+              placeholder="Search by lyrics, singer, movie, or song..."
+              autocomplete="off"
+              autocapitalize="none"
+              spellcheck="false"
+              enterkeyhint="search"
+            />
+            <button id="clearBtn" class="icon-btn" type="button" title="Clear">✕</button>
+          </div>
+
+          <div id="searchResults"></div>
+        </div>
+      </section>
+
+      <!-- LIST TAB -->
+      <section id="listTab" class="hidden">
+        <div class="card">
+          <div class="toolbar">
+            <div class="toolbar-left">
+              <strong>Library</strong>
+              <span class="tiny">Browse by movie or singer</span>
+            </div>
+
+            <div class="toolbar-right">
+              <label class="tiny" for="groupMode">Sort / Group</label>
+              <select id="groupMode" class="select" style="width:auto; min-width:160px;">
+                <option value="movie">By Movie</option>
+                <option value="singer">By Singer</option>
+              </select>
+            </div>
+          </div>
+
+          <div id="songGroups"></div>
+        </div>
+      </section>
+
+      <!-- ADMIN TAB -->
+      <section id="adminTab" class="hidden">
+        <div class="card">
+          <div class="toolbar">
+            <div class="toolbar-left">
+              <strong>Pending Signup Requests</strong>
+            </div>
+            <div class="toolbar-right">
+              <button id="refreshPendingBtn" class="btn-secondary" type="button">Refresh</button>
+            </div>
+          </div>
+
+          <div id="pendingUsersList"></div>
+        </div>
+      </section>
+    </section>
+
+    <div class="footer">© 2026 Mehfil. All rights reserved.</div>
   </div>
 
+  <!-- LYRICS MODAL -->
   <div id="songModal" class="modal">
     <div class="modal-card">
       <div class="modal-top">
@@ -385,11 +697,13 @@
           <div id="modalTitle" class="modal-title"></div>
           <div id="modalMeta" class="modal-meta"></div>
         </div>
+
         <div class="modal-actions">
-          <button id="modalEditBtn" class="modal-btn" type="button">Edit</button>
+          <button id="modalEditBtn" class="modal-btn hidden" type="button">Edit</button>
           <button id="modalCloseBtn" class="modal-btn" type="button">Close</button>
         </div>
       </div>
+
       <div id="modalLyrics" class="lyrics-full"></div>
     </div>
   </div>
@@ -398,18 +712,79 @@
   <script src="https://cdn.jsdelivr.net/npm/fuse.js@7.1.0"></script>
 
   <script>
-    const SUPABASE_URL = "https://fppyrhsnqgisfxkdbkka.supabase.co";
-    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZwcHlyaHNucWdpc2Z4a2Ria2thIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM1MzAxMjMsImV4cCI6MjA4OTEwNjEyM30.pXf_6qzEVw_fQpalyWsfxXgHrlbs1IA9BBmwfqmurDo";
+    // =========================
+    // CONFIG
+    // =========================
+    const SUPABASE_URL = "YOUR_SUPABASE_URL";
+    const SUPABASE_KEY = "YOUR_SUPABASE_ANON_KEY";
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+    // =========================
+    // STATE
+    // =========================
+    let session = null;
+    let profile = null;
     let songs = [];
     let preparedSongs = [];
     let fuse = null;
     let editingSongId = null;
-    let activeRecognition = null;
     let openSongId = null;
     let lastQuery = "";
+    let activeRecognition = null;
+    let expandedGroups = new Set();
 
+    // =========================
+    // UTIL
+    // =========================
+    function escapeHtml(text) {
+      return String(text || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
+    function normalizeText(text) {
+      return String(text || "")
+        .toLowerCase()
+        .normalize("NFC")
+        .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?"'!|[\]\\]/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+    }
+
+    function normalizeKey(text) {
+      return normalizeText(text);
+    }
+
+    function joinMeta(parts) {
+      return parts.filter(Boolean).join(" • ");
+    }
+
+    function showStatus(id, message, type = "info") {
+      const el = document.getElementById(id);
+      if (!el) return;
+      if (!message) {
+        el.className = "status-box";
+        el.textContent = "";
+        return;
+      }
+      el.className = `status-box show status-${type}`;
+      el.textContent = message;
+    }
+
+    function isApproved() {
+      return !!profile?.approved;
+    }
+
+    function isAdmin() {
+      return profile?.role === "admin" && !!profile?.approved;
+    }
+
+    // =========================
+    // TRANSLITERATION
+    // =========================
     const DEV_VOWELS = {
       "अ":"a","आ":"aa","इ":"i","ई":"ii","उ":"u","ऊ":"uu","ऋ":"ri","ॠ":"rii","ऌ":"li","ॡ":"lii",
       "ए":"e","ऐ":"ai","ओ":"o","औ":"au","ऑ":"o","ऍ":"e"
@@ -451,39 +826,6 @@
     };
     const GUJ_SIGNS = { "ં":"n","ઃ":"h","ઁ":"n","્":"", "઼":"" };
 
-    function showError(message) {
-      const box = document.getElementById("errorBox");
-      if (!message) {
-        box.style.display = "none";
-        box.textContent = "";
-        return;
-      }
-      box.style.display = "block";
-      box.textContent = message;
-    }
-
-    function escapeHtml(text) {
-      return String(text || "")
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#39;");
-    }
-
-    function normalizeText(text) {
-      return String(text || "")
-        .toLowerCase()
-        .normalize("NFC")
-        .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?"'!|[\]\\]/g, " ")
-        .replace(/\s+/g, " ")
-        .trim();
-    }
-
-    function isLatinQuery(text) {
-      return /[a-z]/i.test(text || "");
-    }
-
     function transliterateIndicWithMap(text) {
       const source = String(text || "").normalize("NFC");
       let out = "";
@@ -492,7 +834,9 @@
       function pushChunk(chunk, start, end) {
         if (!chunk) return;
         out += chunk;
-        for (let i = 0; i < chunk.length; i++) map.push({ start, end });
+        for (let i = 0; i < chunk.length; i++) {
+          map.push({ start, end });
+        }
       }
 
       function processScript(index, vowels, matras, cons, signs, viramaChar) {
@@ -502,10 +846,12 @@
           pushChunk(vowels[ch], index, index + 1);
           return 1;
         }
+
         if (signs[ch] !== undefined) {
           pushChunk(signs[ch], index, index + 1);
           return 1;
         }
+
         if (cons[ch]) {
           const next = source[index + 1];
           if (next === viramaChar) {
@@ -519,12 +865,14 @@
           pushChunk(cons[ch] + "a", index, index + 1);
           return 1;
         }
+
         return 0;
       }
 
       let i = 0;
       while (i < source.length) {
         const ch = source[i];
+
         if (/\s/.test(ch)) {
           pushChunk(" ", i, i + 1);
           i += 1;
@@ -532,10 +880,16 @@
         }
 
         let consumed = processScript(i, DEV_VOWELS, DEV_MATRAS, DEV_CONS, DEV_SIGNS, "्");
-        if (consumed) { i += consumed; continue; }
+        if (consumed) {
+          i += consumed;
+          continue;
+        }
 
         consumed = processScript(i, GUJ_VOWELS, GUJ_MATRAS, GUJ_CONS, GUJ_SIGNS, "્");
-        if (consumed) { i += consumed; continue; }
+        if (consumed) {
+          i += consumed;
+          continue;
+        }
 
         pushChunk(ch.toLowerCase(), i, i + 1);
         i += 1;
@@ -573,6 +927,13 @@
       return Array.from(variants).join(" ");
     }
 
+    function isLatinQuery(text) {
+      return /[a-z]/i.test(text || "");
+    }
+
+    // =========================
+    // SONG PREP / SEARCH
+    // =========================
     function buildPreparedSong(song) {
       const title = String(song.title || "");
       const movie = String(song.movie || "");
@@ -611,34 +972,12 @@
         ignoreLocation: true,
         minMatchCharLength: 2,
         keys: [
-          { name: "_searchText", weight: 0.84 },
-          { name: "_titleSearch", weight: 0.08 },
-          { name: "_movieSearch", weight: 0.04 },
-          { name: "_singerSearch", weight: 0.04 }
+          { name: "_searchText", weight: 0.80 },
+          { name: "_titleSearch", weight: 0.10 },
+          { name: "_movieSearch", weight: 0.05 },
+          { name: "_singerSearch", weight: 0.05 }
         ]
       });
-    }
-
-    async function loadSongs() {
-      const status = document.getElementById("status");
-      status.textContent = "Loading songs...";
-      showError("");
-
-      const { data, error } = await supabaseClient
-        .from("songs")
-        .select("*")
-        .order("id", { ascending: false });
-
-      if (error) {
-        console.error(error);
-        status.textContent = "Failed to load songs";
-        showError(`Load error: ${error.message}`);
-        return;
-      }
-
-      songs = data || [];
-      rebuildFuse();
-      status.textContent = `Loaded ${songs.length} songs`;
     }
 
     function getQueryVariants(query) {
@@ -658,19 +997,53 @@
       if (!q || !fuse) return [];
 
       const variants = getQueryVariants(query);
-      const candidates = fuse.search(q).slice(0, 30).map(r => r.item);
 
-      return candidates.map(song => {
+      const directMatches = preparedSongs
+        .map(song => {
+          const titleExact = song._titleSearch === q;
+          const titleStarts = song._titleSearch.startsWith(q);
+          const titleContains = anyIncludes(song._titleSearch, variants);
+          const movieContains = anyIncludes(song._movieSearch, variants);
+          const singerContains = anyIncludes(song._singerSearch, variants);
+          const lyricsContains = anyIncludes(song._lyricsSearch, variants);
+
+          let score = 0;
+          if (titleExact) score += 100;
+          if (titleStarts) score += 60;
+          if (titleContains) score += 30;
+          if (movieContains) score += 20;
+          if (singerContains) score += 20;
+          if (lyricsContains) score += 10;
+
+          if (score === 0) return null;
+
+          return {
+            ...song,
+            _matchType: {
+              title: titleContains,
+              movie: movieContains,
+              singer: singerContains,
+              lyrics: lyricsContains
+            },
+            _score: score
+          };
+        })
+        .filter(Boolean);
+
+      const fuseMatches = fuse.search(q).slice(0, 40).map(r => {
+        const song = r.item;
         const titleMatch = anyIncludes(song._titleSearch, variants);
         const movieMatch = anyIncludes(song._movieSearch, variants);
         const singerMatch = anyIncludes(song._singerSearch, variants);
         const lyricsMatch = anyIncludes(song._lyricsSearch, variants) || (!titleMatch && !movieMatch && !singerMatch);
 
         let score = 0;
-        if (titleMatch) score += 5;
-        if (movieMatch) score += 5;
-        if (singerMatch) score += 5;
-        if (lyricsMatch) score += 2;
+        if (titleMatch) score += 14;
+        if (movieMatch) score += 10;
+        if (singerMatch) score += 10;
+        if (lyricsMatch) score += 6;
+
+        score += Math.max(0, Math.round((1 - (r.score || 1)) * 20));
 
         return {
           ...song,
@@ -682,7 +1055,17 @@
           },
           _score: score
         };
-      }).sort((a, b) => b._score - a._score).slice(0, 15);
+      });
+
+      const merged = new Map();
+      [...directMatches, ...fuseMatches].forEach(song => {
+        const prev = merged.get(song.id);
+        if (!prev || song._score > prev._score) merged.set(song.id, song);
+      });
+
+      return Array.from(merged.values())
+        .sort((a, b) => b._score - a._score || String(a.title).localeCompare(String(b.title)))
+        .slice(0, 20);
     }
 
     function mergeRanges(ranges) {
@@ -739,6 +1122,7 @@
         .sort((a, b) => b.length - a.length);
 
       const ranges = [];
+
       for (const variant of romanQueryVariants) {
         const lookFor = normalizeText(variant);
         if (!lookFor) continue;
@@ -747,7 +1131,9 @@
         while (pos !== -1) {
           const mapStart = romanMap[pos];
           const mapEnd = romanMap[Math.min(pos + lookFor.length - 1, romanMap.length - 1)];
-          if (mapStart && mapEnd) ranges.push([mapStart.start, mapEnd.end]);
+          if (mapStart && mapEnd) {
+            ranges.push([mapStart.start, mapEnd.end]);
+          }
           pos = roman.indexOf(lookFor, pos + 1);
         }
       }
@@ -792,29 +1178,303 @@
       return prefix + highlightText(miniSong, query) + suffix;
     }
 
-    function openSong(songId) {
-      const song = preparedSongs.find(s => s.id === songId);
-      if (!song) return;
+    // =========================
+    // AUTH / PROFILE
+    // =========================
+    async function ensureProfile(user, fallbackName = "") {
+      if (!user) return null;
 
-      openSongId = songId;
-      document.getElementById("modalTitle").textContent = song.title || "";
-      document.getElementById("modalMeta").textContent = `${song.movie || ""} • ${song.singer || ""}`;
-      document.getElementById("modalLyrics").innerHTML = highlightText(song, lastQuery);
-      document.getElementById("songModal").classList.add("show");
-      document.body.style.overflow = "hidden";
+      const { data: existing, error: fetchError } = await supabaseClient
+        .from("profiles")
+        .select("*")
+        .eq("id", user.id)
+        .maybeSingle();
+
+      if (fetchError) {
+        console.error(fetchError);
+        return null;
+      }
+
+      if (existing) return existing;
+
+      const insertPayload = {
+        id: user.id,
+        email: user.email || "",
+        name: fallbackName || user.user_metadata?.name || "",
+        approved: false,
+        role: "user"
+      };
+
+      const { data: inserted, error: insertError } = await supabaseClient
+        .from("profiles")
+        .insert([insertPayload])
+        .select()
+        .single();
+
+      if (insertError) {
+        console.error(insertError);
+        return null;
+      }
+
+      return inserted;
     }
 
-    function closeSongModal() {
-      openSongId = null;
-      document.getElementById("songModal").classList.remove("show");
-      document.body.style.overflow = "";
+    async function loadProfile() {
+      if (!session?.user) {
+        profile = null;
+        return null;
+      }
+
+      profile = await ensureProfile(session.user, "");
+      return profile;
     }
 
+    async function signUpRequest() {
+      const name = document.getElementById("authName").value.trim();
+      const email = document.getElementById("authEmail").value.trim();
+      const password = document.getElementById("authPassword").value;
+
+      if (!name || !email || !password) {
+        showStatus("authStatus", "Name, email, and password are required.", "error");
+        return;
+      }
+
+      showStatus("authStatus", "Creating account request...", "info");
+
+      const { data, error } = await supabaseClient.auth.signUp({
+        email,
+        password,
+        options: {
+          data: { name }
+        }
+      });
+
+      if (error) {
+        showStatus("authStatus", error.message, "error");
+        return;
+      }
+
+      if (data?.session?.user) {
+        await ensureProfile(data.session.user, name);
+      }
+
+      showStatus(
+        "authStatus",
+        "Request created. If email confirmation is enabled in Supabase, confirm your email first. After that, wait for admin approval and then log in.",
+        "success"
+      );
+    }
+
+    async function loginUser() {
+      const email = document.getElementById("authEmail").value.trim();
+      const password = document.getElementById("authPassword").value;
+
+      if (!email || !password) {
+        showStatus("authStatus", "Email and password are required.", "error");
+        return;
+      }
+
+      showStatus("authStatus", "Logging in...", "info");
+
+      const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+
+      if (error) {
+        showStatus("authStatus", error.message, "error");
+        return;
+      }
+
+      showStatus("authStatus", "", "info");
+      await bootstrap();
+    }
+
+    async function logoutUser() {
+      stopActiveRecognition();
+      await supabaseClient.auth.signOut();
+      session = null;
+      profile = null;
+      songs = [];
+      preparedSongs = [];
+      fuse = null;
+      bootstrap();
+    }
+
+    // =========================
+    // SONG DATA
+    // =========================
+    async function loadSongs() {
+      if (!isApproved()) return;
+
+      showStatus("appStatus", "Loading songs...", "info");
+
+      const { data, error } = await supabaseClient
+        .from("songs")
+        .select("*")
+        .order("title", { ascending: true });
+
+      if (error) {
+        console.error(error);
+        showStatus("appStatus", error.message, "error");
+        return;
+      }
+
+      songs = data || [];
+      rebuildFuse();
+      renderResults([], "");
+      renderSongGroups();
+      document.getElementById("libraryCountPill").textContent = `${songs.length} songs`;
+      showStatus("appStatus", "", "info");
+    }
+
+    function duplicateSongExists(title, movie, ignoreId = null) {
+      const titleNorm = normalizeKey(title);
+      const movieNorm = normalizeKey(movie);
+
+      return songs.find(song => {
+        if (ignoreId && Number(song.id) === Number(ignoreId)) return false;
+        return song.title_norm === titleNorm && (song.movie_norm || "") === movieNorm;
+      }) || null;
+    }
+
+    async function saveSong(event) {
+      event.preventDefault();
+
+      const title = document.getElementById("songTitle").value.trim();
+      const movie = document.getElementById("songMovie").value.trim();
+      const singer = document.getElementById("songSinger").value.trim();
+      const lyrics = document.getElementById("songLyrics").value.trim();
+      const editorStatus = document.getElementById("editorStatus");
+
+      if (!title || !lyrics) {
+        editorStatus.textContent = "Title and lyrics are required.";
+        return;
+      }
+
+      const duplicate = duplicateSongExists(title, movie, editingSongId);
+      if (duplicate) {
+        editorStatus.textContent = "Duplicate blocked. This song already exists for the same movie.";
+        openSong(duplicate.id);
+        return;
+      }
+
+      const payload = {
+        title,
+        movie,
+        singer,
+        lyrics,
+        title_norm: normalizeKey(title),
+        movie_norm: normalizeKey(movie),
+        singer_norm: normalizeKey(singer)
+      };
+
+      editorStatus.textContent = editingSongId ? "Updating..." : "Saving...";
+
+      let response;
+      if (editingSongId) {
+        response = await supabaseClient
+          .from("songs")
+          .update(payload)
+          .eq("id", editingSongId);
+      } else {
+        response = await supabaseClient
+          .from("songs")
+          .insert([payload]);
+      }
+
+      if (response.error) {
+        console.error(response.error);
+
+        if (String(response.error.message || "").toLowerCase().includes("duplicate")
+          || String(response.error.message || "").toLowerCase().includes("unique")) {
+          editorStatus.textContent = "Duplicate blocked by database.";
+        } else {
+          editorStatus.textContent = response.error.message;
+        }
+        return;
+      }
+
+      editorStatus.textContent = editingSongId ? "Song updated." : "Song saved.";
+
+      const currentEditId = editingSongId;
+      resetSongForm();
+      closeEditor();
+      await loadSongs();
+
+      if (lastQuery.trim()) {
+        renderResults(searchSongs(lastQuery), lastQuery);
+      }
+
+      if (currentEditId) {
+        openSong(currentEditId);
+      }
+    }
+
+    // =========================
+    // ADMIN REQUESTS
+    // =========================
+    async function loadPendingUsers() {
+      if (!isAdmin()) return;
+
+      const { data, error } = await supabaseClient
+        .from("profiles")
+        .select("*")
+        .eq("approved", false)
+        .order("created_at", { ascending: true });
+
+      if (error) {
+        console.error(error);
+        document.getElementById("pendingUsersList").innerHTML = `<div class="empty">${escapeHtml(error.message)}</div>`;
+        return;
+      }
+
+      renderPendingUsers(data || []);
+    }
+
+    function renderPendingUsers(users) {
+      const root = document.getElementById("pendingUsersList");
+
+      if (!users.length) {
+        root.innerHTML = `<div class="empty">No pending requests.</div>`;
+        return;
+      }
+
+      root.innerHTML = users.map(user => `
+        <div class="pending-user">
+          <div class="pending-user-main">
+            <div class="pending-user-title">${escapeHtml(user.name || "Unnamed User")}</div>
+            <div class="pending-user-meta">${escapeHtml(user.email || "")}</div>
+            <div class="pending-user-meta">Requested: ${escapeHtml(new Date(user.created_at).toLocaleString())}</div>
+          </div>
+
+          <div class="stack-actions">
+            <button class="btn" type="button" data-approve-id="${user.id}">Approve</button>
+          </div>
+        </div>
+      `).join("");
+    }
+
+    async function approveUser(profileId) {
+      const { error } = await supabaseClient
+        .from("profiles")
+        .update({ approved: true })
+        .eq("id", profileId);
+
+      if (error) {
+        showStatus("appStatus", error.message, "error");
+        return;
+      }
+
+      showStatus("appStatus", "User approved.", "success");
+      await loadPendingUsers();
+    }
+
+    // =========================
+    // RENDER SEARCH
+    // =========================
     function renderResults(results, query = "") {
-      const root = document.getElementById("results");
+      const root = document.getElementById("searchResults");
 
       if (!query.trim()) {
-        root.innerHTML = `<div class="empty">Type lyrics, singer, movie, or song name. Tap a result to open full lyrics.</div>`;
+        root.innerHTML = `<div class="empty">Type lyrics, singer, movie, or song name. The app shows the song list first. Tap a song to open full lyrics.</div>`;
         return;
       }
 
@@ -825,95 +1485,179 @@
 
       root.innerHTML = results.map(song => {
         const snippet = buildSnippet(song, query);
+        const editButton = isApproved()
+          ? `<button class="edit-btn" type="button" data-edit-id="${song.id}" title="Edit">✎</button>`
+          : "";
+
         return `
           <div class="result-card" data-song-id="${song.id}">
             <div class="result-main">
               <div class="song-title">${escapeHtml(song.title || "")}</div>
-              <div class="song-meta">${escapeHtml(song.movie || "")} • ${escapeHtml(song.singer || "")}</div>
+              <div class="song-meta">${escapeHtml(joinMeta([song.movie, song.singer]))}</div>
               ${snippet ? `<div class="song-snippet">${snippet}</div>` : ""}
             </div>
-            <button class="edit-btn" type="button" data-edit-id="${song.id}" title="Edit">✎</button>
+            ${editButton}
           </div>
         `;
       }).join("");
     }
 
-    function resetForm() {
+    // =========================
+    // GROUPED LIST
+    // =========================
+    function getGroupKey(song, mode) {
+      const raw = mode === "singer" ? (song.singer || "") : (song.movie || "");
+      return raw.trim() || (mode === "singer" ? "Unknown Singer" : "Unknown Movie");
+    }
+
+    function renderSongGroups() {
+      const root = document.getElementById("songGroups");
+      const mode = document.getElementById("groupMode").value || "movie";
+
+      if (!preparedSongs.length) {
+        root.innerHTML = `<div class="empty">No songs in library yet.</div>`;
+        return;
+      }
+
+      const groupsMap = new Map();
+
+      preparedSongs
+        .slice()
+        .sort((a, b) => {
+          const ga = getGroupKey(a, mode).localeCompare(getGroupKey(b, mode));
+          if (ga !== 0) return ga;
+          return String(a.title || "").localeCompare(String(b.title || ""));
+        })
+        .forEach(song => {
+          const group = getGroupKey(song, mode);
+          if (!groupsMap.has(group)) groupsMap.set(group, []);
+          groupsMap.get(group).push(song);
+        });
+
+      const groups = Array.from(groupsMap.entries());
+
+      if (!expandedGroups.size) {
+        groups.slice(0, 8).forEach(([key]) => expandedGroups.add(`${mode}::${key}`));
+      }
+
+      root.innerHTML = groups.map(([groupName, groupSongs]) => {
+        const key = `${mode}::${groupName}`;
+        const open = expandedGroups.has(key);
+
+        return `
+          <div class="group-card">
+            <div class="group-head" data-group-key="${escapeHtml(key)}">
+              <div>
+                <strong>${escapeHtml(groupName)}</strong>
+                <div class="group-count">${groupSongs.length} song${groupSongs.length > 1 ? "s" : ""}</div>
+              </div>
+              <div>${open ? "▾" : "▸"}</div>
+            </div>
+
+            <div class="group-body ${open ? "" : "hidden"}" data-group-body="${escapeHtml(key)}">
+              ${groupSongs.map(song => `
+                <div class="song-row" data-song-id="${song.id}">
+                  <div class="result-main">
+                    <div class="song-title">${escapeHtml(song.title || "")}</div>
+                    <div class="song-meta">${escapeHtml(joinMeta([song.movie, song.singer]))}</div>
+                  </div>
+                  ${isApproved() ? `<button class="edit-btn" type="button" data-edit-id="${song.id}" title="Edit">✎</button>` : ""}
+                </div>
+              `).join("")}
+            </div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    // =========================
+    // MODAL
+    // =========================
+    function openSong(songId) {
+      const song = preparedSongs.find(s => Number(s.id) === Number(songId));
+      if (!song) return;
+
+      openSongId = Number(songId);
+      document.getElementById("modalTitle").textContent = song.title || "";
+      document.getElementById("modalMeta").textContent = joinMeta([song.movie, song.singer]);
+      document.getElementById("modalLyrics").innerHTML = highlightText(song, lastQuery);
+      document.getElementById("modalEditBtn").classList.toggle("hidden", !isApproved());
+      document.getElementById("songModal").classList.add("show");
+      document.body.style.overflow = "hidden";
+    }
+
+    function closeSongModal() {
+      openSongId = null;
+      document.getElementById("songModal").classList.remove("show");
+      document.body.style.overflow = "";
+    }
+
+    // =========================
+    // EDITOR
+    // =========================
+    function resetSongForm() {
       editingSongId = null;
-      document.getElementById("formHeading").textContent = "Add Song";
+      document.getElementById("editorHeading").textContent = "Add Song";
       document.getElementById("saveSongBtn").textContent = "Save Song";
-      document.getElementById("cancelEditBtn").style.display = "none";
+      document.getElementById("cancelEditBtn").classList.add("hidden");
       document.getElementById("songTitle").value = "";
       document.getElementById("songMovie").value = "";
       document.getElementById("songSinger").value = "";
       document.getElementById("songLyrics").value = "";
-      document.getElementById("formStatus").textContent = "";
+      document.getElementById("editorStatus").textContent = "";
     }
 
-    function startEdit(songId) {
-      const song = songs.find(s => s.id === songId);
-      if (!song) return;
-
-      editingSongId = song.id;
-      document.getElementById("formHeading").textContent = "Edit Song";
-      document.getElementById("saveSongBtn").textContent = "Update Song";
-      document.getElementById("cancelEditBtn").style.display = "inline-block";
-      document.getElementById("songTitle").value = song.title || "";
-      document.getElementById("songMovie").value = song.movie || "";
-      document.getElementById("songSinger").value = song.singer || "";
-      document.getElementById("songLyrics").value = song.lyrics || "";
-      document.getElementById("adminBox").classList.add("show");
-      closeSongModal();
+    function openEditor() {
+      if (!isApproved()) return;
+      document.getElementById("songEditorCard").classList.remove("hidden");
       document.getElementById("songTitle").focus();
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
 
-    async function saveSong(event) {
-      event.preventDefault();
-
-      const title = document.getElementById("songTitle").value.trim();
-      const movie = document.getElementById("songMovie").value.trim();
-      const singer = document.getElementById("songSinger").value.trim();
-      const lyrics = document.getElementById("songLyrics").value.trim();
-      const formStatus = document.getElementById("formStatus");
-
-      if (!title || !lyrics) {
-        formStatus.textContent = "Title and lyrics are required";
-        return;
-      }
-
-      formStatus.textContent = editingSongId ? "Updating..." : "Saving...";
-      showError("");
-
-      let response;
-      if (editingSongId) {
-        response = await supabaseClient
-          .from("songs")
-          .update({ title, movie, singer, lyrics })
-          .eq("id", editingSongId);
-      } else {
-        response = await supabaseClient
-          .from("songs")
-          .insert([{ title, movie, singer, lyrics }]);
-      }
-
-      if (response.error) {
-        console.error(response.error);
-        formStatus.textContent = editingSongId ? "Failed to update song" : "Failed to save song";
-        showError(`Save error: ${response.error.message}`);
-        return;
-      }
-
-      await loadSongs();
-
-      renderResults(searchSongs(lastQuery), lastQuery);
-
-      if (openSongId) openSong(openSongId);
-
-      resetForm();
-      document.getElementById("adminBox").classList.remove("show");
+    function closeEditor() {
+      document.getElementById("songEditorCard").classList.add("hidden");
+      resetSongForm();
     }
 
+    function startEdit(songId) {
+      const song = songs.find(s => Number(s.id) === Number(songId));
+      if (!song || !isApproved()) return;
+
+      editingSongId = song.id;
+      document.getElementById("editorHeading").textContent = "Edit Song";
+      document.getElementById("saveSongBtn").textContent = "Update Song";
+      document.getElementById("cancelEditBtn").classList.remove("hidden");
+      document.getElementById("songTitle").value = song.title || "";
+      document.getElementById("songMovie").value = song.movie || "";
+      document.getElementById("songSinger").value = song.singer || "";
+      document.getElementById("songLyrics").value = song.lyrics || "";
+      openEditor();
+      closeSongModal();
+    }
+
+    // =========================
+    // TABS
+    // =========================
+    function activateTab(tabName) {
+      const searchTab = document.getElementById("searchTab");
+      const listTab = document.getElementById("listTab");
+      const adminTab = document.getElementById("adminTab");
+
+      document.getElementById("tabSearchBtn").classList.toggle("active", tabName === "search");
+      document.getElementById("tabListBtn").classList.toggle("active", tabName === "list");
+      document.getElementById("tabAdminBtn").classList.toggle("active", tabName === "admin");
+
+      searchTab.classList.toggle("hidden", tabName !== "search");
+      listTab.classList.toggle("hidden", tabName !== "list");
+      adminTab.classList.toggle("hidden", tabName !== "admin");
+
+      if (tabName === "list") renderSongGroups();
+      if (tabName === "admin" && isAdmin()) loadPendingUsers();
+    }
+
+    // =========================
+    // MIC
+    // =========================
     function setMicUiState(listening) {
       const micBtn = document.getElementById("micBtn");
       if (listening) {
@@ -944,10 +1688,10 @@
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
       input.focus();
-      showError("");
+      showStatus("appStatus", "", "info");
 
       if (!SpeechRecognition) {
-        showError("This phone/browser does not support the webpage mic here. Use a browser that supports speech recognition, or use the keyboard mic.");
+        showStatus("appStatus", "This browser does not support webpage speech recognition here. Use keyboard input or another browser.", "warn");
         return;
       }
 
@@ -966,7 +1710,7 @@
 
         recognition.onstart = () => {
           setMicUiState(true);
-          showError("Listening...");
+          showStatus("appStatus", "Listening...", "info");
         };
 
         recognition.onresult = (event) => {
@@ -990,15 +1734,15 @@
           setMicUiState(false);
 
           if (event.error === "not-allowed") {
-            showError("Mic permission blocked. Allow microphone access in browser settings.");
+            showStatus("appStatus", "Mic permission blocked. Allow microphone access in browser settings.", "warn");
           } else if (event.error === "language-not-supported") {
-            showError("This browser does not support the detected speech language.");
+            showStatus("appStatus", "This browser does not support the detected speech language.", "warn");
           } else if (event.error === "no-speech") {
-            showError("No speech detected. Tap again and speak immediately.");
+            showStatus("appStatus", "No speech detected. Tap again and speak immediately.", "warn");
           } else if (event.error === "audio-capture") {
-            showError("No microphone detected by the browser.");
+            showStatus("appStatus", "No microphone detected by the browser.", "warn");
           } else {
-            showError(`Mic error: ${event.error}.`);
+            showStatus("appStatus", `Mic error: ${event.error}`, "warn");
           }
 
           activeRecognition = null;
@@ -1008,11 +1752,10 @@
           setMicUiState(false);
           activeRecognition = null;
 
-          const currentText = input.value.trim();
-          if (!currentText) {
-            showError("Mic stopped. Tap again and speak immediately.");
+          if (!input.value.trim()) {
+            showStatus("appStatus", "Mic stopped. Tap again and speak immediately.", "warn");
           } else {
-            showError("");
+            showStatus("appStatus", "", "info");
           }
         };
 
@@ -1020,53 +1763,126 @@
       } catch (error) {
         setMicUiState(false);
         activeRecognition = null;
-        showError("Webpage mic could not start on this phone/browser.");
+        showStatus("appStatus", "Webpage mic could not start on this device/browser.", "warn");
       }
     }
 
-    async function init() {
-      const input = document.getElementById("searchInput");
-      const clearBtn = document.getElementById("clearBtn");
-      const micBtn = document.getElementById("micBtn");
-      const form = document.getElementById("songForm");
-      const toggleAdminBtn = document.getElementById("toggleAdminBtn");
-      const closeAdminBtn = document.getElementById("closeAdminBtn");
-      const cancelEditBtn = document.getElementById("cancelEditBtn");
-      const adminBox = document.getElementById("adminBox");
-      const songModal = document.getElementById("songModal");
-      const modalCloseBtn = document.getElementById("modalCloseBtn");
-      const modalEditBtn = document.getElementById("modalEditBtn");
-      const results = document.getElementById("results");
+    // =========================
+    // SCREEN ROUTING
+    // =========================
+    function renderScreens() {
+      const authScreen = document.getElementById("authScreen");
+      const pendingScreen = document.getElementById("pendingScreen");
+      const appScreen = document.getElementById("appScreen");
 
-      input.addEventListener("input", () => {
-        lastQuery = input.value;
-        renderResults(searchSongs(input.value), input.value);
+      authScreen.classList.add("hidden");
+      pendingScreen.classList.add("hidden");
+      appScreen.classList.add("hidden");
+
+      if (!session?.user) {
+        authScreen.classList.remove("hidden");
+        return;
+      }
+
+      if (!profile) {
+        authScreen.classList.remove("hidden");
+        return;
+      }
+
+      if (!profile.approved) {
+        pendingScreen.classList.remove("hidden");
+        return;
+      }
+
+      appScreen.classList.remove("hidden");
+    }
+
+    function renderAppShell() {
+      if (!profile) return;
+
+      const welcome = document.getElementById("welcomeLine");
+      const toggleAddBtn = document.getElementById("toggleAddBtn");
+      const tabAdminBtn = document.getElementById("tabAdminBtn");
+
+      welcome.textContent = `Logged in as ${profile.name || profile.email || "User"}${isAdmin() ? " • Admin" : ""}`;
+      toggleAddBtn.classList.toggle("hidden", !isApproved());
+      tabAdminBtn.classList.toggle("hidden", !isAdmin());
+    }
+
+    // =========================
+    // BOOTSTRAP
+    // =========================
+    async function bootstrap() {
+      const { data } = await supabaseClient.auth.getSession();
+      session = data.session || null;
+
+      if (session?.user) {
+        await loadProfile();
+      } else {
+        profile = null;
+      }
+
+      renderScreens();
+
+      if (session?.user && profile?.approved) {
+        renderAppShell();
+        await loadSongs();
+        activateTab("search");
+      }
+    }
+
+    // =========================
+    // EVENTS
+    // =========================
+    function bindEvents() {
+      document.getElementById("signupBtn").addEventListener("click", signUpRequest);
+      document.getElementById("loginBtn").addEventListener("click", loginUser);
+      document.getElementById("logoutBtn").addEventListener("click", logoutUser);
+      document.getElementById("pendingLogoutBtn").addEventListener("click", logoutUser);
+
+      document.getElementById("pendingRefreshBtn").addEventListener("click", async () => {
+        await bootstrap();
       });
 
-      clearBtn.addEventListener("click", () => {
-        input.value = "";
+      document.getElementById("toggleAddBtn").addEventListener("click", () => {
+        resetSongForm();
+        openEditor();
+      });
+
+      document.getElementById("closeEditorBtn").addEventListener("click", closeEditor);
+      document.getElementById("cancelEditBtn").addEventListener("click", () => {
+        resetSongForm();
+        closeEditor();
+      });
+
+      document.getElementById("songForm").addEventListener("submit", saveSong);
+
+      document.getElementById("tabSearchBtn").addEventListener("click", () => activateTab("search"));
+      document.getElementById("tabListBtn").addEventListener("click", () => activateTab("list"));
+      document.getElementById("tabAdminBtn").addEventListener("click", () => activateTab("admin"));
+
+      document.getElementById("refreshPendingBtn").addEventListener("click", loadPendingUsers);
+
+      document.getElementById("groupMode").addEventListener("change", () => {
+        expandedGroups = new Set();
+        renderSongGroups();
+      });
+
+      document.getElementById("searchInput").addEventListener("input", (e) => {
+        lastQuery = e.target.value;
+        renderResults(searchSongs(lastQuery), lastQuery);
+      });
+
+      document.getElementById("clearBtn").addEventListener("click", () => {
+        document.getElementById("searchInput").value = "";
         lastQuery = "";
         renderResults([], "");
-        input.focus();
+        document.getElementById("searchInput").focus();
       });
 
-      micBtn.addEventListener("click", startMicSearch);
+      document.getElementById("micBtn").addEventListener("click", startMicSearch);
 
-      toggleAdminBtn.addEventListener("click", () => {
-        adminBox.classList.toggle("show");
-        if (!adminBox.classList.contains("show")) resetForm();
-      });
-
-      closeAdminBtn.addEventListener("click", () => {
-        adminBox.classList.remove("show");
-        resetForm();
-      });
-
-      cancelEditBtn.addEventListener("click", resetForm);
-
-      form.addEventListener("submit", saveSong);
-
-      results.addEventListener("click", (e) => {
+      document.getElementById("searchResults").addEventListener("click", (e) => {
         const editBtn = e.target.closest("[data-edit-id]");
         if (editBtn) {
           e.stopPropagation();
@@ -1080,25 +1896,60 @@
         }
       });
 
-      modalCloseBtn.addEventListener("click", closeSongModal);
-      modalEditBtn.addEventListener("click", () => {
+      document.getElementById("songGroups").addEventListener("click", (e) => {
+        const editBtn = e.target.closest("[data-edit-id]");
+        if (editBtn) {
+          e.stopPropagation();
+          startEdit(Number(editBtn.dataset.editId));
+          return;
+        }
+
+        const groupHead = e.target.closest("[data-group-key]");
+        if (groupHead) {
+          const key = groupHead.dataset.groupKey;
+          if (expandedGroups.has(key)) expandedGroups.delete(key);
+          else expandedGroups.add(key);
+          renderSongGroups();
+          return;
+        }
+
+        const row = e.target.closest("[data-song-id]");
+        if (row) {
+          openSong(Number(row.dataset.songId));
+        }
+      });
+
+      document.getElementById("pendingUsersList").addEventListener("click", (e) => {
+        const btn = e.target.closest("[data-approve-id]");
+        if (btn) {
+          approveUser(btn.dataset.approveId);
+        }
+      });
+
+      document.getElementById("modalCloseBtn").addEventListener("click", closeSongModal);
+      document.getElementById("modalEditBtn").addEventListener("click", () => {
         if (openSongId) startEdit(openSongId);
       });
 
-      songModal.addEventListener("click", (e) => {
-        if (e.target === songModal) closeSongModal();
+      document.getElementById("songModal").addEventListener("click", (e) => {
+        if (e.target.id === "songModal") closeSongModal();
       });
 
       document.addEventListener("keydown", (e) => {
         if (e.key === "Escape") closeSongModal();
+
+        if (e.key === "Enter" && !session?.user && document.activeElement?.id !== "authPassword") {
+          // no-op
+        }
       });
 
-      await loadSongs();
-      renderResults([], "");
-      input.focus();
+      supabaseClient.auth.onAuthStateChange(async () => {
+        await bootstrap();
+      });
     }
 
-    init();
+    bindEvents();
+    bootstrap();
   </script>
 </body>
 </html>
