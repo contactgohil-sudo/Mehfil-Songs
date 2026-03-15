@@ -1261,6 +1261,28 @@
   }
 
   return data;
+  async function loadProfile() {
+  if (!session?.user) {
+    profile = null;
+    return null;
+  }
+
+  await ensureProfile(session.user, "");
+
+  const { data, error } = await supabaseClient
+    .from("profiles")
+    .select("*")
+    .eq("id", session.user.id)
+    .single();
+
+  if (error) {
+    console.error("LOAD PROFILE ERROR:", error);
+    throw error;
+  }
+
+  profile = data;
+  return profile;
+}   
 }
 
     async function signUpRequest() {
