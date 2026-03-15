@@ -715,8 +715,8 @@
     // =========================
     // CONFIG
     // =========================
-    const SUPABASE_URL = "https://fppyrhsnqgisfxkdbkka.supabase.co";
-    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZwcHlyaHNucWdpc2Z4a2Ria2thIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM1MzAxMjMsImV4cCI6MjA4OTEwNjEyM30.pXf_6qzEVw_fQpalyWsfxXgHrlbs1IA9BBmwfqmurDo";
+   const SUPABASE_URL = "https://fppyrhsnqgisfxkdbkka.supabase.co";
+   const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZwcHlyaHNucWdpc2Z4a2Ria2thIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM1MzAxMjMsImV4cCI6MjA4OTEwNjEyM30.pXf_6qzEVw_fQpalyWsfxXgHrlbs1IA9BBmwfqmurDo";
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     // =========================
@@ -1948,8 +1948,12 @@
       });
     }
 
-    bindEvents();
-    bootstrap();
+   bindEvents();
+bootstrap().catch(err => {
+  console.error(err);
+  document.getElementById("authScreen").classList.remove("hidden");
+  showStatus("authStatus", "App failed to start: " + err.message, "error");
+});
   </script>
 </body>
 </html>
