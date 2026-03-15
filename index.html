@@ -19,13 +19,13 @@
 
     .container {
       width: 100%;
-      max-width: 760px;
+      max-width: 860px;
       margin: 0 auto;
     }
 
     h1 {
       font-size: 28px;
-      margin-bottom: 8px;
+      margin: 0 0 8px;
     }
 
     .top-row {
@@ -73,12 +73,10 @@
       box-shadow: 0 2px 8px rgba(0,0,0,0.06);
     }
 
-    .admin-box.show {
-      display: block;
-    }
+    .admin-box.show { display: block; }
 
     .admin-box h2 {
-      margin-top: 0;
+      margin: 0 0 10px;
       font-size: 20px;
     }
 
@@ -200,7 +198,7 @@
     }
 
     .lyrics {
-      line-height: 1.7;
+      line-height: 1.75;
       white-space: pre-wrap;
       color: #111;
       font-size: 16px;
@@ -210,6 +208,12 @@
       color: #666;
       text-align: center;
       padding: 20px 10px;
+    }
+
+    .hint {
+      margin-top: 8px;
+      color: #666;
+      font-size: 13px;
     }
 
     mark {
@@ -243,7 +247,7 @@
 
     <div class="admin-box" id="adminBox">
       <h2 id="formHeading">Add Song</h2>
-      <form id="addSongForm">
+      <form id="songForm">
         <input id="songTitle" type="text" placeholder="Song title" />
         <input id="songMovie" type="text" placeholder="Movie name" />
         <input id="songSinger" type="text" placeholder="Singer name" />
@@ -256,37 +260,100 @@
           <div id="formStatus" class="info"></div>
         </div>
       </form>
+      <div class="hint">No delete button is included.</div>
     </div>
 
     <div class="search-bar">
-      <button id="micBtn" class="icon-btn" type="button">🎤</button>
-      <input id="searchInput" class="search-input" type="text" placeholder="Type or speak 2-3 words..." />
-      <button id="clearBtn" class="icon-btn" type="button">✕</button>
+      <button id="micBtn" class="icon-btn" type="button" title="Speak">🎤</button>
+      <input
+        id="searchInput"
+        class="search-input"
+        type="text"
+        placeholder="Type or speak 2-3 words..."
+        autocomplete="off"
+        autocapitalize="none"
+        spellcheck="false"
+        enterkeyhint="search"
+      />
+      <button id="clearBtn" class="icon-btn" type="button" title="Clear">✕</button>
     </div>
 
     <div id="results"></div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/fuse.js@7.1.0"></script>
 
   <script>
     const SUPABASE_URL = "https://fppyrhsnqgisfxkdbkka.supabase.co";
     const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZwcHlyaHNucWdpc2Z4a2Ria2thIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM1MzAxMjMsImV4cCI6MjA4OTEwNjEyM30.pXf_6qzEVw_fQpalyWsfxXgHrlbs1IA9BBmwfqmurDo";
-
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     let songs = [];
+    let preparedSongs = [];
+    let fuse = null;
     let editingSongId = null;
 
+    const DEV_VOWELS = {
+      "अ":"a","आ":"aa","इ":"i","ई":"ii","उ":"u","ऊ":"uu","ऋ":"ri","ॠ":"rii","ऌ":"li","ॡ":"lii",
+      "ए":"e","ऐ":"ai","ओ":"o","औ":"au","ऑ":"o","ऍ":"e"
+    };
+
+    const DEV_MATRAS = {
+      "ा":"aa","ि":"i","ी":"ii","ु":"u","ू":"uu","ृ":"ri","ॄ":"rii","ॢ":"li","ॣ":"lii",
+      "े":"e","ै":"ai","ो":"o","ौ":"au","ॅ":"e","ॉ":"o"
+    };
+
+    const DEV_CONS = {
+      "क":"k","ख":"kh","ग":"g","घ":"gh","ङ":"ng",
+      "च":"ch","छ":"chh","ज":"j","झ":"jh","ञ":"ny",
+      "ट":"t","ठ":"th","ड":"d","ढ":"dh","ण":"n",
+      "त":"t","थ":"th","द":"d","ध":"dh","न":"n",
+      "प":"p","फ":"ph","ब":"b","भ":"bh","म":"m",
+      "य":"y","र":"r","ल":"l","व":"v",
+      "श":"sh","ष":"sh","स":"s","ह":"h",
+      "ळ":"l","क्ष":"ksh","ज्ञ":"gy",
+      "क़":"q","ख़":"kh","ग़":"g","ज़":"z","ड़":"r","ढ़":"rh","फ़":"f","य़":"y"
+    };
+
+    const DEV_SIGNS = {
+      "ं":"n","ँ":"n","ः":"h","ऽ":"", "्":"", "़":""
+    };
+
+    const GUJ_VOWELS = {
+      "અ":"a","આ":"aa","ઇ":"i","ઈ":"ii","ઉ":"u","ઊ":"uu","ઋ":"ri","ૠ":"rii",
+      "એ":"e","ઐ":"ai","ઓ":"o","ઔ":"au"
+    };
+
+    const GUJ_MATRAS = {
+      "ા":"aa","િ":"i","ી":"ii","ુ":"u","ૂ":"uu","ૃ":"ri","ૄ":"rii",
+      "ે":"e","ૈ":"ai","ો":"o","ૌ":"au"
+    };
+
+    const GUJ_CONS = {
+      "ક":"k","ખ":"kh","ગ":"g","ઘ":"gh","ઙ":"ng",
+      "ચ":"ch","છ":"chh","જ":"j","ઝ":"jh","ઞ":"ny",
+      "ટ":"t","ઠ":"th","ડ":"d","ઢ":"dh","ણ":"n",
+      "ત":"t","થ":"th","દ":"d","ધ":"dh","ન":"n",
+      "પ":"p","ફ":"ph","બ":"b","ભ":"bh","મ":"m",
+      "ય":"y","ર":"r","લ":"l","વ":"v",
+      "શ":"sh","ષ":"sh","સ":"s","હ":"h",
+      "ળ":"l"
+    };
+
+    const GUJ_SIGNS = {
+      "ં":"n","ઃ":"h","ઁ":"n","્":"", "઼":""
+    };
+
     function showError(message) {
-      const errorBox = document.getElementById("errorBox");
+      const box = document.getElementById("errorBox");
       if (!message) {
-        errorBox.style.display = "none";
-        errorBox.textContent = "";
+        box.style.display = "none";
+        box.textContent = "";
         return;
       }
-      errorBox.style.display = "block";
-      errorBox.textContent = message;
+      box.style.display = "block";
+      box.textContent = message;
     }
 
     function escapeHtml(text) {
@@ -298,7 +365,7 @@
         .replace(/'/g, "&#39;");
     }
 
-    function normalize(text) {
+    function normalizeText(text) {
       return String(text || "")
         .toLowerCase()
         .normalize("NFC")
@@ -307,25 +374,160 @@
         .trim();
     }
 
-    function buildNormalizedMap(originalText) {
-      const original = String(originalText || "");
-      let normalized = "";
+    function isLatinQuery(text) {
+      return /[a-z]/i.test(text || "");
+    }
+
+    function transliterateIndicWithMap(text) {
+      const source = String(text || "").normalize("NFC");
+      let out = "";
       const map = [];
 
-      for (let i = 0; i < original.length; i++) {
-        const normalizedChar = original[i].toLowerCase().normalize("NFC");
-        for (let j = 0; j < normalizedChar.length; j++) {
-          normalized += normalizedChar[j];
-          map.push(i);
+      function pushChunk(chunk, start, end) {
+        if (!chunk) return;
+        out += chunk;
+        for (let i = 0; i < chunk.length; i++) {
+          map.push({ start, end });
         }
       }
 
-      normalized = normalized
-        .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?"'!|[\]\\]/g, " ")
-        .replace(/\s+/g, " ")
-        .trim();
+      function processScript(index, vowels, matras, cons, signs, viramaChar) {
+        const ch = source[index];
 
-      return { normalized, original };
+        if (vowels[ch]) {
+          pushChunk(vowels[ch], index, index + 1);
+          return 1;
+        }
+
+        if (signs[ch] !== undefined) {
+          pushChunk(signs[ch], index, index + 1);
+          return 1;
+        }
+
+        if (cons[ch]) {
+          const next = source[index + 1];
+
+          if (next === viramaChar) {
+            pushChunk(cons[ch], index, index + 2);
+            return 2;
+          }
+
+          if (matras[next]) {
+            pushChunk(cons[ch] + matras[next], index, index + 2);
+            return 2;
+          }
+
+          pushChunk(cons[ch] + "a", index, index + 1);
+          return 1;
+        }
+
+        return 0;
+      }
+
+      let i = 0;
+      while (i < source.length) {
+        const ch = source[i];
+
+        if (/\s/.test(ch)) {
+          pushChunk(" ", i, i + 1);
+          i += 1;
+          continue;
+        }
+
+        let consumed = processScript(i, DEV_VOWELS, DEV_MATRAS, DEV_CONS, DEV_SIGNS, "्");
+        if (consumed) {
+          i += consumed;
+          continue;
+        }
+
+        consumed = processScript(i, GUJ_VOWELS, GUJ_MATRAS, GUJ_CONS, GUJ_SIGNS, "્");
+        if (consumed) {
+          i += consumed;
+          continue;
+        }
+
+        pushChunk(ch.toLowerCase(), i, i + 1);
+        i += 1;
+      }
+
+      const normalizedRoman = normalizeText(out);
+      return {
+        roman: normalizedRoman,
+        map,
+        rawRoman: out
+      };
+    }
+
+    function addTypoFriendlyRomanVariants(text) {
+      const base = normalizeText(text);
+      const variants = new Set([base]);
+
+      if (!base) return "";
+
+      variants.add(base.replace(/aa/g, "a"));
+      variants.add(base.replace(/ii/g, "i"));
+      variants.add(base.replace(/uu/g, "u"));
+      variants.add(base.replace(/ph/g, "f"));
+      variants.add(base.replace(/bh/g, "b"));
+      variants.add(base.replace(/sh/g, "s"));
+      variants.add(base.replace(/chh/g, "ch"));
+      variants.add(base.replace(/v/g, "w"));
+      variants.add(base.replace(/w/g, "v"));
+      variants.add(base.replace(/oo/g, "u"));
+      variants.add(base.replace(/ee/g, "i"));
+      variants.add(base.replace(/kh/g, "k"));
+      variants.add(base.replace(/gh/g, "g"));
+      variants.add(base.replace(/jh/g, "j"));
+      variants.add(base.replace(/th/g, "t"));
+      variants.add(base.replace(/dh/g, "d"));
+
+      return Array.from(variants).join(" ");
+    }
+
+    function buildPreparedSong(song) {
+      const title = String(song.title || "");
+      const movie = String(song.movie || "");
+      const singer = String(song.singer || "");
+      const lyrics = String(song.lyrics || "");
+
+      const titleRomanObj = transliterateIndicWithMap(title);
+      const movieRomanObj = transliterateIndicWithMap(movie);
+      const singerRomanObj = transliterateIndicWithMap(singer);
+      const lyricsRomanObj = transliterateIndicWithMap(lyrics);
+
+      const searchParts = [
+        normalizeText(title),
+        normalizeText(movie),
+        normalizeText(singer),
+        normalizeText(lyrics),
+        addTypoFriendlyRomanVariants(titleRomanObj.roman),
+        addTypoFriendlyRomanVariants(movieRomanObj.roman),
+        addTypoFriendlyRomanVariants(singerRomanObj.roman),
+        addTypoFriendlyRomanVariants(lyricsRomanObj.roman)
+      ];
+
+      return {
+        ...song,
+        _searchText: normalizeText(searchParts.join(" ")),
+        _lyricsRoman: lyricsRomanObj.roman,
+        _lyricsRomanMap: lyricsRomanObj.map
+      };
+    }
+
+    function rebuildFuse() {
+      preparedSongs = songs.map(buildPreparedSong);
+      fuse = new Fuse(preparedSongs, {
+        includeScore: true,
+        threshold: 0.36,
+        ignoreLocation: true,
+        minMatchCharLength: 2,
+        keys: [
+          { name: "_searchText", weight: 0.8 },
+          { name: "title", weight: 0.12 },
+          { name: "movie", weight: 0.04 },
+          { name: "singer", weight: 0.04 }
+        ]
+      });
     }
 
     async function loadSongs() {
@@ -339,124 +541,148 @@
         .order("id", { ascending: false });
 
       if (error) {
-        console.error("Load error:", error);
+        console.error(error);
         status.textContent = "Failed to load songs";
         showError(`Load error: ${error.message}`);
         return;
       }
 
       songs = data || [];
+      rebuildFuse();
       status.textContent = `Loaded ${songs.length} songs`;
     }
 
     function searchSongs(query) {
-      const q = normalize(query);
-      if (!q) return [];
+      const q = normalizeText(query);
+      if (!q || !fuse) return [];
 
-      const words = q.split(" ").filter(Boolean);
-
-      const scored = songs.map(song => {
-        const title = normalize(song.title || "");
-        const movie = normalize(song.movie || "");
-        const singer = normalize(song.singer || "");
-        const lyrics = normalize(song.lyrics || "");
-
-        let score = 0;
-
-        for (const word of words) {
-          if (lyrics.includes(word)) score += 5;
-          if (title.includes(word)) score += 3;
-          if (movie.includes(word)) score += 2;
-          if (singer.includes(word)) score += 1;
-        }
-
-        return { song, score };
-      });
-
-      return scored
-        .filter(item => item.score > 0)
-        .sort((a, b) => b.score - a.score)
-        .map(item => item.song)
-        .slice(0, 10);
+      return fuse.search(q).map(result => result.item).slice(0, 10);
     }
 
-    function findHighlightRanges(text, query) {
-      const original = String(text || "");
-      const q = normalize(query);
-      if (!original || !q) return [];
+    function findDirectRanges(text, query) {
+      const source = String(text || "");
+      const rawQuery = String(query || "").normalize("NFC").trim();
+      if (!source || !rawQuery) return [];
 
-      const words = q.split(" ").filter(Boolean);
-      if (!words.length) return [];
-
-      const lowerOriginal = original.toLowerCase().normalize("NFC");
       const ranges = [];
+      const lowerSource = source.toLowerCase().normalize("NFC");
+      const rawWords = rawQuery
+        .toLowerCase()
+        .normalize("NFC")
+        .split(/\s+/)
+        .filter(Boolean);
 
-      // First try exact phrase highlight on normalized raw text
-      const exactIndex = lowerOriginal.indexOf(String(query).toLowerCase().normalize("NFC"));
-      if (exactIndex !== -1) {
-        ranges.push([exactIndex, exactIndex + String(query).length]);
+      const exactPhrase = rawQuery.toLowerCase().normalize("NFC");
+      let idx = lowerSource.indexOf(exactPhrase);
+      while (idx !== -1) {
+        ranges.push([idx, idx + exactPhrase.length]);
+        idx = lowerSource.indexOf(exactPhrase, idx + exactPhrase.length);
       }
 
-      // Then highlight individual words
-      for (const word of words) {
-        let startIndex = 0;
-        while (true) {
-          const found = lowerOriginal.indexOf(word, startIndex);
-          if (found === -1) break;
-          ranges.push([found, found + word.length]);
-          startIndex = found + word.length;
+      for (const word of rawWords) {
+        let pos = lowerSource.indexOf(word);
+        while (pos !== -1) {
+          ranges.push([pos, pos + word.length]);
+          pos = lowerSource.indexOf(word, pos + word.length);
         }
       }
 
-      // Merge overlapping ranges
-      ranges.sort((a, b) => a[0] - b[0]);
-      const merged = [];
+      return mergeRanges(ranges);
+    }
 
-      for (const range of ranges) {
-        if (!merged.length || range[0] > merged[merged.length - 1][1]) {
-          merged.push(range);
+    function findRomanMappedRanges(originalText, preparedSong, query) {
+      if (!isLatinQuery(query)) return [];
+
+      const roman = preparedSong._lyricsRoman || "";
+      const romanMap = preparedSong._lyricsRomanMap || [];
+      const romanQuery = addTypoFriendlyRomanVariants(query)
+        .split(/\s+/)
+        .filter(Boolean)
+        .sort((a, b) => b.length - a.length);
+
+      const ranges = [];
+
+      for (const variant of romanQuery) {
+        const lookFor = normalizeText(variant);
+        if (!lookFor) continue;
+
+        let pos = roman.indexOf(lookFor);
+        while (pos !== -1) {
+          const mapStart = romanMap[pos];
+          const mapEnd = romanMap[Math.min(pos + lookFor.length - 1, romanMap.length - 1)];
+
+          if (mapStart && mapEnd) {
+            ranges.push([mapStart.start, mapEnd.end]);
+          }
+
+          pos = roman.indexOf(lookFor, pos + 1);
+        }
+      }
+
+      return mergeRanges(ranges);
+    }
+
+    function mergeRanges(ranges) {
+      if (!ranges.length) return [];
+      ranges.sort((a, b) => a[0] - b[0]);
+
+      const merged = [ranges[0].slice()];
+
+      for (let i = 1; i < ranges.length; i++) {
+        const current = ranges[i];
+        const last = merged[merged.length - 1];
+
+        if (current[0] <= last[1]) {
+          last[1] = Math.max(last[1], current[1]);
         } else {
-          merged[merged.length - 1][1] = Math.max(merged[merged.length - 1][1], range[1]);
+          merged.push(current.slice());
         }
       }
 
       return merged;
     }
 
-    function highlightText(text, query) {
-      const original = String(text || "");
+    function highlightText(song, query) {
+      const original = String(song.lyrics || "");
       if (!query || !query.trim()) return escapeHtml(original);
 
-      const ranges = findHighlightRanges(original, query);
-      if (!ranges.length) return escapeHtml(original);
+      let ranges = findDirectRanges(original, query);
 
-      let result = "";
-      let lastIndex = 0;
-
-      for (const [start, end] of ranges) {
-        result += escapeHtml(original.slice(lastIndex, start));
-        result += `<mark>${escapeHtml(original.slice(start, end))}</mark>`;
-        lastIndex = end;
+      if (!ranges.length) {
+        ranges = findRomanMappedRanges(original, song, query);
       }
 
-      result += escapeHtml(original.slice(lastIndex));
+      if (!ranges.length) {
+        return escapeHtml(original);
+      }
+
+      let result = "";
+      let last = 0;
+
+      for (const [start, end] of ranges) {
+        result += escapeHtml(original.slice(last, start));
+        result += `<mark>${escapeHtml(original.slice(start, end))}</mark>`;
+        last = end;
+      }
+
+      result += escapeHtml(original.slice(last));
       return result;
     }
 
     function renderResults(results, query = "") {
-      const resultsDiv = document.getElementById("results");
+      const root = document.getElementById("results");
 
       if (!query.trim()) {
-        resultsDiv.innerHTML = `<div class="empty">Type or speak a few words to find lyrics.</div>`;
+        root.innerHTML = `<div class="empty">Type or speak a few words to find lyrics.</div>`;
         return;
       }
 
       if (!results.length) {
-        resultsDiv.innerHTML = `<div class="empty">No matching song found.</div>`;
+        root.innerHTML = `<div class="empty">No matching song found.</div>`;
         return;
       }
 
-      resultsDiv.innerHTML = results.map(song => `
+      root.innerHTML = results.map(song => `
         <div class="card">
           <div class="card-header">
             <div class="card-main">
@@ -465,7 +691,7 @@
             </div>
             <button class="edit-btn" type="button" onclick="startEdit(${song.id})">Edit</button>
           </div>
-          <div class="lyrics">${highlightText(song.lyrics || "", query)}</div>
+          <div class="lyrics">${highlightText(song, query)}</div>
         </div>
       `).join("");
     }
@@ -516,36 +742,30 @@
       formStatus.textContent = editingSongId ? "Updating..." : "Saving...";
       showError("");
 
-      let error = null;
+      let response;
 
       if (editingSongId) {
-        const response = await supabaseClient
+        response = await supabaseClient
           .from("songs")
           .update({ title, movie, singer, lyrics })
           .eq("id", editingSongId);
-
-        error = response.error;
       } else {
-        const response = await supabaseClient
+        response = await supabaseClient
           .from("songs")
           .insert([{ title, movie, singer, lyrics }]);
-
-        error = response.error;
       }
 
-      if (error) {
-        console.error("Save error:", error);
+      if (response.error) {
+        console.error(response.error);
         formStatus.textContent = editingSongId ? "Failed to update song" : "Failed to save song";
-        showError(`Save error: ${error.message}`);
+        showError(`Save error: ${response.error.message}`);
         return;
       }
 
-      formStatus.textContent = editingSongId ? "Song updated" : "Song added";
-
       await loadSongs();
 
-      const input = document.getElementById("searchInput");
-      renderResults(searchSongs(input.value), input.value);
+      const query = document.getElementById("searchInput").value;
+      renderResults(searchSongs(query), query);
 
       resetForm();
       document.getElementById("adminBox").classList.remove("show");
@@ -556,23 +776,27 @@
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
       if (!SpeechRecognition) {
-        alert("Browser mic not supported here. Use your keyboard mic.");
+        input.focus();
+        showError("In-page mic is not supported on this phone/browser. Tap the keyboard mic after focusing the search box.");
         return;
       }
 
+      showError("");
       const recognition = new SpeechRecognition();
       recognition.lang = "hi-IN";
       recognition.interimResults = false;
       recognition.maxAlternatives = 1;
+      recognition.continuous = false;
 
       recognition.onresult = (event) => {
-        const spokenText = event.results[0][0].transcript;
-        input.value = spokenText;
-        renderResults(searchSongs(spokenText), spokenText);
+        const spoken = event.results[0][0].transcript;
+        input.value = spoken;
+        renderResults(searchSongs(spoken), spoken);
       };
 
-      recognition.onerror = () => {
-        alert("Mic failed. Try again or use your keyboard mic.");
+      recognition.onerror = (event) => {
+        input.focus();
+        showError(`Mic error: ${event.error || "not available"}. Use the keyboard mic on phone.`);
       };
 
       recognition.start();
@@ -582,7 +806,7 @@
       const input = document.getElementById("searchInput");
       const clearBtn = document.getElementById("clearBtn");
       const micBtn = document.getElementById("micBtn");
-      const addSongForm = document.getElementById("addSongForm");
+      const form = document.getElementById("songForm");
       const toggleAdminBtn = document.getElementById("toggleAdminBtn");
       const closeAdminBtn = document.getElementById("closeAdminBtn");
       const cancelEditBtn = document.getElementById("cancelEditBtn");
@@ -610,11 +834,9 @@
         resetForm();
       });
 
-      cancelEditBtn.addEventListener("click", () => {
-        resetForm();
-      });
+      cancelEditBtn.addEventListener("click", resetForm);
 
-      addSongForm.addEventListener("submit", saveSong);
+      form.addEventListener("submit", saveSong);
 
       await loadSongs();
       renderResults([], "");
