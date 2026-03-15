@@ -44,18 +44,36 @@
   .hidden { display: none !important; }
 
   .topbar {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: 10px;
-    margin-bottom: 12px;
-    flex-wrap: wrap;
-  }
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 12px;
+  flex-wrap: nowrap;
+}
 
   .brand-wrap {
     min-width: 0;
     flex: 1;
   }
+
+    .topbar-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.top-logout-btn {
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.library-count-text {
+  font-size: 13px;
+  color: var(--muted);
+  margin-top: 4px;
+}
 
   .brand {
     margin: 0;
@@ -70,21 +88,15 @@
   }
 
   .top-actions {
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-    align-items: center;
-  }
+  display: flex;
+  gap: 8px;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: flex-end;
+  flex-shrink: 0;
+}
 
-  .pill {
-    background: var(--card);
-    border: 1px solid var(--line);
-    border-radius: 999px;
-    padding: 9px 13px;
-    font-size: 13px;
-    color: var(--muted);
-    white-space: nowrap;
-  }
+  
 
   .btn, .btn-secondary, .btn-danger {
     border: none;
@@ -520,14 +532,32 @@
     }
 
     .topbar {
-      gap: 8px;
-      margin-bottom: 10px;
-    }
+  gap: 8px;
+  margin-bottom: 10px;
+  align-items: flex-start;
+}
 
-    .top-actions {
-      width: 100%;
-      gap: 6px;
-    }
+.topbar-head {
+  gap: 8px;
+}
+
+.top-logout-btn {
+  min-height: 34px;
+  padding: 7px 10px;
+  font-size: 12px;
+  border-radius: 10px;
+}
+
+.library-count-text {
+  font-size: 12px;
+  margin-top: 3px;
+}
+    
+.top-actions {
+  width: auto;
+  gap: 6px;
+  flex-shrink: 0;
+}
 
     .pill,
     .btn,
@@ -694,19 +724,21 @@
     </section>
 
     <section id="appScreen" class="hidden">
-      <div class="topbar">
-        <div class="brand-wrap">
-          <h1 class="brand">Mehfil Lyrics Search</h1>
-          <div class="sub" id="welcomeLine">Loading...</div>
-        </div>
+     <div class="topbar">
+  <div class="brand-wrap">
+    <div class="topbar-head">
+      <h1 class="brand">Mehfil Lyrics Search</h1>
+      <button id="logoutBtn" class="btn-secondary top-logout-btn" type="button">Logout</button>
+    </div>
+    <div class="sub" id="welcomeLine">Loading...</div>
+    <div id="libraryCountText" class="library-count-text">0 songs</div>
+  </div>
 
-        <div class="top-actions">
-          <div id="libraryCountPill" class="pill">0 songs</div>
-          <button id="toggleAddBtn" class="btn hidden" type="button">+ Add Song</button>
-          <button id="logoutBtn" class="btn-secondary" type="button">Logout</button>
-        </div>
-      </div>
-
+  <div class="top-actions">
+    <button id="toggleAddBtn" class="btn hidden" type="button">+ Add Song</button>
+  </div>
+</div>
+      
       <div id="appStatus" class="status-box"></div>
 
       <div class="tabs">
@@ -1543,7 +1575,7 @@ async function loadSongs() {
   checkEditorDuplicateState();
   renderResults([], "");
   renderSongGroups();
-  document.getElementById("libraryCountPill").textContent = `${songs.length} songs`;
+  document.getElementById("libraryCountText").textContent = `${songs.length} songs`;
   showStatus("appStatus", "", "info");
 }
     async function saveSong(event) {
@@ -2026,16 +2058,14 @@ async function loadSongs() {
     }
 
     function renderAppShell() {
-      if (!profile) return;
+  if (!profile) return;
 
-      const welcome = document.getElementById("welcomeLine");
-      const toggleAddBtn = document.getElementById("toggleAddBtn");
-      const tabAdminBtn = document.getElementById("tabAdminBtn");
-
-      welcome.textContent = `Logged in as ${profile.name || profile.email || "User"}${isAdmin() ? " • Admin" : ""}`;
-      toggleAddBtn.classList.toggle("hidden", !isApproved());
-      tabAdminBtn.classList.toggle("hidden", !isAdmin());
-    }
+  const userLabel = profile.name || profile.email || "User";
+  document.getElementById("welcomeLine").textContent = `Logged in as ${userLabel}${isAdmin() ? " • Admin" : ""}`;
+  document.getElementById("toggleAddBtn").classList.toggle("hidden", !isApproved());
+  document.getElementById("tabAdminBtn").classList.toggle("hidden", !isAdmin());
+  document.getElementById("libraryCountText").textContent = `${songs.length} songs`;
+}
 
     async function bootstrap() {
       try {
