@@ -84,7 +84,7 @@
       color: var(--muted);
     }
 
-    .btn, .btn-secondary {
+    .btn, .btn-secondary, .btn-danger {
       border: none;
       border-radius: 12px;
       padding: 11px 14px;
@@ -102,6 +102,11 @@
       background: var(--card);
       color: var(--text);
       border: 1px solid var(--line);
+    }
+
+    .btn-danger {
+      background: #b91c1c;
+      color: white;
     }
 
     .screen-card, .card {
@@ -581,20 +586,25 @@
           <div class="row">
             <div class="field">
               <label for="songTitle">Song title</label>
-              <input id="songTitle" class="input" type="text" placeholder="Song title" />
+              <input id="songTitle" class="input" type="text" placeholder="Song title" list="songTitleSuggestions" autocomplete="off" />
+              <datalist id="songTitleSuggestions"></datalist>
             </div>
             <div class="field">
               <label for="songMovie">Movie name</label>
-              <input id="songMovie" class="input" type="text" placeholder="Movie name" />
+              <input id="songMovie" class="input" type="text" placeholder="Movie name" list="movieSuggestions" autocomplete="off" />
+              <datalist id="movieSuggestions"></datalist>
             </div>
           </div>
 
           <div class="row">
             <div class="field">
               <label for="songSinger">Singer name</label>
-              <input id="songSinger" class="input" type="text" placeholder="Singer name" />
+              <input id="songSinger" class="input" type="text" placeholder="Singer name" list="singerSuggestions" autocomplete="off" />
+              <datalist id="singerSuggestions"></datalist>
             </div>
           </div>
+
+          <div id="duplicateWarning" class="status-box"></div>
 
           <div class="field">
             <label for="songLyrics">Lyrics</label>
@@ -609,7 +619,7 @@
           </div>
 
           <div class="tiny" style="margin-top:10px;">
-            Duplicate songs are blocked using song title + movie name.
+            Duplicate songs are blocked using song title only. Movie and singer fields support autosuggest.
           </div>
         </form>
       </section>
@@ -685,6 +695,7 @@
 
         <div class="modal-actions">
           <button id="modalEditBtn" class="modal-btn hidden" type="button">Edit</button>
+          <button id="modalDeleteBtn" class="modal-btn hidden btn-danger" type="button">Delete</button>
           <button id="modalCloseBtn" class="modal-btn" type="button">Close</button>
         </div>
       </div>
@@ -699,28 +710,30 @@
   <script>
     const SUPABASE_URL = "https://fppyrhsnqgisfxkdbkka.supabase.co";
     const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZwcHlyaHNucWdpc2Z4a2Ria2thIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM1MzAxMjMsImV4cCI6MjA4OTEwNjEyM30.pXf_6qzEVw_fQpalyWsfxXgHrlbs1IA9BBmwfqmurDo";
+    const REDIRECT_URL = "https://contactgohil-sudo.github.io/Mehfil-Songs/";
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-    window.addEventListener("error", (event) => {
-  console.error("GLOBAL ERROR:", event.error || event.message);
-  const authScreen = document.getElementById("authScreen");
-  if (authScreen) authScreen.classList.remove("hidden");
-  const authStatus = document.getElementById("authStatus");
-  if (authStatus) {
-    authStatus.className = "status-box show status-error";
-    authStatus.textContent = "JavaScript crash: " + (event.message || "Unknown error");
-  }
-});
 
-window.addEventListener("unhandledrejection", (event) => {
-  console.error("UNHANDLED PROMISE:", event.reason);
-  const authScreen = document.getElementById("authScreen");
-  if (authScreen) authScreen.classList.remove("hidden");
-  const authStatus = document.getElementById("authStatus");
-  if (authStatus) {
-    authStatus.className = "status-box show status-error";
-    authStatus.textContent = "Unhandled error: " + ((event.reason && event.reason.message) || event.reason || "Unknown error");
-  }
-});
+    window.addEventListener("error", (event) => {
+      console.error("GLOBAL ERROR:", event.error || event.message);
+      const authScreen = document.getElementById("authScreen");
+      if (authScreen) authScreen.classList.remove("hidden");
+      const authStatus = document.getElementById("authStatus");
+      if (authStatus) {
+        authStatus.className = "status-box show status-error";
+        authStatus.textContent = "JavaScript crash: " + (event.message || "Unknown error");
+      }
+    });
+
+    window.addEventListener("unhandledrejection", (event) => {
+      console.error("UNHANDLED PROMISE:", event.reason);
+      const authScreen = document.getElementById("authScreen");
+      if (authScreen) authScreen.classList.remove("hidden");
+      const authStatus = document.getElementById("authStatus");
+      if (authStatus) {
+        authStatus.className = "status-box show status-error";
+        authStatus.textContent = "Unhandled error: " + ((event.reason && event.reason.message) || event.reason || "Unknown error");
+      }
+    });
 
     let session = null;
     let profile = null;
@@ -1167,6 +1180,49 @@ window.addEventListener("unhandledrejection", (event) => {
       return prefix + highlightText(miniSong, query) + suffix;
     }
 
+    function duplicateSongExists(title, ignoreId = null) {
+      const titleNorm = normalizeKey(title);
+      return songs.find(song => {
+        if (ignoreId && Number(song.id) === Number(ignoreId)) return false;
+        return song.title_norm === titleNorm;
+      }) || null;
+    }
+
+    function refreshSuggestionLists() {
+      const titleSet = [...new Set(songs.map(s => String(s.title || "").trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+      const movieSet = [...new Set(songs.map(s => String(s.movie || "").trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+      const singerSet = [...new Set(songs.map(s => String(s.singer || "").trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+
+      document.getElementById("songTitleSuggestions").innerHTML = titleSet.map(v => `<option value="${escapeHtml(v)}"></option>`).join("");
+      document.getElementById("movieSuggestions").innerHTML = movieSet.map(v => `<option value="${escapeHtml(v)}"></option>`).join("");
+      document.getElementById("singerSuggestions").innerHTML = singerSet.map(v => `<option value="${escapeHtml(v)}"></option>`).join("");
+    }
+
+    function checkEditorDuplicateState() {
+      const title = document.getElementById("songTitle").value.trim();
+      const duplicateWarning = document.getElementById("duplicateWarning");
+      const saveBtn = document.getElementById("saveSongBtn");
+
+      if (!title) {
+        showStatus("duplicateWarning", "", "warn");
+        saveBtn.disabled = false;
+        saveBtn.style.opacity = "1";
+        return;
+      }
+
+      const duplicate = duplicateSongExists(title, editingSongId);
+
+      if (duplicate) {
+        showStatus("duplicateWarning", `Song already exists: ${duplicate.title}${duplicate.movie ? " • " + duplicate.movie : ""}${duplicate.singer ? " • " + duplicate.singer : ""}`, "warn");
+        saveBtn.disabled = true;
+        saveBtn.style.opacity = "0.55";
+      } else {
+        showStatus("duplicateWarning", "", "warn");
+        saveBtn.disabled = false;
+        saveBtn.style.opacity = "1";
+      }
+    }
+
     async function ensureProfile(user, fallbackName = "") {
       if (!user) return null;
 
@@ -1211,114 +1267,105 @@ window.addEventListener("unhandledrejection", (event) => {
         return null;
       }
 
-      try {
-        profile = await ensureProfile(session.user, "");
-        return profile;
-      } catch (err) {
-        console.error("LOAD PROFILE ERROR:", err);
-        profile = null;
-        throw err;
-      }
+      profile = await ensureProfile(session.user, "");
+      return profile;
     }
 
     async function signUpRequest() {
-  const name = document.getElementById("authName").value.trim();
-  const email = document.getElementById("authEmail").value.trim();
-  const password = document.getElementById("authPassword").value;
+      const name = document.getElementById("authName").value.trim();
+      const email = document.getElementById("authEmail").value.trim();
+      const password = document.getElementById("authPassword").value;
 
-  if (!name || !email || !password) {
-    showStatus("authStatus", "Name, email, and password are required.", "error");
-    return;
-  }
+      if (!name || !email || !password) {
+        showStatus("authStatus", "Name, email, and password are required.", "error");
+        return;
+      }
 
-  showStatus("authStatus", "Creating account request...", "info");
+      showStatus("authStatus", "Creating account request...", "info");
 
-  const { data, error } = await supabaseClient.auth.signUp({
-    email,
-    password,
-    options: {
-      emailRedirectTo: "https://contactgohil-sudo.github.io/Mehfil-Songs/",
-      data: { name }
+      const { data, error } = await supabaseClient.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: REDIRECT_URL,
+          data: { name }
+        }
+      });
+
+      if (error) {
+        showStatus("authStatus", error.message, "error");
+        return;
+      }
+
+      if (data?.session?.user) {
+        await ensureProfile(data.session.user, name);
+      }
+
+      showStatus(
+        "authStatus",
+        "Request created. Check your email, verify your account, then wait for admin approval and log in.",
+        "success"
+      );
     }
-  });
 
-  if (error) {
-    showStatus("authStatus", error.message, "error");
-    return;
-  }
+    async function loginUser() {
+      const email = document.getElementById("authEmail").value.trim();
+      const password = document.getElementById("authPassword").value;
 
-  if (data?.session?.user) {
-    await ensureProfile(data.session.user, name);
-  }
+      if (!email || !password) {
+        showStatus("authStatus", "Email and password are required.", "error");
+        return;
+      }
 
-  showStatus(
-    "authStatus",
-    "Request created. Check your email, verify your account, then wait for admin approval and log in.",
-    "success"
-  );
-}
+      showStatus("authStatus", "Logging in...", "info");
 
-   async function loginUser() {
-  const email = document.getElementById("authEmail").value.trim();
-  const password = document.getElementById("authPassword").value;
+      const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
 
-  if (!email || !password) {
-    showStatus("authStatus", "Email and password are required.", "error");
-    return;
-  }
+      if (error) {
+        showStatus("authStatus", error.message, "error");
+        return;
+      }
 
-  showStatus("authStatus", "Logging in...", "info");
+      session = data.session || null;
 
-  const { data, error } = await supabaseClient.auth.signInWithPassword({
-    email,
-    password
-  });
+      if (!session?.user) {
+        showStatus("authStatus", "Login succeeded but session was not created.", "error");
+        return;
+      }
 
-  if (error) {
-    showStatus("authStatus", error.message, "error");
-    return;
-  }
+      try {
+        await loadProfile();
+        renderScreens();
 
-  session = data.session || null;
-
-  if (!session?.user) {
-    showStatus("authStatus", "Login succeeded but session was not created.", "error");
-    return;
-  }
-
-  try {
-    await loadProfile();
-    renderScreens();
-
-    if (profile?.approved) {
-      renderAppShell();
-      await loadSongs();
-      activateTab("search");
-      showStatus("authStatus", "", "info");
-    } else {
-      showStatus("authStatus", "Your account exists but is not approved yet.", "warn");
+        if (profile?.approved) {
+          renderAppShell();
+          await loadSongs();
+          activateTab("search");
+          showStatus("authStatus", "", "info");
+        } else {
+          showStatus("authStatus", "Your account exists but is not approved yet.", "warn");
+        }
+      } catch (err) {
+        console.error("LOGIN FLOW ERROR:", err);
+        showStatus("authStatus", "Login failed after authentication: " + (err?.message || err), "error");
+      }
     }
-  } catch (err) {
-    console.error("LOGIN FLOW ERROR:", err);
-    showStatus("authStatus", "Login failed after authentication: " + (err?.message || err), "error");
-  }
-}
 
     async function logoutUser() {
-  stopActiveRecognition();
-  await supabaseClient.auth.signOut();
-  session = null;
-  profile = null;
-  songs = [];
-  preparedSongs = [];
-  fuse = null;
-  editingSongId = null;
-  openSongId = null;
-  lastQuery = "";
-  expandedGroups = new Set();
-  renderScreens();
-  document.getElementById("authScreen").classList.remove("hidden");
-}
+      stopActiveRecognition();
+      await supabaseClient.auth.signOut();
+      session = null;
+      profile = null;
+      songs = [];
+      preparedSongs = [];
+      fuse = null;
+      editingSongId = null;
+      openSongId = null;
+      lastQuery = "";
+      expandedGroups = new Set();
+      renderScreens();
+      document.getElementById("authScreen").classList.remove("hidden");
+    }
 
     async function loadSongs() {
       if (!isApproved()) return;
@@ -1338,20 +1385,12 @@ window.addEventListener("unhandledrejection", (event) => {
 
       songs = data || [];
       rebuildFuse();
+      refreshSuggestionLists();
+      checkEditorDuplicateState();
       renderResults([], "");
       renderSongGroups();
       document.getElementById("libraryCountPill").textContent = `${songs.length} songs`;
       showStatus("appStatus", "", "info");
-    }
-
-    function duplicateSongExists(title, movie, ignoreId = null) {
-      const titleNorm = normalizeKey(title);
-      const movieNorm = normalizeKey(movie);
-
-      return songs.find(song => {
-        if (ignoreId && Number(song.id) === Number(ignoreId)) return false;
-        return song.title_norm === titleNorm && (song.movie_norm || "") === movieNorm;
-      }) || null;
     }
 
     async function saveSong(event) {
@@ -1368,9 +1407,9 @@ window.addEventListener("unhandledrejection", (event) => {
         return;
       }
 
-      const duplicate = duplicateSongExists(title, movie, editingSongId);
+      const duplicate = duplicateSongExists(title, editingSongId);
       if (duplicate) {
-        editorStatus.textContent = "Duplicate blocked. This song already exists for the same movie.";
+        editorStatus.textContent = "Duplicate blocked. A song with this title already exists.";
         openSong(duplicate.id);
         return;
       }
@@ -1426,6 +1465,35 @@ window.addEventListener("unhandledrejection", (event) => {
       if (currentEditId) {
         openSong(currentEditId);
       }
+    }
+
+    async function deleteSong(songId) {
+      if (!isAdmin()) return;
+
+      const song = songs.find(s => Number(s.id) === Number(songId));
+      if (!song) return;
+
+      const confirmed = confirm(`Delete "${song.title}"? This cannot be undone.`);
+      if (!confirmed) return;
+
+      const { error } = await supabaseClient
+        .from("songs")
+        .delete()
+        .eq("id", songId);
+
+      if (error) {
+        showStatus("appStatus", error.message, "error");
+        return;
+      }
+
+      closeSongModal();
+      await loadSongs();
+
+      if (lastQuery.trim()) {
+        renderResults(searchSongs(lastQuery), lastQuery);
+      }
+
+      showStatus("appStatus", "Song deleted.", "success");
     }
 
     async function loadPendingUsers() {
@@ -1589,6 +1657,7 @@ window.addEventListener("unhandledrejection", (event) => {
       document.getElementById("modalMeta").textContent = joinMeta([song.movie, song.singer]);
       document.getElementById("modalLyrics").innerHTML = highlightText(song, lastQuery);
       document.getElementById("modalEditBtn").classList.toggle("hidden", !isApproved());
+      document.getElementById("modalDeleteBtn").classList.toggle("hidden", !isAdmin());
       document.getElementById("songModal").classList.add("show");
       document.body.style.overflow = "hidden";
     }
@@ -1609,11 +1678,16 @@ window.addEventListener("unhandledrejection", (event) => {
       document.getElementById("songSinger").value = "";
       document.getElementById("songLyrics").value = "";
       document.getElementById("editorStatus").textContent = "";
+      showStatus("duplicateWarning", "", "warn");
+      const saveBtn = document.getElementById("saveSongBtn");
+      saveBtn.disabled = false;
+      saveBtn.style.opacity = "1";
     }
 
     function openEditor() {
       if (!isApproved()) return;
       document.getElementById("songEditorCard").classList.remove("hidden");
+      checkEditorDuplicateState();
       document.getElementById("songTitle").focus();
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
@@ -1766,37 +1840,37 @@ window.addEventListener("unhandledrejection", (event) => {
     }
 
     function renderScreens() {
-  const authScreen = document.getElementById("authScreen");
-  const pendingScreen = document.getElementById("pendingScreen");
-  const appScreen = document.getElementById("appScreen");
+      const authScreen = document.getElementById("authScreen");
+      const pendingScreen = document.getElementById("pendingScreen");
+      const appScreen = document.getElementById("appScreen");
 
-  if (!authScreen || !pendingScreen || !appScreen) return;
+      if (!authScreen || !pendingScreen || !appScreen) return;
 
-  if (!session?.user) {
-    authScreen.classList.remove("hidden");
-    pendingScreen.classList.add("hidden");
-    appScreen.classList.add("hidden");
-    return;
-  }
+      if (!session?.user) {
+        authScreen.classList.remove("hidden");
+        pendingScreen.classList.add("hidden");
+        appScreen.classList.add("hidden");
+        return;
+      }
 
-  if (!profile) {
-    authScreen.classList.remove("hidden");
-    pendingScreen.classList.add("hidden");
-    appScreen.classList.add("hidden");
-    return;
-  }
+      if (!profile) {
+        authScreen.classList.remove("hidden");
+        pendingScreen.classList.add("hidden");
+        appScreen.classList.add("hidden");
+        return;
+      }
 
-  if (!profile.approved) {
-    authScreen.classList.add("hidden");
-    pendingScreen.classList.remove("hidden");
-    appScreen.classList.add("hidden");
-    return;
-  }
+      if (!profile.approved) {
+        authScreen.classList.add("hidden");
+        pendingScreen.classList.remove("hidden");
+        appScreen.classList.add("hidden");
+        return;
+      }
 
-  authScreen.classList.add("hidden");
-  pendingScreen.classList.add("hidden");
-  appScreen.classList.remove("hidden");
-}
+      authScreen.classList.add("hidden");
+      pendingScreen.classList.add("hidden");
+      appScreen.classList.remove("hidden");
+    }
 
     function renderAppShell() {
       if (!profile) return;
@@ -1811,68 +1885,43 @@ window.addEventListener("unhandledrejection", (event) => {
     }
 
     async function bootstrap() {
-  try {
-    showStatus("authStatus", "", "info");
-    showStatus("appStatus", "", "info");
+      try {
+        showStatus("authStatus", "", "info");
+        showStatus("appStatus", "", "info");
 
-    const authScreen = document.getElementById("authScreen");
-    const pendingScreen = document.getElementById("pendingScreen");
-    const appScreen = document.getElementById("appScreen");
+        const { data, error } = await supabaseClient.auth.getSession();
+        if (error) throw error;
 
-    if (!authScreen || !pendingScreen || !appScreen) {
-      throw new Error("Required screen elements are missing.");
+        session = data.session || null;
+
+        if (session?.user) {
+          await loadProfile();
+        } else {
+          profile = null;
+        }
+
+        renderScreens();
+
+        if (!session?.user) return;
+
+        if (!profile) {
+          showStatus("authStatus", "Logged in, but profile could not be loaded.", "error");
+          return;
+        }
+
+        if (!profile.approved) return;
+
+        renderAppShell();
+        await loadSongs();
+        activateTab("search");
+      } catch (err) {
+        console.error("BOOTSTRAP ERROR:", err);
+        document.getElementById("authScreen").classList.remove("hidden");
+        document.getElementById("pendingScreen").classList.add("hidden");
+        document.getElementById("appScreen").classList.add("hidden");
+        showStatus("authStatus", "App failed to start: " + (err?.message || err), "error");
+      }
     }
-
-    const { data, error } = await supabaseClient.auth.getSession();
-    if (error) throw error;
-
-    session = data.session || null;
-    console.log("BOOTSTRAP SESSION:", session);
-    await loadProfile();
-    console.log("BOOTSTRAP PROFILE:", profile);
-
-    if (session?.user) {
-      await loadProfile();
-    } else {
-      profile = null;
-    }
-
-    renderScreens();
-
-    if (!session?.user) {
-      authScreen.classList.remove("hidden");
-      return;
-    }
-
-    if (!profile) {
-      authScreen.classList.remove("hidden");
-      showStatus("authStatus", "Logged in, but profile could not be loaded.", "error");
-      return;
-    }
-
-    if (!profile.approved) {
-      pendingScreen.classList.remove("hidden");
-      return;
-    }
-
-    appScreen.classList.remove("hidden");
-    renderAppShell();
-    await loadSongs();
-    activateTab("search");
-  } catch (err) {
-    console.error("BOOTSTRAP ERROR:", err);
-
-    const authScreen = document.getElementById("authScreen");
-    const pendingScreen = document.getElementById("pendingScreen");
-    const appScreen = document.getElementById("appScreen");
-
-    if (authScreen) authScreen.classList.remove("hidden");
-    if (pendingScreen) pendingScreen.classList.add("hidden");
-    if (appScreen) appScreen.classList.add("hidden");
-
-    showStatus("authStatus", "App failed to start: " + (err?.message || err), "error");
-  }
-}
 
     function bindEvents() {
       document.getElementById("signupBtn").addEventListener("click", signUpRequest);
@@ -1894,6 +1943,10 @@ window.addEventListener("unhandledrejection", (event) => {
         resetSongForm();
         closeEditor();
       });
+
+      document.getElementById("songTitle").addEventListener("input", checkEditorDuplicateState);
+      document.getElementById("songMovie").addEventListener("input", () => {});
+      document.getElementById("songSinger").addEventListener("input", () => {});
 
       document.getElementById("songForm").addEventListener("submit", saveSong);
 
@@ -1968,6 +2021,9 @@ window.addEventListener("unhandledrejection", (event) => {
       document.getElementById("modalEditBtn").addEventListener("click", () => {
         if (openSongId) startEdit(openSongId);
       });
+      document.getElementById("modalDeleteBtn").addEventListener("click", () => {
+        if (openSongId) deleteSong(openSongId);
+      });
 
       document.getElementById("songModal").addEventListener("click", (e) => {
         if (e.target.id === "songModal") closeSongModal();
@@ -1978,30 +2034,30 @@ window.addEventListener("unhandledrejection", (event) => {
       });
 
       supabaseClient.auth.onAuthStateChange((event, newSession) => {
-  session = newSession || null;
+        session = newSession || null;
 
-  if (!session?.user) {
-    profile = null;
-    renderScreens();
-    return;
-  }
+        if (!session?.user) {
+          profile = null;
+          renderScreens();
+          return;
+        }
 
-  bootstrap().catch(err => {
-    console.error("AUTH STATE ERROR:", err);
-    document.getElementById("authScreen").classList.remove("hidden");
-    showStatus("authStatus", "Auth state error: " + (err?.message || err), "error");
-  });
-});
+        bootstrap().catch(err => {
+          console.error("AUTH STATE ERROR:", err);
+          document.getElementById("authScreen").classList.remove("hidden");
+          showStatus("authStatus", "Auth state error: " + (err?.message || err), "error");
+        });
+      });
     }
 
     document.addEventListener("DOMContentLoaded", () => {
-  bindEvents();
-  bootstrap().catch(err => {
-    console.error("INITIAL START ERROR:", err);
-    document.getElementById("authScreen").classList.remove("hidden");
-    showStatus("authStatus", "Initial start error: " + (err?.message || err), "error");
-  });
-});
+      bindEvents();
+      bootstrap().catch(err => {
+        console.error("INITIAL START ERROR:", err);
+        document.getElementById("authScreen").classList.remove("hidden");
+        showStatus("authStatus", "Initial start error: " + (err?.message || err), "error");
+      });
+    });
   </script>
 </body>
 </html>
