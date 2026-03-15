@@ -501,7 +501,7 @@
 </head>
 <body>
   <div class="container">
-    <section id="authScreen" class="screen-card hidden">
+    <section id="authScreen" class="screen-card">
       <h2 class="section-title">Login / Request Access</h2>
       <div class="sub">Only approved members can enter the library.</div>
 
@@ -1741,31 +1741,37 @@ window.addEventListener("unhandledrejection", (event) => {
     }
 
     function renderScreens() {
-      const authScreen = document.getElementById("authScreen");
-      const pendingScreen = document.getElementById("pendingScreen");
-      const appScreen = document.getElementById("appScreen");
+  const authScreen = document.getElementById("authScreen");
+  const pendingScreen = document.getElementById("pendingScreen");
+  const appScreen = document.getElementById("appScreen");
 
-      authScreen.classList.add("hidden");
-      pendingScreen.classList.add("hidden");
-      appScreen.classList.add("hidden");
+  if (!authScreen || !pendingScreen || !appScreen) return;
 
-      if (!session?.user) {
-        authScreen.classList.remove("hidden");
-        return;
-      }
+  if (!session?.user) {
+    authScreen.classList.remove("hidden");
+    pendingScreen.classList.add("hidden");
+    appScreen.classList.add("hidden");
+    return;
+  }
 
-      if (!profile) {
-        authScreen.classList.remove("hidden");
-        return;
-      }
+  if (!profile) {
+    authScreen.classList.remove("hidden");
+    pendingScreen.classList.add("hidden");
+    appScreen.classList.add("hidden");
+    return;
+  }
 
-      if (!profile.approved) {
-        pendingScreen.classList.remove("hidden");
-        return;
-      }
+  if (!profile.approved) {
+    authScreen.classList.add("hidden");
+    pendingScreen.classList.remove("hidden");
+    appScreen.classList.add("hidden");
+    return;
+  }
 
-      appScreen.classList.remove("hidden");
-    }
+  authScreen.classList.add("hidden");
+  pendingScreen.classList.add("hidden");
+  appScreen.classList.remove("hidden");
+}
 
     function renderAppShell() {
       if (!profile) return;
@@ -1954,12 +1960,14 @@ window.addEventListener("unhandledrejection", (event) => {
       });
     }
 
-    bindEvents();
-    bootstrap().catch(err => {
-      console.error("INITIAL START ERROR:", err);
-      document.getElementById("authScreen").classList.remove("hidden");
-      showStatus("authStatus", "Initial start error: " + (err?.message || err), "error");
-    });
+    document.addEventListener("DOMContentLoaded", () => {
+  bindEvents();
+  bootstrap().catch(err => {
+    console.error("INITIAL START ERROR:", err);
+    document.getElementById("authScreen").classList.remove("hidden");
+    showStatus("authStatus", "Initial start error: " + (err?.message || err), "error");
+  });
+});
   </script>
 </body>
 </html>
