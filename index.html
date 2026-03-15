@@ -12,8 +12,8 @@
 
     body {
       font-family: Arial, sans-serif;
-      background: #111;
-      color: white;
+      background: #f5f5f5;
+      color: #111;
       margin: 0;
       padding: 12px;
       overflow-x: hidden;
@@ -21,30 +21,58 @@
 
     .container {
       width: 100%;
-      max-width: 700px;
+      max-width: 760px;
       margin: 0 auto;
     }
 
     h1 {
-      font-size: 24px;
-      margin-bottom: 16px;
+      font-size: 28px;
+      margin-bottom: 8px;
+      color: #111;
+    }
+
+    .top-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 10px;
     }
 
     .info {
-      color: #aaa;
-      margin-bottom: 12px;
+      color: #444;
+      font-size: 14px;
+    }
+
+    .admin-toggle {
+      background: #111;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      padding: 10px 14px;
+      font-size: 14px;
+      cursor: pointer;
     }
 
     .admin-box {
-      background: #1d1d1d;
-      border-radius: 12px;
+      background: white;
+      border: 1px solid #ddd;
+      border-radius: 14px;
       padding: 16px;
-      margin-bottom: 20px;
+      margin-bottom: 18px;
+      display: none;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+
+    .admin-box.show {
+      display: block;
     }
 
     .admin-box h2 {
       margin-top: 0;
       font-size: 20px;
+      color: #111;
     }
 
     .admin-box input,
@@ -54,8 +82,10 @@
       padding: 12px;
       font-size: 16px;
       border-radius: 10px;
-      border: none;
+      border: 1px solid #ccc;
       outline: none;
+      background: white;
+      color: #111;
     }
 
     .admin-box textarea {
@@ -63,56 +93,101 @@
       resize: vertical;
     }
 
+    .admin-actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .save-btn,
+    .close-btn {
+      border: none;
+      border-radius: 10px;
+      padding: 12px 16px;
+      font-size: 15px;
+      cursor: pointer;
+    }
+
+    .save-btn {
+      background: #111;
+      color: white;
+    }
+
+    .close-btn {
+      background: #ddd;
+      color: #111;
+    }
+
     .search-bar {
       display: flex;
       gap: 8px;
-      margin-bottom: 16px;
+      margin-bottom: 18px;
       width: 100%;
+      align-items: stretch;
     }
 
-    input {
+    .search-input {
       flex: 1;
       min-width: 0;
       width: 100%;
-      padding: 14px;
-      font-size: 18px;
-      border-radius: 10px;
-      border: none;
+      padding: 16px;
+      font-size: 20px;
+      border-radius: 14px;
+      border: 1px solid #ccc;
       outline: none;
+      background: white;
+      color: #111;
     }
 
-    button {
-      padding: 14px 16px;
-      font-size: 18px;
+    .icon-btn {
       border: none;
-      border-radius: 10px;
+      border-radius: 14px;
+      padding: 0 16px;
+      font-size: 22px;
       cursor: pointer;
+      min-width: 54px;
+      background: white;
+      border: 1px solid #ccc;
+      color: #111;
       flex-shrink: 0;
     }
 
     .card {
-      background: #1d1d1d;
-      border-radius: 12px;
+      background: white;
+      border: 1px solid #ddd;
+      border-radius: 14px;
       padding: 16px;
       margin-bottom: 12px;
       width: 100%;
       overflow-wrap: break-word;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
     }
 
     .title {
       font-size: 20px;
       font-weight: bold;
+      color: #111;
     }
 
     .meta {
-      color: #bbb;
+      color: #555;
       margin-top: 4px;
       margin-bottom: 10px;
+      font-size: 14px;
     }
 
     .lyrics {
-      line-height: 1.6;
+      line-height: 1.7;
       white-space: pre-wrap;
+      color: #111;
+      font-size: 16px;
+    }
+
+    .empty {
+      color: #666;
+      text-align: center;
+      padding: 20px 10px;
     }
 
     @media (max-width: 480px) {
@@ -121,17 +196,25 @@
       }
 
       h1 {
-        font-size: 22px;
+        font-size: 24px;
       }
 
-      input,
-      button {
-        font-size: 16px;
-        padding: 12px;
+      .search-input {
+        font-size: 18px;
+        padding: 14px;
+      }
+
+      .icon-btn {
+        font-size: 20px;
+        min-width: 48px;
       }
 
       .title {
         font-size: 18px;
+      }
+
+      .lyrics {
+        font-size: 15px;
       }
     }
   </style>
@@ -139,23 +222,32 @@
 <body>
   <div class="container">
     <h1>Mehfil Lyrics Search</h1>
-    <div class="info" id="status">Loading...</div>
 
-    <div class="admin-box">
+    <div class="top-row">
+      <div class="info" id="status">Loading...</div>
+      <button id="toggleAdminBtn" class="admin-toggle" type="button">+ Add Song</button>
+    </div>
+
+    <div class="admin-box" id="adminBox">
       <h2>Add Song</h2>
       <form id="addSongForm">
         <input id="songTitle" type="text" placeholder="Song title" />
         <input id="songMovie" type="text" placeholder="Movie name" />
         <input id="songSinger" type="text" placeholder="Singer name" />
         <textarea id="songLyrics" placeholder="Paste full lyrics"></textarea>
-        <button type="submit">Save Song</button>
-        <div id="formStatus" class="info"></div>
+
+        <div class="admin-actions">
+          <button class="save-btn" type="submit">Save Song</button>
+          <button class="close-btn" id="closeAdminBtn" type="button">Close</button>
+          <div id="formStatus" class="info"></div>
+        </div>
       </form>
     </div>
 
     <div class="search-bar">
-      <input id="searchInput" type="text" placeholder="Type 2-3 words..." />
-      <button id="clearBtn" type="button">❌</button>
+      <button id="micBtn" class="icon-btn" type="button">🎤</button>
+      <input id="searchInput" class="search-input" type="text" placeholder="Type or speak 2-3 words..." />
+      <button id="clearBtn" class="icon-btn" type="button">✕</button>
     </div>
 
     <div id="results"></div>
@@ -165,7 +257,7 @@
 
   <script>
     const SUPABASE_URL = "https://fppyrhsnqgisfxkdbkka.supabase.co";
-    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZwcHlyaHNucWdpc2Z4a2Ria2thIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM1MzAxMjMsImV4cCI6MjA4OTEwNjEyM30.pXf_6qzEVw_fQpalyWsfxXgHrlbs1IA9BBmwfqmurDo";
+    const SUPABASE_KEY = "YOUR_ANON_KEY_HERE";
 
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
@@ -174,7 +266,7 @@
     function normalize(text) {
       return String(text || "")
         .toLowerCase()
-        .replace(/[^\w\s]/g, "")
+        .replace(/[^\w\s]/g, " ")
         .replace(/\s+/g, " ")
         .trim();
     }
@@ -208,7 +300,6 @@
         const fullText = normalize(
           `${song.title || ""} ${song.movie || ""} ${song.singer || ""} ${song.lyrics || ""}`
         );
-
         return words.every(word => fullText.includes(word));
       }).slice(0, 10);
     }
@@ -217,7 +308,7 @@
       const resultsDiv = document.getElementById("results");
 
       if (!results.length) {
-        resultsDiv.innerHTML = "";
+        resultsDiv.innerHTML = `<div class="empty">No results yet. Type or speak a few words.</div>`;
         return;
       }
 
@@ -269,10 +360,41 @@
       renderResults(searchSongs(input.value));
     }
 
+    function startMicSearch() {
+      const input = document.getElementById("searchInput");
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+      if (!SpeechRecognition) {
+        alert("Browser mic not supported here. Use your keyboard mic.");
+        return;
+      }
+
+      const recognition = new SpeechRecognition();
+      recognition.lang = "hi-IN";
+      recognition.interimResults = false;
+      recognition.maxAlternatives = 1;
+
+      recognition.onresult = (event) => {
+        const spokenText = event.results[0][0].transcript;
+        input.value = spokenText;
+        renderResults(searchSongs(spokenText));
+      };
+
+      recognition.onerror = () => {
+        alert("Mic failed. Try again or use your keyboard mic.");
+      };
+
+      recognition.start();
+    }
+
     async function init() {
       const input = document.getElementById("searchInput");
       const clearBtn = document.getElementById("clearBtn");
+      const micBtn = document.getElementById("micBtn");
       const addSongForm = document.getElementById("addSongForm");
+      const toggleAdminBtn = document.getElementById("toggleAdminBtn");
+      const closeAdminBtn = document.getElementById("closeAdminBtn");
+      const adminBox = document.getElementById("adminBox");
 
       input.addEventListener("input", () => {
         renderResults(searchSongs(input.value));
@@ -284,9 +406,20 @@
         input.focus();
       });
 
+      micBtn.addEventListener("click", startMicSearch);
+
+      toggleAdminBtn.addEventListener("click", () => {
+        adminBox.classList.toggle("show");
+      });
+
+      closeAdminBtn.addEventListener("click", () => {
+        adminBox.classList.remove("show");
+      });
+
       addSongForm.addEventListener("submit", addSong);
 
       await loadSongs();
+      renderResults([]);
       input.focus();
     }
 
