@@ -84,7 +84,7 @@
       color: var(--muted);
     }
 
-    .btn, .btn-secondary, .btn-danger {
+    .btn, .btn-secondary {
       border: none;
       border-radius: 12px;
       padding: 11px 14px;
@@ -102,11 +102,6 @@
       background: var(--card);
       color: var(--text);
       border: 1px solid var(--line);
-    }
-
-    .btn-danger {
-      background: #111827;
-      color: white;
     }
 
     .screen-card, .card {
@@ -506,7 +501,6 @@
 </head>
 <body>
   <div class="container">
-    <!-- AUTH SCREEN -->
     <section id="authScreen" class="screen-card hidden">
       <h2 class="section-title">Login / Request Access</h2>
       <div class="sub">Only approved members can enter the library.</div>
@@ -544,12 +538,9 @@
       </div>
     </section>
 
-    <!-- PENDING SCREEN -->
     <section id="pendingScreen" class="screen-card hidden">
       <h2 class="section-title">Waiting for Approval</h2>
-      <div class="sub">
-        Your account exists, but access is not approved yet.
-      </div>
+      <div class="sub">Your account exists, but access is not approved yet.</div>
 
       <div id="pendingStatus" class="status-box show status-warn" style="margin-top:14px;">
         Your request is pending. After an admin approves your account, log in again with the same email and password.
@@ -561,7 +552,6 @@
       </div>
     </section>
 
-    <!-- APP SCREEN -->
     <section id="appScreen" class="hidden">
       <div class="topbar">
         <div class="brand-wrap">
@@ -584,7 +574,6 @@
         <button id="tabAdminBtn" class="tab-btn hidden" type="button">Pending Requests</button>
       </div>
 
-      <!-- ADD / EDIT -->
       <section id="songEditorCard" class="card hidden">
         <h2 id="editorHeading" class="section-title">Add Song</h2>
 
@@ -625,7 +614,6 @@
         </form>
       </section>
 
-      <!-- SEARCH TAB -->
       <section id="searchTab">
         <div class="card">
           <div class="search-bar">
@@ -647,7 +635,6 @@
         </div>
       </section>
 
-      <!-- LIST TAB -->
       <section id="listTab" class="hidden">
         <div class="card">
           <div class="toolbar">
@@ -669,7 +656,6 @@
         </div>
       </section>
 
-      <!-- ADMIN TAB -->
       <section id="adminTab" class="hidden">
         <div class="card">
           <div class="toolbar">
@@ -689,7 +675,6 @@
     <div class="footer">© 2026 Mehfil. All rights reserved.</div>
   </div>
 
-  <!-- LYRICS MODAL -->
   <div id="songModal" class="modal">
     <div class="modal-card">
       <div class="modal-top">
@@ -712,16 +697,10 @@
   <script src="https://cdn.jsdelivr.net/npm/fuse.js@7.1.0"></script>
 
   <script>
-    // =========================
-    // CONFIG
-    // =========================
-   const SUPABASE_URL = "https://fppyrhsnqgisfxkdbkka.supabase.co";
-   const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZwcHlyaHNucWdpc2Z4a2Ria2thIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM1MzAxMjMsImV4cCI6MjA4OTEwNjEyM30.pXf_6qzEVw_fQpalyWsfxXgHrlbs1IA9BBmwfqmurDo";
+    const SUPABASE_URL = "https://fppyrhsnqgisfxkdbkka.supabase.co";
+    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZwcHlyaHNucWdpc2Z4a2Ria2thIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM1MzAxMjMsImV4cCI6MjA4OTEwNjEyM30.pXf_6qzEVw_fQpalyWsfxXgHrlbs1IA9BBmwfqmurDo";
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    // =========================
-    // STATE
-    // =========================
     let session = null;
     let profile = null;
     let songs = [];
@@ -733,9 +712,6 @@
     let activeRecognition = null;
     let expandedGroups = new Set();
 
-    // =========================
-    // UTIL
-    // =========================
     function escapeHtml(text) {
       return String(text || "")
         .replace(/&/g, "&amp;")
@@ -782,9 +758,6 @@
       return profile?.role === "admin" && !!profile?.approved;
     }
 
-    // =========================
-    // TRANSLITERATION
-    // =========================
     const DEV_VOWELS = {
       "अ":"a","आ":"aa","इ":"i","ई":"ii","उ":"u","ऊ":"uu","ऋ":"ri","ॠ":"rii","ऌ":"li","ॡ":"lii",
       "ए":"e","ऐ":"ai","ओ":"o","औ":"au","ऑ":"o","ऍ":"e"
@@ -834,9 +807,7 @@
       function pushChunk(chunk, start, end) {
         if (!chunk) return;
         out += chunk;
-        for (let i = 0; i < chunk.length; i++) {
-          map.push({ start, end });
-        }
+        for (let i = 0; i < chunk.length; i++) map.push({ start, end });
       }
 
       function processScript(index, vowels, matras, cons, signs, viramaChar) {
@@ -931,9 +902,6 @@
       return /[a-z]/i.test(text || "");
     }
 
-    // =========================
-    // SONG PREP / SEARCH
-    // =========================
     function buildPreparedSong(song) {
       const title = String(song.title || "");
       const movie = String(song.movie || "");
@@ -1178,46 +1146,60 @@
       return prefix + highlightText(miniSong, query) + suffix;
     }
 
-    // =========================
-    // AUTH / PROFILE
-    // =========================
-   async function ensureProfile(user, fallbackName = "") {
-  if (!user) return null;
+    async function ensureProfile(user, fallbackName = "") {
+      if (!user) return null;
 
-  const { data: existing, error: fetchError } = await supabaseClient
-    .from("profiles")
-    .select("*")
-    .eq("id", user.id)
-    .maybeSingle();
+      const { data: existing, error: fetchError } = await supabaseClient
+        .from("profiles")
+        .select("*")
+        .eq("id", user.id)
+        .maybeSingle();
 
-  if (fetchError) {
-    console.error("PROFILE FETCH ERROR:", fetchError);
-    throw fetchError;
-  }
+      if (fetchError) {
+        console.error("PROFILE FETCH ERROR:", fetchError);
+        throw fetchError;
+      }
 
-  if (existing) return existing;
+      if (existing) return existing;
 
-  const insertPayload = {
-    id: user.id,
-    email: user.email || "",
-    name: fallbackName || user.user_metadata?.name || "",
-    approved: false,
-    role: "user"
-  };
+      const insertPayload = {
+        id: user.id,
+        email: user.email || "",
+        name: fallbackName || user.user_metadata?.name || "",
+        approved: false,
+        role: "user"
+      };
 
-  const { data: inserted, error: insertError } = await supabaseClient
-    .from("profiles")
-    .insert([insertPayload])
-    .select()
-    .single();
+      const { data: inserted, error: insertError } = await supabaseClient
+        .from("profiles")
+        .insert([insertPayload])
+        .select()
+        .single();
 
-  if (insertError) {
-    console.error("PROFILE INSERT ERROR:", insertError);
-    throw insertError;
-  }
+      if (insertError) {
+        console.error("PROFILE INSERT ERROR:", insertError);
+        throw insertError;
+      }
 
-  return inserted;
-}
+      return inserted;
+    }
+
+    async function loadProfile() {
+      if (!session?.user) {
+        profile = null;
+        return null;
+      }
+
+      try {
+        profile = await ensureProfile(session.user, "");
+        return profile;
+      } catch (err) {
+        console.error("LOAD PROFILE ERROR:", err);
+        profile = null;
+        throw err;
+      }
+    }
+
     async function signUpRequest() {
       const name = document.getElementById("authName").value.trim();
       const email = document.getElementById("authEmail").value.trim();
@@ -1234,6 +1216,7 @@
         email,
         password,
         options: {
+          emailRedirectTo: "https://jaygohil.github.io/mehfil-lyrics",
           data: { name }
         }
       });
@@ -1249,7 +1232,7 @@
 
       showStatus(
         "authStatus",
-        "Request created. If email confirmation is enabled in Supabase, confirm your email first. After that, wait for admin approval and then log in.",
+        "Request created. Check your email, verify your account, then wait for admin approval and log in.",
         "success"
       );
     }
@@ -1272,7 +1255,6 @@
         return;
       }
 
-      showStatus("authStatus", "", "info");
       await bootstrap();
     }
 
@@ -1284,12 +1266,9 @@
       songs = [];
       preparedSongs = [];
       fuse = null;
-      bootstrap();
+      renderScreens();
     }
 
-    // =========================
-    // SONG DATA
-    // =========================
     async function loadSongs() {
       if (!isApproved()) return;
 
@@ -1371,9 +1350,10 @@
 
       if (response.error) {
         console.error(response.error);
-
-        if (String(response.error.message || "").toLowerCase().includes("duplicate")
-          || String(response.error.message || "").toLowerCase().includes("unique")) {
+        if (
+          String(response.error.message || "").toLowerCase().includes("duplicate") ||
+          String(response.error.message || "").toLowerCase().includes("unique")
+        ) {
           editorStatus.textContent = "Duplicate blocked by database.";
         } else {
           editorStatus.textContent = response.error.message;
@@ -1397,9 +1377,6 @@
       }
     }
 
-    // =========================
-    // ADMIN REQUESTS
-    // =========================
     async function loadPendingUsers() {
       if (!isAdmin()) return;
 
@@ -1433,7 +1410,6 @@
             <div class="pending-user-meta">${escapeHtml(user.email || "")}</div>
             <div class="pending-user-meta">Requested: ${escapeHtml(new Date(user.created_at).toLocaleString())}</div>
           </div>
-
           <div class="stack-actions">
             <button class="btn" type="button" data-approve-id="${user.id}">Approve</button>
           </div>
@@ -1456,9 +1432,6 @@
       await loadPendingUsers();
     }
 
-    // =========================
-    // RENDER SEARCH
-    // =========================
     function renderResults(results, query = "") {
       const root = document.getElementById("searchResults");
 
@@ -1491,9 +1464,6 @@
       }).join("");
     }
 
-    // =========================
-    // GROUPED LIST
-    // =========================
     function getGroupKey(song, mode) {
       const raw = mode === "singer" ? (song.singer || "") : (song.movie || "");
       return raw.trim() || (mode === "singer" ? "Unknown Singer" : "Unknown Movie");
@@ -1559,9 +1529,6 @@
       }).join("");
     }
 
-    // =========================
-    // MODAL
-    // =========================
     function openSong(songId) {
       const song = preparedSongs.find(s => Number(s.id) === Number(songId));
       if (!song) return;
@@ -1581,9 +1548,6 @@
       document.body.style.overflow = "";
     }
 
-    // =========================
-    // EDITOR
-    // =========================
     function resetSongForm() {
       editingSongId = null;
       document.getElementById("editorHeading").textContent = "Add Song";
@@ -1624,9 +1588,6 @@
       closeSongModal();
     }
 
-    // =========================
-    // TABS
-    // =========================
     function activateTab(tabName) {
       const searchTab = document.getElementById("searchTab");
       const listTab = document.getElementById("listTab");
@@ -1644,9 +1605,6 @@
       if (tabName === "admin" && isAdmin()) loadPendingUsers();
     }
 
-    // =========================
-    // MIC
-    // =========================
     function setMicUiState(listening) {
       const micBtn = document.getElementById("micBtn");
       if (listening) {
@@ -1756,9 +1714,6 @@
       }
     }
 
-    // =========================
-    // SCREEN ROUTING
-    // =========================
     function renderScreens() {
       const authScreen = document.getElementById("authScreen");
       const pendingScreen = document.getElementById("pendingScreen");
@@ -1798,62 +1753,49 @@
       tabAdminBtn.classList.toggle("hidden", !isAdmin());
     }
 
-    // =========================
-    // BOOTSTRAP
-    // =========================
-   async function bootstrap() {
-  try {
-    showStatus("authStatus", "", "info");
-    showStatus("appStatus", "", "info");
+    async function bootstrap() {
+      try {
+        showStatus("authStatus", "", "info");
+        showStatus("appStatus", "", "info");
 
-    const { data, error } = await supabaseClient.auth.getSession();
+        const { data, error } = await supabaseClient.auth.getSession();
+        if (error) throw error;
 
-    if (error) {
-      throw error;
+        session = data.session || null;
+
+        if (session?.user) {
+          await loadProfile();
+        } else {
+          profile = null;
+        }
+
+        renderScreens();
+
+        if (!session?.user) return;
+
+        if (!profile) {
+          document.getElementById("authScreen").classList.remove("hidden");
+          showStatus("authStatus", "Logged in, but profile could not be loaded.", "error");
+          return;
+        }
+
+        if (!profile.approved) {
+          document.getElementById("pendingScreen").classList.remove("hidden");
+          return;
+        }
+
+        renderAppShell();
+        await loadSongs();
+        activateTab("search");
+      } catch (err) {
+        console.error("BOOTSTRAP ERROR:", err);
+        document.getElementById("authScreen").classList.remove("hidden");
+        document.getElementById("pendingScreen").classList.add("hidden");
+        document.getElementById("appScreen").classList.add("hidden");
+        showStatus("authStatus", "App failed to start: " + (err?.message || err), "error");
+      }
     }
 
-    session = data.session || null;
-
-    if (session?.user) {
-      await loadProfile();
-    } else {
-      profile = null;
-    }
-
-    renderScreens();
-
-    if (!session?.user) {
-      return;
-    }
-
-    if (!profile) {
-      document.getElementById("authScreen").classList.remove("hidden");
-      showStatus("authStatus", "Logged in, but profile could not be loaded.", "error");
-      return;
-    }
-
-    if (!profile.approved) {
-      document.getElementById("pendingScreen").classList.remove("hidden");
-      return;
-    }
-
-    renderAppShell();
-    await loadSongs();
-    activateTab("search");
-  } catch (err) {
-    console.error("BOOTSTRAP ERROR:", err);
-
-    document.getElementById("authScreen").classList.remove("hidden");
-    document.getElementById("pendingScreen").classList.add("hidden");
-    document.getElementById("appScreen").classList.add("hidden");
-
-    showStatus("authStatus", "App failed to start: " + (err?.message || err), "error");
-  }
-}
-
-    // =========================
-    // EVENTS
-    // =========================
     function bindEvents() {
       document.getElementById("signupBtn").addEventListener("click", signUpRequest);
       document.getElementById("loginBtn").addEventListener("click", loginUser);
@@ -1941,9 +1883,7 @@
 
       document.getElementById("pendingUsersList").addEventListener("click", (e) => {
         const btn = e.target.closest("[data-approve-id]");
-        if (btn) {
-          approveUser(btn.dataset.approveId);
-        }
+        if (btn) approveUser(btn.dataset.approveId);
       });
 
       document.getElementById("modalCloseBtn").addEventListener("click", closeSongModal);
@@ -1957,29 +1897,25 @@
 
       document.addEventListener("keydown", (e) => {
         if (e.key === "Escape") closeSongModal();
-
-        if (e.key === "Enter" && !session?.user && document.activeElement?.id !== "authPassword") {
-          // no-op
-        }
       });
 
       supabaseClient.auth.onAuthStateChange(async () => {
-  try {
-    await bootstrap();
-  } catch (err) {
-    console.error("AUTH STATE ERROR:", err);
-    document.getElementById("authScreen").classList.remove("hidden");
-    showStatus("authStatus", "Auth state error: " + (err?.message || err), "error");
-  }
-});
+        try {
+          await bootstrap();
+        } catch (err) {
+          console.error("AUTH STATE ERROR:", err);
+          document.getElementById("authScreen").classList.remove("hidden");
+          showStatus("authStatus", "Auth state error: " + (err?.message || err), "error");
+        }
+      });
     }
 
-  bindEvents();
-  bootstrap().catch(err => {
-  console.error("INITIAL START ERROR:", err);
-  document.getElementById("authScreen").classList.remove("hidden");
-  showStatus("authStatus", "Initial start error: " + (err?.message || err), "error");
-});
+    bindEvents();
+    bootstrap().catch(err => {
+      console.error("INITIAL START ERROR:", err);
+      document.getElementById("authScreen").classList.remove("hidden");
+      showStatus("authStatus", "Initial start error: " + (err?.message || err), "error");
+    });
   </script>
 </body>
 </html>
