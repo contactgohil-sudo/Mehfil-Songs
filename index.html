@@ -6,9 +6,7 @@
   <title>Mehfil Lyrics Search</title>
 
   <style>
-    * {
-      box-sizing: border-box;
-    }
+    * { box-sizing: border-box; }
 
     body {
       font-family: Arial, sans-serif;
@@ -28,7 +26,6 @@
     h1 {
       font-size: 28px;
       margin-bottom: 8px;
-      color: #111;
     }
 
     .top-row {
@@ -43,6 +40,17 @@
     .info {
       color: #444;
       font-size: 14px;
+    }
+
+    .error-box {
+      background: #fff3cd;
+      color: #856404;
+      border: 1px solid #ffe69c;
+      padding: 10px 12px;
+      border-radius: 10px;
+      margin-bottom: 12px;
+      display: none;
+      white-space: pre-wrap;
     }
 
     .admin-toggle {
@@ -65,14 +73,11 @@
       box-shadow: 0 2px 8px rgba(0,0,0,0.06);
     }
 
-    .admin-box.show {
-      display: block;
-    }
+    .admin-box.show { display: block; }
 
     .admin-box h2 {
       margin-top: 0;
       font-size: 20px;
-      color: #111;
     }
 
     .admin-box input,
@@ -166,7 +171,6 @@
     .title {
       font-size: 20px;
       font-weight: bold;
-      color: #111;
     }
 
     .meta {
@@ -190,31 +194,12 @@
     }
 
     @media (max-width: 480px) {
-      body {
-        padding: 10px;
-      }
-
-      h1 {
-        font-size: 24px;
-      }
-
-      .search-input {
-        font-size: 18px;
-        padding: 14px;
-      }
-
-      .icon-btn {
-        font-size: 20px;
-        min-width: 48px;
-      }
-
-      .title {
-        font-size: 18px;
-      }
-
-      .lyrics {
-        font-size: 15px;
-      }
+      body { padding: 10px; }
+      h1 { font-size: 24px; }
+      .search-input { font-size: 18px; padding: 14px; }
+      .icon-btn { font-size: 20px; min-width: 48px; }
+      .title { font-size: 18px; }
+      .lyrics { font-size: 15px; }
     }
   </style>
 </head>
@@ -226,6 +211,8 @@
       <div class="info" id="status">Loading...</div>
       <button id="toggleAdminBtn" class="admin-toggle" type="button">+ Add Song</button>
     </div>
+
+    <div id="errorBox" class="error-box"></div>
 
     <div class="admin-box" id="adminBox">
       <h2>Add Song</h2>
@@ -262,6 +249,17 @@
 
     let songs = [];
 
+    function showError(message) {
+      const errorBox = document.getElementById("errorBox");
+      if (!message) {
+        errorBox.style.display = "none";
+        errorBox.textContent = "";
+        return;
+      }
+      errorBox.style.display = "block";
+      errorBox.textContent = message;
+    }
+
     function normalize(text) {
       return String(text || "")
         .toLowerCase()
@@ -273,6 +271,7 @@
     async function loadSongs() {
       const status = document.getElementById("status");
       status.textContent = "Loading songs...";
+      showError("");
 
       const { data, error } = await supabaseClient
         .from("songs")
@@ -282,6 +281,7 @@
       if (error) {
         console.error("Load error:", error);
         status.textContent = "Failed to load songs";
+        showError(`Load error: ${error.message}`);
         return;
       }
 
@@ -340,6 +340,7 @@
       }
 
       formStatus.textContent = "Saving...";
+      showError("");
 
       const { error } = await supabaseClient
         .from("songs")
@@ -348,6 +349,7 @@
       if (error) {
         console.error("Insert error:", error);
         formStatus.textContent = "Failed to save song";
+        showError(`Insert error: ${error.message}`);
         return;
       }
 
