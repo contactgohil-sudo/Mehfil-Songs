@@ -263,7 +263,8 @@
     function normalize(text) {
   return String(text || "")
     .toLowerCase()
-    .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?"'!]/g, " ")
+    .normalize("NFC")
+    .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?"'!|[\]\\]/g, " ")
     .replace(/\s+/g, " ")
     .trim();
 }
@@ -289,7 +290,7 @@
       status.textContent = `Loaded ${songs.length} songs`;
     }
 
-  function searchSongs(query) {
+ function searchSongs(query) {
   const q = normalize(query);
   if (!q) return [];
 
@@ -318,8 +319,7 @@
     .sort((a, b) => b.score - a.score)
     .map(item => item.song)
     .slice(0, 10);
-
-    }
+}
 
     function renderResults(results, query = "") {
       const resultsDiv = document.getElementById("results");
