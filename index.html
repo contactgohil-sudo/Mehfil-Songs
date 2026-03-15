@@ -1261,7 +1261,9 @@
   }
 
   return data;
-  async function loadProfile() {
+   }
+     
+ async function loadProfile() {
   if (!session?.user) {
     profile = null;
     return null;
@@ -1282,7 +1284,7 @@
 
   profile = data;
   return profile;
-}   
+}
 }
 
     async function signUpRequest() {
