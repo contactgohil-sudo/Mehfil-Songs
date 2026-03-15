@@ -1384,7 +1384,31 @@ async function logoutUser() {
   renderScreens();
   document.getElementById("authScreen").classList.remove("hidden");
 }
+async function loadSongs() {
+  if (!isApproved()) return;
 
+  showStatus("appStatus", "Loading songs...", "info");
+
+  const { data, error } = await supabaseClient
+    .from("songs")
+    .select("*")
+    .order("title", { ascending: true });
+
+  if (error) {
+    console.error(error);
+    showStatus("appStatus", error.message, "error");
+    return;
+  }
+
+  songs = data || [];
+  rebuildFuse();
+  refreshSuggestionLists();
+  checkEditorDuplicateState();
+  renderResults([], "");
+  renderSongGroups();
+  document.getElementById("libraryCountPill").textContent = `${songs.length} songs`;
+  showStatus("appStatus", "", "info");
+}
     async function saveSong(event) {
       event.preventDefault();
 
