@@ -48,7 +48,7 @@
   justify-content: space-between;
   align-items: flex-start;
   gap: 10px;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
   flex-wrap: nowrap;
 }
 
@@ -57,13 +57,26 @@
     flex: 1;
   }
 
-    .topbar-head {
+   .account-actions {
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 10px;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  flex-shrink: 0;
 }
 
+.account-user {
+  text-align: right;
+  margin: 0;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.add-tab-btn {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+}
 .top-logout-btn {
   white-space: nowrap;
   flex-shrink: 0;
@@ -87,13 +100,17 @@
     margin-top: 4px;
   }
 
-  .top-actions {
+  .account-actions {
   display: flex;
-  gap: 8px;
-  flex-wrap: nowrap;
-  align-items: center;
-  justify-content: flex-end;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
   flex-shrink: 0;
+}
+
+.account-user {
+  text-align: right;
+  margin: 0;
 }
 
   
@@ -491,12 +508,12 @@
   }
 
   .lyrics-full {
-    margin-top: 10px;
-    white-space: pre-wrap;
-    line-height: 1.8;
-    font-size: 16px;
-    color: var(--text);
-  }
+  margin-top: 10px;
+  white-space: pre-wrap;
+  line-height: 1.85;
+  font-size: 18px;
+  color: var(--text);
+}
 
   mark {
     background: #fde68a;
@@ -533,12 +550,17 @@
 
     .topbar {
   gap: 8px;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
   align-items: flex-start;
 }
 
-.topbar-head {
-  gap: 8px;
+.account-actions {
+  gap: 5px;
+  align-items: flex-end;
+}
+
+.account-user {
+  font-size: 12px;
 }
 
 .top-logout-btn {
@@ -550,7 +572,7 @@
 
 .library-count-text {
   font-size: 12px;
-  margin-top: 3px;
+  margin-top: 2px;
 }
     
 .top-actions {
@@ -560,19 +582,28 @@
 }
 
     .pill,
-    .btn,
-    .btn-secondary,
-    .btn-danger,
-    .tab-btn {
-      min-height: 38px;
-      padding: 8px 12px;
-      font-size: 13px;
-    }
+.btn,
+.btn-secondary,
+.btn-danger,
+.tab-btn {
+  min-height: 36px;
+  padding: 8px 11px;
+  font-size: 12px;
+  white-space: nowrap;
+}
 
     .tabs {
-      gap: 6px;
-      margin-bottom: 10px;
-    }
+  gap: 6px;
+  margin-bottom: 10px;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.tabs::-webkit-scrollbar {
+  display: none;
+}
 
     .card {
       padding: 10px;
@@ -659,8 +690,8 @@
     }
 
     .lyrics-full {
-      font-size: 14px;
-      line-height: 1.65;
+      font-size: 16px;
+      line-height: 1.72;
     }
 
     .footer {
@@ -724,28 +755,27 @@
     </section>
 
     <section id="appScreen" class="hidden">
-     <div class="topbar">
+   
+      <div class="topbar">
   <div class="brand-wrap">
-    <div class="topbar-head">
-      <h1 class="brand">Mehfil Lyrics Search</h1>
-      <button id="logoutBtn" class="btn-secondary top-logout-btn" type="button">Logout</button>
-    </div>
-    <div class="sub" id="welcomeLine">Loading...</div>
+    <h1 class="brand">Mehfil Lyrics Search</h1>
     <div id="libraryCountText" class="library-count-text">0 songs</div>
   </div>
 
-  <div class="top-actions">
-    <button id="toggleAddBtn" class="btn hidden" type="button">+ Add Song</button>
+  <div class="account-actions">
+    <div class="sub account-user" id="welcomeLine">Loading...</div>
+    <button id="logoutBtn" class="btn-secondary top-logout-btn" type="button">Logout</button>
   </div>
 </div>
       
       <div id="appStatus" class="status-box"></div>
 
-      <div class="tabs">
-        <button id="tabSearchBtn" class="tab-btn active" type="button">Search</button>
-        <button id="tabListBtn" class="tab-btn" type="button">List of Songs</button>
-        <button id="tabAdminBtn" class="tab-btn hidden" type="button">Pending Requests</button>
-      </div>
+     <div class="tabs">
+  <button id="tabSearchBtn" class="tab-btn active" type="button">Search</button>
+  <button id="tabListBtn" class="tab-btn" type="button">List of Songs</button>
+  <button id="toggleAddBtn" class="tab-btn add-tab-btn hidden" type="button">+ Add Song</button>
+  <button id="tabAdminBtn" class="tab-btn hidden" type="button">Pending Requests</button>
+</div>
 
       <section id="songEditorCard" class="card hidden">
         <h2 id="editorHeading" class="section-title">Add Song</h2>
