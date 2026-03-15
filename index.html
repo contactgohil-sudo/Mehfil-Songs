@@ -1258,26 +1258,51 @@ window.addEventListener("unhandledrejection", (event) => {
   );
 }
 
-    async function loginUser() {
-      const email = document.getElementById("authEmail").value.trim();
-      const password = document.getElementById("authPassword").value;
+   async function loginUser() {
+  const email = document.getElementById("authEmail").value.trim();
+  const password = document.getElementById("authPassword").value;
 
-      if (!email || !password) {
-        showStatus("authStatus", "Email and password are required.", "error");
-        return;
-      }
+  if (!email || !password) {
+    showStatus("authStatus", "Email and password are required.", "error");
+    return;
+  }
 
-      showStatus("authStatus", "Logging in...", "info");
+  showStatus("authStatus", "Logging in...", "info");
 
-      const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+  const { data, error } = await supabaseClient.auth.signInWithPassword({
+    email,
+    password
+  });
 
-      if (error) {
-        showStatus("authStatus", error.message, "error");
-        return;
-      }
+  if (error) {
+    showStatus("authStatus", error.message, "error");
+    return;
+  }
 
-      await bootstrap();
+  session = data.session || null;
+
+  if (!session?.user) {
+    showStatus("authStatus", "Login succeeded but session was not created.", "error");
+    return;
+  }
+
+  try {
+    await loadProfile();
+    renderScreens();
+
+    if (profile?.approved) {
+      renderAppShell();
+      await loadSongs();
+      activateTab("search");
+      showStatus("authStatus", "", "info");
+    } else {
+      showStatus("authStatus", "Your account exists but is not approved yet.", "warn");
     }
+  } catch (err) {
+    console.error("LOGIN FLOW ERROR:", err);
+    showStatus("authStatus", "Login failed after authentication: " + (err?.message || err), "error");
+  }
+}
 
     async function logoutUser() {
   stopActiveRecognition();
@@ -1802,6 +1827,9 @@ window.addEventListener("unhandledrejection", (event) => {
     if (error) throw error;
 
     session = data.session || null;
+    console.log("BOOTSTRAP SESSION:", session);
+    await loadProfile();
+    console.log("BOOTSTRAP PROFILE:", profile);
 
     if (session?.user) {
       await loadProfile();
@@ -1949,15 +1977,21 @@ window.addEventListener("unhandledrejection", (event) => {
         if (e.key === "Escape") closeSongModal();
       });
 
-      supabaseClient.auth.onAuthStateChange(async () => {
-        try {
-          await bootstrap();
-        } catch (err) {
-          console.error("AUTH STATE ERROR:", err);
-          document.getElementById("authScreen").classList.remove("hidden");
-          showStatus("authStatus", "Auth state error: " + (err?.message || err), "error");
-        }
-      });
+      supabaseClient.auth.onAuthStateChange((event, newSession) => {
+  session = newSession || null;
+
+  if (!session?.user) {
+    profile = null;
+    renderScreens();
+    return;
+  }
+
+  bootstrap().catch(err => {
+    console.error("AUTH STATE ERROR:", err);
+    document.getElementById("authScreen").classList.remove("hidden");
+    showStatus("authStatus", "Auth state error: " + (err?.message || err), "error");
+  });
+});
     }
 
     document.addEventListener("DOMContentLoaded", () => {
