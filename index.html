@@ -792,16 +792,14 @@
       return prefix + highlightText(miniSong, query) + suffix;
     }
 
-    function openSong(songId, query = "") {
+    function openSong(songId) {
       const song = preparedSongs.find(s => s.id === songId);
       if (!song) return;
 
       openSongId = songId;
-      lastQuery = query;
-
       document.getElementById("modalTitle").textContent = song.title || "";
       document.getElementById("modalMeta").textContent = `${song.movie || ""} • ${song.singer || ""}`;
-      document.getElementById("modalLyrics").innerHTML = highlightText(song, query);
+      document.getElementById("modalLyrics").innerHTML = highlightText(song, lastQuery);
       document.getElementById("songModal").classList.add("show");
       document.body.style.overflow = "hidden";
     }
@@ -828,13 +826,13 @@
       root.innerHTML = results.map(song => {
         const snippet = buildSnippet(song, query);
         return `
-          <div class="result-card" onclick="openSong(${song.id}, ${JSON.stringify(query)})">
+          <div class="result-card" data-song-id="${song.id}">
             <div class="result-main">
               <div class="song-title">${escapeHtml(song.title || "")}</div>
               <div class="song-meta">${escapeHtml(song.movie || "")} • ${escapeHtml(song.singer || "")}</div>
               ${snippet ? `<div class="song-snippet">${snippet}</div>` : ""}
             </div>
-            <button class="edit-btn" type="button" title="Edit" onclick="event.stopPropagation(); startEdit(${song.id});">✎</button>
+            <button class="edit-btn" type="button" data-edit-id="${song.id}" title="Edit">✎</button>
           </div>
         `;
       }).join("");
@@ -908,10 +906,9 @@
 
       await loadSongs();
 
-      const query = document.getElementById("searchInput").value;
-      renderResults(searchSongs(query), query);
+      renderResults(searchSongs(lastQuery), lastQuery);
 
-      if (openSongId) openSong(openSongId, query);
+      if (openSongId) openSong(openSongId);
 
       resetForm();
       document.getElementById("adminBox").classList.remove("show");
@@ -985,6 +982,7 @@
 
           const combined = (finalTranscript + liveText).trim();
           input.value = combined;
+          lastQuery = combined;
           renderResults(searchSongs(combined), combined);
         };
 
@@ -1038,6 +1036,7 @@
       const songModal = document.getElementById("songModal");
       const modalCloseBtn = document.getElementById("modalCloseBtn");
       const modalEditBtn = document.getElementById("modalEditBtn");
+      const results = document.getElementById("results");
 
       input.addEventListener("input", () => {
         lastQuery = input.value;
@@ -1067,6 +1066,20 @@
 
       form.addEventListener("submit", saveSong);
 
+      results.addEventListener("click", (e) => {
+        const editBtn = e.target.closest("[data-edit-id]");
+        if (editBtn) {
+          e.stopPropagation();
+          startEdit(Number(editBtn.dataset.editId));
+          return;
+        }
+
+        const card = e.target.closest("[data-song-id]");
+        if (card) {
+          openSong(Number(card.dataset.songId));
+        }
+      });
+
       modalCloseBtn.addEventListener("click", closeSongModal);
       modalEditBtn.addEventListener("click", () => {
         if (openSongId) startEdit(openSongId);
@@ -1085,8 +1098,6 @@
       input.focus();
     }
 
-    window.startEdit = startEdit;
-    window.openSong = openSong;
     init();
   </script>
 </body>
