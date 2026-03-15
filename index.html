@@ -8,13 +8,6 @@
   <style>
     * { box-sizing: border-box; }
 
-    mark {
-  background: #ffeb3b;
-  color: #111;
-  padding: 0 2px;
-  border-radius: 3px;
-    }
-    
     body {
       font-family: Arial, sans-serif;
       background: #f5f5f5;
@@ -80,7 +73,9 @@
       box-shadow: 0 2px 8px rgba(0,0,0,0.06);
     }
 
-    .admin-box.show { display: block; }
+    .admin-box.show {
+      display: block;
+    }
 
     .admin-box h2 {
       margin-top: 0;
@@ -101,7 +96,7 @@
     }
 
     .admin-box textarea {
-      min-height: 140px;
+      min-height: 180px;
       resize: vertical;
     }
 
@@ -113,20 +108,24 @@
     }
 
     .save-btn,
-    .close-btn {
+    .close-btn,
+    .cancel-edit-btn,
+    .edit-btn {
       border: none;
       border-radius: 10px;
-      padding: 12px 16px;
-      font-size: 15px;
+      padding: 10px 14px;
+      font-size: 14px;
       cursor: pointer;
     }
 
-    .save-btn {
+    .save-btn,
+    .edit-btn {
       background: #111;
       color: white;
     }
 
-    .close-btn {
+    .close-btn,
+    .cancel-edit-btn {
       background: #ddd;
       color: #111;
     }
@@ -175,6 +174,19 @@
       box-shadow: 0 2px 8px rgba(0,0,0,0.05);
     }
 
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+      margin-bottom: 8px;
+    }
+
+    .card-main {
+      min-width: 0;
+      flex: 1;
+    }
+
     .title {
       font-size: 20px;
       font-weight: bold;
@@ -200,6 +212,13 @@
       padding: 20px 10px;
     }
 
+    mark {
+      background: #ffeb3b;
+      color: #111;
+      padding: 0 2px;
+      border-radius: 3px;
+    }
+
     @media (max-width: 480px) {
       body { padding: 10px; }
       h1 { font-size: 24px; }
@@ -207,6 +226,7 @@
       .icon-btn { font-size: 20px; min-width: 48px; }
       .title { font-size: 18px; }
       .lyrics { font-size: 15px; }
+      .card-header { flex-direction: column; align-items: stretch; }
     }
   </style>
 </head>
@@ -222,7 +242,7 @@
     <div id="errorBox" class="error-box"></div>
 
     <div class="admin-box" id="adminBox">
-      <h2>Add Song</h2>
+      <h2 id="formHeading">Add Song</h2>
       <form id="addSongForm">
         <input id="songTitle" type="text" placeholder="Song title" />
         <input id="songMovie" type="text" placeholder="Movie name" />
@@ -230,7 +250,8 @@
         <textarea id="songLyrics" placeholder="Paste full lyrics"></textarea>
 
         <div class="admin-actions">
-          <button class="save-btn" type="submit">Save Song</button>
+          <button class="save-btn" id="saveSongBtn" type="submit">Save Song</button>
+          <button class="cancel-edit-btn" id="cancelEditBtn" type="button" style="display:none;">Cancel Edit</button>
           <button class="close-btn" id="closeAdminBtn" type="button">Close</button>
           <div id="formStatus" class="info"></div>
         </div>
@@ -255,6 +276,7 @@
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     let songs = [];
+    let editingSongId = null;
 
     function showError(message) {
       const errorBox = document.getElementById("errorBox");
@@ -267,14 +289,44 @@
       errorBox.textContent = message;
     }
 
+    function escapeHtml(text) {
+      return String(text || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
     function normalize(text) {
-  return String(text || "")
-    .toLowerCase()
-    .normalize("NFC")
-    .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?"'!|[\]\\]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
+      return String(text || "")
+        .toLowerCase()
+        .normalize("NFC")
+        .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?"'!|[\]\\]/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+    }
+
+    function buildNormalizedMap(originalText) {
+      const original = String(originalText || "");
+      let normalized = "";
+      const map = [];
+
+      for (let i = 0; i < original.length; i++) {
+        const normalizedChar = original[i].toLowerCase().normalize("NFC");
+        for (let j = 0; j < normalizedChar.length; j++) {
+          normalized += normalizedChar[j];
+          map.push(i);
+        }
+      }
+
+      normalized = normalized
+        .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?"'!|[\]\\]/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+
+      return { normalized, original };
+    }
 
     async function loadSongs() {
       const status = document.getElementById("status");
@@ -297,81 +349,157 @@
       status.textContent = `Loaded ${songs.length} songs`;
     }
 
- function searchSongs(query) {
-  const q = normalize(query);
-  if (!q) return [];
+    function searchSongs(query) {
+      const q = normalize(query);
+      if (!q) return [];
 
-  const words = q.split(" ").filter(Boolean);
+      const words = q.split(" ").filter(Boolean);
 
-  const scored = songs.map(song => {
-    const title = normalize(song.title || "");
-    const movie = normalize(song.movie || "");
-    const singer = normalize(song.singer || "");
-    const lyrics = normalize(song.lyrics || "");
+      const scored = songs.map(song => {
+        const title = normalize(song.title || "");
+        const movie = normalize(song.movie || "");
+        const singer = normalize(song.singer || "");
+        const lyrics = normalize(song.lyrics || "");
 
-    let score = 0;
+        let score = 0;
 
-    for (const word of words) {
-      if (lyrics.includes(word)) score += 5;
-      if (title.includes(word)) score += 3;
-      if (movie.includes(word)) score += 2;
-      if (singer.includes(word)) score += 1;
+        for (const word of words) {
+          if (lyrics.includes(word)) score += 5;
+          if (title.includes(word)) score += 3;
+          if (movie.includes(word)) score += 2;
+          if (singer.includes(word)) score += 1;
+        }
+
+        return { song, score };
+      });
+
+      return scored
+        .filter(item => item.score > 0)
+        .sort((a, b) => b.score - a.score)
+        .map(item => item.song)
+        .slice(0, 10);
     }
 
-    return { song, score };
-  });
+    function findHighlightRanges(text, query) {
+      const original = String(text || "");
+      const q = normalize(query);
+      if (!original || !q) return [];
 
-  return scored
-    .filter(item => item.score > 0)
-    .sort((a, b) => b.score - a.score)
-    .map(item => item.song)
-    .slice(0, 10);
-}
-function escapeRegExp(string) {
-  return string.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
+      const words = q.split(" ").filter(Boolean);
+      if (!words.length) return [];
 
-function highlightText(text, query) {
-  if (!query || !query.trim()) return String(text || "");
+      const lowerOriginal = original.toLowerCase().normalize("NFC");
+      const ranges = [];
 
-  const rawWords = String(query)
-    .split(/\s+/)
-    .map(word => word.trim())
-    .filter(Boolean);
+      // First try exact phrase highlight on normalized raw text
+      const exactIndex = lowerOriginal.indexOf(String(query).toLowerCase().normalize("NFC"));
+      if (exactIndex !== -1) {
+        ranges.push([exactIndex, exactIndex + String(query).length]);
+      }
 
-  let highlighted = String(text || "");
+      // Then highlight individual words
+      for (const word of words) {
+        let startIndex = 0;
+        while (true) {
+          const found = lowerOriginal.indexOf(word, startIndex);
+          if (found === -1) break;
+          ranges.push([found, found + word.length]);
+          startIndex = found + word.length;
+        }
+      }
 
-  rawWords.forEach(word => {
-    const pattern = new RegExp(`(${escapeRegExp(word)})`, "giu");
-    highlighted = highlighted.replace(pattern, `<mark>$1</mark>`);
-  });
+      // Merge overlapping ranges
+      ranges.sort((a, b) => a[0] - b[0]);
+      const merged = [];
 
-  return highlighted;
-}
-    
+      for (const range of ranges) {
+        if (!merged.length || range[0] > merged[merged.length - 1][1]) {
+          merged.push(range);
+        } else {
+          merged[merged.length - 1][1] = Math.max(merged[merged.length - 1][1], range[1]);
+        }
+      }
+
+      return merged;
+    }
+
+    function highlightText(text, query) {
+      const original = String(text || "");
+      if (!query || !query.trim()) return escapeHtml(original);
+
+      const ranges = findHighlightRanges(original, query);
+      if (!ranges.length) return escapeHtml(original);
+
+      let result = "";
+      let lastIndex = 0;
+
+      for (const [start, end] of ranges) {
+        result += escapeHtml(original.slice(lastIndex, start));
+        result += `<mark>${escapeHtml(original.slice(start, end))}</mark>`;
+        lastIndex = end;
+      }
+
+      result += escapeHtml(original.slice(lastIndex));
+      return result;
+    }
+
     function renderResults(results, query = "") {
-  const resultsDiv = document.getElementById("results");
+      const resultsDiv = document.getElementById("results");
 
-  if (!query.trim()) {
-    resultsDiv.innerHTML = `<div class="empty">Type or speak a few words to find lyrics.</div>`;
-    return;
-  }
+      if (!query.trim()) {
+        resultsDiv.innerHTML = `<div class="empty">Type or speak a few words to find lyrics.</div>`;
+        return;
+      }
 
-  if (!results.length) {
-    resultsDiv.innerHTML = `<div class="empty">No matching song found.</div>`;
-    return;
-  }
+      if (!results.length) {
+        resultsDiv.innerHTML = `<div class="empty">No matching song found.</div>`;
+        return;
+      }
 
-  resultsDiv.innerHTML = results.map(song => `
-    <div class="card">
-      <div class="title">${song.title || ""}</div>
-      <div class="meta">${song.movie || ""} • ${song.singer || ""}</div>
-      <div class="lyrics">${highlightText(song.lyrics || "", query)}</div>
-    </div>
-  `).join("");
-}
+      resultsDiv.innerHTML = results.map(song => `
+        <div class="card">
+          <div class="card-header">
+            <div class="card-main">
+              <div class="title">${escapeHtml(song.title || "")}</div>
+              <div class="meta">${escapeHtml(song.movie || "")} • ${escapeHtml(song.singer || "")}</div>
+            </div>
+            <button class="edit-btn" type="button" onclick="startEdit(${song.id})">Edit</button>
+          </div>
+          <div class="lyrics">${highlightText(song.lyrics || "", query)}</div>
+        </div>
+      `).join("");
+    }
 
-    async function addSong(event) {
+    function resetForm() {
+      editingSongId = null;
+      document.getElementById("formHeading").textContent = "Add Song";
+      document.getElementById("saveSongBtn").textContent = "Save Song";
+      document.getElementById("cancelEditBtn").style.display = "none";
+      document.getElementById("songTitle").value = "";
+      document.getElementById("songMovie").value = "";
+      document.getElementById("songSinger").value = "";
+      document.getElementById("songLyrics").value = "";
+      document.getElementById("formStatus").textContent = "";
+    }
+
+    function startEdit(songId) {
+      const song = songs.find(s => s.id === songId);
+      if (!song) return;
+
+      editingSongId = song.id;
+      document.getElementById("formHeading").textContent = "Edit Song";
+      document.getElementById("saveSongBtn").textContent = "Update Song";
+      document.getElementById("cancelEditBtn").style.display = "inline-block";
+      document.getElementById("songTitle").value = song.title || "";
+      document.getElementById("songMovie").value = song.movie || "";
+      document.getElementById("songSinger").value = song.singer || "";
+      document.getElementById("songLyrics").value = song.lyrics || "";
+      document.getElementById("adminBox").classList.add("show");
+      document.getElementById("songTitle").focus();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    async function saveSong(event) {
       event.preventDefault();
 
       const title = document.getElementById("songTitle").value.trim();
@@ -385,31 +513,42 @@ function highlightText(text, query) {
         return;
       }
 
-      formStatus.textContent = "Saving...";
+      formStatus.textContent = editingSongId ? "Updating..." : "Saving...";
       showError("");
 
-      const { error } = await supabaseClient
-        .from("songs")
-        .insert([{ title, movie, singer, lyrics }]);
+      let error = null;
+
+      if (editingSongId) {
+        const response = await supabaseClient
+          .from("songs")
+          .update({ title, movie, singer, lyrics })
+          .eq("id", editingSongId);
+
+        error = response.error;
+      } else {
+        const response = await supabaseClient
+          .from("songs")
+          .insert([{ title, movie, singer, lyrics }]);
+
+        error = response.error;
+      }
 
       if (error) {
-        console.error("Insert error:", error);
-        formStatus.textContent = "Failed to save song";
-        showError(`Insert error: ${error.message}`);
+        console.error("Save error:", error);
+        formStatus.textContent = editingSongId ? "Failed to update song" : "Failed to save song";
+        showError(`Save error: ${error.message}`);
         return;
       }
 
-      formStatus.textContent = "Song added";
-
-      document.getElementById("songTitle").value = "";
-      document.getElementById("songMovie").value = "";
-      document.getElementById("songSinger").value = "";
-      document.getElementById("songLyrics").value = "";
+      formStatus.textContent = editingSongId ? "Song updated" : "Song added";
 
       await loadSongs();
 
       const input = document.getElementById("searchInput");
       renderResults(searchSongs(input.value), input.value);
+
+      resetForm();
+      document.getElementById("adminBox").classList.remove("show");
     }
 
     function startMicSearch() {
@@ -446,6 +585,7 @@ function highlightText(text, query) {
       const addSongForm = document.getElementById("addSongForm");
       const toggleAdminBtn = document.getElementById("toggleAdminBtn");
       const closeAdminBtn = document.getElementById("closeAdminBtn");
+      const cancelEditBtn = document.getElementById("cancelEditBtn");
       const adminBox = document.getElementById("adminBox");
 
       input.addEventListener("input", () => {
@@ -462,19 +602,26 @@ function highlightText(text, query) {
 
       toggleAdminBtn.addEventListener("click", () => {
         adminBox.classList.toggle("show");
+        if (!adminBox.classList.contains("show")) resetForm();
       });
 
       closeAdminBtn.addEventListener("click", () => {
         adminBox.classList.remove("show");
+        resetForm();
       });
 
-      addSongForm.addEventListener("submit", addSong);
+      cancelEditBtn.addEventListener("click", () => {
+        resetForm();
+      });
+
+      addSongForm.addEventListener("submit", saveSong);
 
       await loadSongs();
       renderResults([], "");
       input.focus();
     }
 
+    window.startEdit = startEdit;
     init();
   </script>
 </body>
