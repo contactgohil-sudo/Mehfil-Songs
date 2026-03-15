@@ -1257,14 +1257,27 @@
   return data;
 }
     async function loadProfile() {
-      if (!session?.user) {
-        profile = null;
-        return null;
-      }
+  if (!session?.user) {
+    profile = null;
+    return null;
+  }
 
-      profile = await ensureProfile(session.user, "");
-      return profile;
-    }
+  await ensureProfile(session.user, "");
+
+  const { data, error } = await supabaseClient
+    .from("profiles")
+    .select("*")
+    .eq("id", session.user.id)
+    .single();
+
+  if (error) {
+    console.error("LOAD PROFILE ERROR:", error);
+    throw error;
+  }
+
+  profile = data;
+  return profile;
+}
 
     async function signUpRequest() {
       const name = document.getElementById("authName").value.trim();
@@ -1304,47 +1317,47 @@
     }
 
     async function loginUser() {
-      const email = document.getElementById("authEmail").value.trim();
-      const password = document.getElementById("authPassword").value;
+  const email = document.getElementById("authEmail").value.trim();
+  const password = document.getElementById("authPassword").value;
 
-      if (!email || !password) {
-        showStatus("authStatus", "Email and password are required.", "error");
-        return;
-      }
+  if (!email || !password) {
+    showStatus("authStatus", "Email and password are required.", "error");
+    return;
+  }
 
-      showStatus("authStatus", "Logging in...", "info");
+  showStatus("authStatus", "Logging in...", "info");
 
-      const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+  const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
 
-      if (error) {
-        showStatus("authStatus", error.message, "error");
-        return;
-      }
+  if (error) {
+    showStatus("authStatus", error.message, "error");
+    return;
+  }
 
-      session = data.session || null;
+  session = data.session || null;
 
-      if (!session?.user) {
-        showStatus("authStatus", "Login succeeded but session was not created.", "error");
-        return;
-      }
+  if (!session?.user) {
+    showStatus("authStatus", "Login succeeded but session was not created.", "error");
+    return;
+  }
 
-      try {
-        await loadProfile();
-        renderScreens();
+  try {
+    await loadProfile();
+    renderScreens();
 
-        if (profile?.approved) {
-          renderAppShell();
-          await loadSongs();
-          activateTab("search");
-          showStatus("authStatus", "", "info");
-        } else {
-          showStatus("authStatus", "Your account exists but is not approved yet.", "warn");
-        }
-      } catch (err) {
-        console.error("LOGIN FLOW ERROR:", err);
-        showStatus("authStatus", "Login failed after authentication: " + (err?.message || err), "error");
-      }
+    if (profile?.approved) {
+      renderAppShell();
+      await loadSongs();
+      activateTab("search");
+      showStatus("authStatus", "", "info");
+    } else {
+      showStatus("authStatus", "Your request is pending. Please wait for admin approval.", "warn");
     }
+  } catch (err) {
+    console.error("LOGIN FLOW ERROR:", err);
+    showStatus("authStatus", "Login failed after authentication: " + (err?.message || err), "error");
+  }
+}
 
     async function logoutUser() {
       stopActiveRecognition();
@@ -1925,8 +1938,24 @@
       document.getElementById("pendingLogoutBtn").addEventListener("click", logoutUser);
 
       document.getElementById("pendingRefreshBtn").addEventListener("click", async () => {
-        await bootstrap();
-      });
+  try {
+    showStatus("pendingStatus", "Checking approval status...", "info");
+    await loadProfile();
+    renderScreens();
+
+    if (profile?.approved) {
+      renderAppShell();
+      await loadSongs();
+      activateTab("search");
+      showStatus("pendingStatus", "", "info");
+    } else {
+      showStatus("pendingStatus", "Your request is still pending. Please try again in a moment.", "warn");
+    }
+  } catch (err) {
+    console.error("PENDING REFRESH ERROR:", err);
+    showStatus("pendingStatus", "Could not refresh approval status: " + (err?.message || err), "error");
+  }
+});
 
       document.getElementById("toggleAddBtn").addEventListener("click", () => {
         resetSongForm();
