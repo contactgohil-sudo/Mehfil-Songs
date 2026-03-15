@@ -3,506 +3,642 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Mehfil Lyrics Search</title>
+  <title> Mehfil Lyrics </title>
 
   <style>
-    * { box-sizing: border-box; }
+  * { box-sizing: border-box; }
 
-    :root {
-      --bg: #f6f7fb;
-      --card: #ffffff;
-      --text: #111827;
-      --muted: #6b7280;
-      --line: #e5e7eb;
-      --primary: #111827;
-      --primary-soft: #f3f4f6;
-      --danger-soft: #fef2f2;
-      --danger: #b91c1c;
-      --warn-soft: #fff7ed;
-      --warn: #9a3412;
-      --success-soft: #ecfdf5;
-      --success: #166534;
-      --shadow: 0 8px 30px rgba(0,0,0,0.06);
-      --radius: 16px;
-    }
+  :root {
+    --bg: #f6f7fb;
+    --card: #ffffff;
+    --text: #111827;
+    --muted: #6b7280;
+    --line: #e5e7eb;
+    --primary: #111827;
+    --primary-soft: #f3f4f6;
+    --danger-soft: #fef2f2;
+    --danger: #b91c1c;
+    --warn-soft: #fff7ed;
+    --warn: #9a3412;
+    --success-soft: #ecfdf5;
+    --success: #166534;
+    --shadow: 0 8px 30px rgba(0,0,0,0.06);
+    --radius: 16px;
+  }
 
+  body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    padding: 12px;
+    overflow-x: hidden;
+  }
+
+  .container {
+    width: 100%;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+
+  .hidden { display: none !important; }
+
+  .topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 10px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+  }
+
+  .brand-wrap {
+    min-width: 0;
+    flex: 1;
+  }
+
+  .brand {
+    margin: 0;
+    font-size: 30px;
+    line-height: 1.1;
+  }
+
+  .sub {
+    color: var(--muted);
+    font-size: 14px;
+    margin-top: 4px;
+  }
+
+  .top-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .pill {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 9px 13px;
+    font-size: 13px;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+
+  .btn, .btn-secondary, .btn-danger {
+    border: none;
+    border-radius: 12px;
+    padding: 10px 14px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    min-height: 42px;
+  }
+
+  .btn {
+    background: var(--primary);
+    color: white;
+  }
+
+  .btn-secondary {
+    background: var(--card);
+    color: var(--text);
+    border: 1px solid var(--line);
+  }
+
+  .btn-danger {
+    background: #b91c1c;
+    color: white;
+  }
+
+  .screen-card, .card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+  }
+
+  .screen-card {
+    max-width: 540px;
+    margin: 36px auto 0;
+    padding: 18px;
+  }
+
+  .card {
+    padding: 14px;
+    margin-bottom: 14px;
+  }
+
+  .section-title {
+    margin: 0 0 10px;
+    font-size: 20px;
+  }
+
+  .row {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .row > .field {
+    flex: 1 1 240px;
+  }
+
+  .field {
+    margin-bottom: 10px;
+  }
+
+  .field label {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 13px;
+    color: var(--muted);
+    font-weight: 600;
+  }
+
+  .input, .textarea, .select {
+    width: 100%;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 13px 14px;
+    font-size: 15px;
+    background: white;
+    color: var(--text);
+    outline: none;
+  }
+
+  .textarea {
+    min-height: 170px;
+    resize: vertical;
+  }
+
+  .stack-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+    margin-top: 6px;
+  }
+
+  .status-box {
+    margin-bottom: 12px;
+    border-radius: 12px;
+    padding: 12px 14px;
+    font-size: 14px;
+    white-space: pre-wrap;
+    display: none;
+  }
+
+  .status-box.show { display: block; }
+  .status-info { background: var(--primary-soft); color: var(--text); border: 1px solid var(--line); }
+  .status-warn { background: var(--warn-soft); color: var(--warn); border: 1px solid #fed7aa; }
+  .status-error { background: var(--danger-soft); color: var(--danger); border: 1px solid #fecaca; }
+  .status-success { background: var(--success-soft); color: var(--success); border: 1px solid #bbf7d0; }
+
+  .tabs {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+  }
+
+  .tab-btn {
+    border: 1px solid var(--line);
+    background: white;
+    color: var(--text);
+    border-radius: 999px;
+    padding: 9px 14px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 14px;
+    min-height: 42px;
+  }
+
+  .tab-btn.active {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
+  }
+
+  .search-bar {
+    display: flex;
+    gap: 8px;
+    align-items: stretch;
+    margin-bottom: 12px;
+  }
+
+  .search-input {
+    flex: 1;
+    min-width: 0;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 14px 15px;
+    font-size: 18px;
+    background: white;
+    color: var(--text);
+    outline: none;
+  }
+
+  .icon-btn {
+    border: 1px solid var(--line);
+    background: white;
+    color: var(--text);
+    border-radius: 14px;
+    min-width: 52px;
+    width: 52px;
+    height: 52px;
+    padding: 0;
+    font-size: 20px;
+    cursor: pointer;
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .mic-listening {
+    background: #fee2e2;
+    border-color: #fca5a5;
+  }
+
+  .result-card, .song-row {
+    background: white;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 12px;
+    margin-bottom: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 10px;
+    cursor: pointer;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.03);
+  }
+
+  .result-card:hover, .song-row:hover {
+    border-color: #cbd5e1;
+  }
+
+  .result-main {
+    min-width: 0;
+    flex: 1;
+  }
+
+  .song-title {
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 3px;
+    line-height: 1.25;
+  }
+
+  .song-meta {
+    color: var(--muted);
+    font-size: 14px;
+    margin-bottom: 6px;
+    line-height: 1.35;
+  }
+
+  .song-snippet {
+    color: #374151;
+    font-size: 14px;
+    line-height: 1.45;
+    white-space: pre-wrap;
+  }
+
+  .edit-btn {
+    border: 1px solid var(--line);
+    background: white;
+    color: var(--text);
+    border-radius: 10px;
+    width: 34px;
+    height: 34px;
+    min-width: 34px;
+    padding: 0;
+    cursor: pointer;
+    font-size: 15px;
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .empty {
+    background: white;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 16px;
+    color: var(--muted);
+    text-align: center;
+  }
+
+  .toolbar {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+  }
+
+  .toolbar-left, .toolbar-right {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .group-card {
+    background: white;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    margin-bottom: 12px;
+    overflow: hidden;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.03);
+  }
+
+  .group-head {
+    padding: 12px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    cursor: pointer;
+    background: #fafafa;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .group-head strong {
+    font-size: 15px;
+  }
+
+  .group-count {
+    color: var(--muted);
+    font-size: 12px;
+  }
+
+  .group-body {
+    padding: 8px;
+  }
+
+  .group-body.hidden {
+    display: none;
+  }
+
+  .tiny {
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  .pending-user {
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 12px;
+    background: white;
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+
+  .pending-user-main {
+    min-width: 0;
+  }
+
+  .pending-user-title {
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+
+  .pending-user-meta {
+    font-size: 13px;
+    color: var(--muted);
+    word-break: break-word;
+  }
+
+  .modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.48);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 14px;
+    z-index: 1000;
+  }
+
+  .modal.show { display: flex; }
+
+  .modal-card {
+    width: 100%;
+    max-width: 760px;
+    max-height: 86vh;
+    overflow: auto;
+    background: white;
+    border-radius: 18px;
+    padding: 18px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.18);
+  }
+
+  .modal-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 10px;
+  }
+
+  .modal-title {
+    font-size: 24px;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+
+  .modal-meta {
+    color: var(--muted);
+    font-size: 14px;
+  }
+
+  .modal-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    flex-shrink: 0;
+  }
+
+  .modal-btn {
+    border: none;
+    border-radius: 12px;
+    padding: 10px 12px;
+    background: var(--primary);
+    color: white;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  .lyrics-full {
+    margin-top: 10px;
+    white-space: pre-wrap;
+    line-height: 1.8;
+    font-size: 16px;
+    color: var(--text);
+  }
+
+  mark {
+    background: #fde68a;
+    color: #111827;
+    padding: 0 2px;
+    border-radius: 3px;
+  }
+
+  .footer {
+    text-align: center;
+    color: var(--muted);
+    font-size: 13px;
+    padding: 18px 8px 12px;
+  }
+
+  @media (max-width: 640px) {
     body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      padding: 12px;
-      overflow-x: hidden;
+      padding: 8px;
     }
 
     .container {
-      width: 100%;
-      max-width: 1100px;
-      margin: 0 auto;
-    }
-
-    .hidden { display: none !important; }
-
-    .topbar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 12px;
-      margin-bottom: 14px;
-      flex-wrap: wrap;
-    }
-
-    .brand-wrap {
-      min-width: 0;
+      max-width: 100%;
     }
 
     .brand {
-      margin: 0;
-      font-size: 30px;
-      line-height: 1.15;
+      font-size: 23px;
+      line-height: 1.08;
     }
 
     .sub {
-      color: var(--muted);
-      font-size: 14px;
-      margin-top: 4px;
+      font-size: 13px;
+      margin-top: 3px;
+    }
+
+    .topbar {
+      gap: 8px;
+      margin-bottom: 10px;
     }
 
     .top-actions {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-      align-items: center;
+      width: 100%;
+      gap: 6px;
     }
 
-    .pill {
-      background: var(--card);
-      border: 1px solid var(--line);
-      border-radius: 999px;
-      padding: 10px 14px;
+    .pill,
+    .btn,
+    .btn-secondary,
+    .btn-danger,
+    .tab-btn {
+      min-height: 38px;
+      padding: 8px 12px;
       font-size: 13px;
-      color: var(--muted);
     }
 
-    .btn, .btn-secondary, .btn-danger {
-      border: none;
-      border-radius: 12px;
-      padding: 11px 14px;
-      cursor: pointer;
-      font-size: 14px;
-      font-weight: 600;
-    }
-
-    .btn {
-      background: var(--primary);
-      color: white;
-    }
-
-    .btn-secondary {
-      background: var(--card);
-      color: var(--text);
-      border: 1px solid var(--line);
-    }
-
-    .btn-danger {
-      background: #b91c1c;
-      color: white;
-    }
-
-    .screen-card, .card {
-      background: var(--card);
-      border: 1px solid var(--line);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
-    }
-
-    .screen-card {
-      max-width: 540px;
-      margin: 36px auto 0;
-      padding: 18px;
+    .tabs {
+      gap: 6px;
+      margin-bottom: 10px;
     }
 
     .card {
-      padding: 16px;
-      margin-bottom: 14px;
-    }
-
-    .section-title {
-      margin: 0 0 10px;
-      font-size: 20px;
-    }
-
-    .row {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-    }
-
-    .row > .field {
-      flex: 1 1 240px;
-    }
-
-    .field {
-      margin-bottom: 10px;
-    }
-
-    .field label {
-      display: block;
-      margin-bottom: 6px;
-      font-size: 13px;
-      color: var(--muted);
-      font-weight: 600;
-    }
-
-    .input, .textarea, .select {
-      width: 100%;
-      border: 1px solid var(--line);
-      border-radius: 12px;
-      padding: 13px 14px;
-      font-size: 15px;
-      background: white;
-      color: var(--text);
-      outline: none;
-    }
-
-    .textarea {
-      min-height: 170px;
-      resize: vertical;
-    }
-
-    .stack-actions {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-      align-items: center;
-      margin-top: 6px;
-    }
-
-    .status-box {
-      margin-bottom: 12px;
-      border-radius: 12px;
-      padding: 12px 14px;
-      font-size: 14px;
-      white-space: pre-wrap;
-      display: none;
-    }
-
-    .status-box.show { display: block; }
-    .status-info { background: var(--primary-soft); color: var(--text); border: 1px solid var(--line); }
-    .status-warn { background: var(--warn-soft); color: var(--warn); border: 1px solid #fed7aa; }
-    .status-error { background: var(--danger-soft); color: var(--danger); border: 1px solid #fecaca; }
-    .status-success { background: var(--success-soft); color: var(--success); border: 1px solid #bbf7d0; }
-
-    .tabs {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-      margin-bottom: 14px;
-    }
-
-    .tab-btn {
-      border: 1px solid var(--line);
-      background: white;
-      color: var(--text);
-      border-radius: 999px;
-      padding: 10px 14px;
-      cursor: pointer;
-      font-weight: 600;
-      font-size: 14px;
-    }
-
-    .tab-btn.active {
-      background: var(--primary);
-      color: white;
-      border-color: var(--primary);
+      padding: 10px;
+      border-radius: 14px;
     }
 
     .search-bar {
-      display: flex;
-      gap: 8px;
-      align-items: stretch;
-      margin-bottom: 14px;
-    }
-
-    .search-input {
-      flex: 1;
-      min-width: 0;
-      border: 1px solid var(--line);
-      border-radius: 14px;
-      padding: 16px;
-      font-size: 20px;
-      background: white;
-      color: var(--text);
-      outline: none;
+      gap: 6px;
+      margin-bottom: 10px;
     }
 
     .icon-btn {
-      border: 1px solid var(--line);
-      background: white;
-      color: var(--text);
-      border-radius: 14px;
-      min-width: 56px;
-      padding: 0 14px;
-      font-size: 22px;
-      cursor: pointer;
-      flex-shrink: 0;
+      width: 44px;
+      min-width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      font-size: 17px;
     }
 
-    .mic-listening {
-      background: #fee2e2;
-      border-color: #fca5a5;
+    .search-input {
+      font-size: 16px;
+      padding: 11px 12px;
+      border-radius: 12px;
     }
 
-    .result-card, .song-row {
-      background: white;
-      border: 1px solid var(--line);
-      border-radius: 14px;
-      padding: 14px;
-      margin-bottom: 10px;
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      gap: 12px;
-      cursor: pointer;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.03);
-    }
-
-    .result-card:hover, .song-row:hover {
-      border-color: #cbd5e1;
-    }
-
-    .result-main {
-      min-width: 0;
-      flex: 1;
+    .result-card,
+    .song-row {
+      padding: 10px;
+      gap: 8px;
+      border-radius: 12px;
+      margin-bottom: 8px;
     }
 
     .song-title {
-      font-size: 18px;
-      font-weight: 700;
-      margin-bottom: 4px;
+      font-size: 15px;
+      margin-bottom: 2px;
     }
 
     .song-meta {
-      color: var(--muted);
-      font-size: 14px;
-      margin-bottom: 6px;
+      font-size: 12px;
+      margin-bottom: 4px;
     }
 
     .song-snippet {
-      color: #374151;
-      font-size: 14px;
-      line-height: 1.5;
-      white-space: pre-wrap;
+      font-size: 12px;
+      line-height: 1.35;
     }
 
     .edit-btn {
-      border: 1px solid var(--line);
-      background: white;
-      color: var(--text);
-      border-radius: 10px;
-      width: 38px;
-      height: 38px;
-      min-width: 38px;
-      padding: 0;
-      cursor: pointer;
-      font-size: 18px;
-      flex-shrink: 0;
-    }
-
-    .empty {
-      background: white;
-      border: 1px solid var(--line);
-      border-radius: 14px;
-      padding: 18px;
-      color: var(--muted);
-      text-align: center;
-    }
-
-    .toolbar {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 12px;
-    }
-
-    .toolbar-left, .toolbar-right {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-      align-items: center;
-    }
-
-    .group-card {
-      background: white;
-      border: 1px solid var(--line);
-      border-radius: 16px;
-      margin-bottom: 12px;
-      overflow: hidden;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.03);
+      width: 30px;
+      height: 30px;
+      min-width: 30px;
+      font-size: 13px;
+      border-radius: 8px;
     }
 
     .group-head {
-      padding: 14px 16px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      cursor: pointer;
-      background: #fafafa;
-      border-bottom: 1px solid var(--line);
+      padding: 10px 12px;
     }
 
     .group-head strong {
-      font-size: 16px;
+      font-size: 14px;
     }
 
     .group-count {
-      color: var(--muted);
-      font-size: 13px;
+      font-size: 11px;
     }
 
     .group-body {
-      padding: 10px;
+      padding: 6px;
     }
-
-    .group-body.hidden {
-      display: none;
-    }
-
-    .tiny {
-      font-size: 12px;
-      color: var(--muted);
-    }
-
-    .pending-user {
-      border: 1px solid var(--line);
-      border-radius: 14px;
-      padding: 12px;
-      background: white;
-      display: flex;
-      justify-content: space-between;
-      gap: 12px;
-      align-items: center;
-      margin-bottom: 10px;
-    }
-
-    .pending-user-main {
-      min-width: 0;
-    }
-
-    .pending-user-title {
-      font-weight: 700;
-      margin-bottom: 4px;
-    }
-
-    .pending-user-meta {
-      font-size: 13px;
-      color: var(--muted);
-      word-break: break-word;
-    }
-
-    .modal {
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.48);
-      display: none;
-      align-items: center;
-      justify-content: center;
-      padding: 14px;
-      z-index: 1000;
-    }
-
-    .modal.show { display: flex; }
 
     .modal-card {
-      width: 100%;
-      max-width: 760px;
-      max-height: 86vh;
-      overflow: auto;
-      background: white;
-      border-radius: 18px;
-      padding: 18px;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.18);
-    }
-
-    .modal-top {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      gap: 12px;
-      margin-bottom: 10px;
+      padding: 14px;
+      border-radius: 14px;
     }
 
     .modal-title {
-      font-size: 24px;
-      font-weight: 700;
-      margin-bottom: 4px;
+      font-size: 19px;
     }
 
     .modal-meta {
-      color: var(--muted);
-      font-size: 14px;
-    }
-
-    .modal-actions {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-      flex-shrink: 0;
-    }
-
-    .modal-btn {
-      border: none;
-      border-radius: 12px;
-      padding: 10px 12px;
-      background: var(--primary);
-      color: white;
-      cursor: pointer;
-      font-size: 14px;
-      font-weight: 600;
+      font-size: 12px;
     }
 
     .lyrics-full {
-      margin-top: 10px;
-      white-space: pre-wrap;
-      line-height: 1.8;
-      font-size: 16px;
-      color: var(--text);
-    }
-
-    mark {
-      background: #fde68a;
-      color: #111827;
-      padding: 0 2px;
-      border-radius: 3px;
+      font-size: 14px;
+      line-height: 1.65;
     }
 
     .footer {
-      text-align: center;
-      color: var(--muted);
-      font-size: 13px;
-      padding: 18px 8px 12px;
+      padding-top: 10px;
+      font-size: 12px;
     }
-
-    @media (max-width: 640px) {
-      body { padding: 10px; }
-      .brand { font-size: 26px; }
-      .screen-card { margin-top: 18px; }
-      .search-input { font-size: 18px; padding: 14px; }
-      .icon-btn { min-width: 52px; font-size: 20px; }
-      .song-title { font-size: 17px; }
-      .modal-title { font-size: 20px; }
-      .lyrics-full { font-size: 15px; }
-      .edit-btn {
-        width: 34px;
-        height: 34px;
-        min-width: 34px;
-        font-size: 16px;
-      }
-    }
-  </style>
+  }
+</style>
 </head>
 <body>
   <div class="container">
@@ -632,7 +768,7 @@
               id="searchInput"
               class="search-input"
               type="text"
-              placeholder="Search by lyrics, singer, movie, or song..."
+              placeholder="Search songs, lyrics, singer, movie..."
               autocomplete="off"
               autocapitalize="none"
               spellcheck="false"
@@ -1171,8 +1307,9 @@
       if (!ranges.length) return "";
 
       const [start, end] = ranges[0];
-      const snippetStart = Math.max(0, start - 35);
-      const snippetEnd = Math.min(original.length, end + 45);
+     const isMobile = window.innerWidth <= 640;
+     const snippetStart = Math.max(0, start - (isMobile ? 18 : 35));
+     const snippetEnd = Math.min(original.length, end + (isMobile ? 24 : 45));
       const prefix = snippetStart > 0 ? "..." : "";
       const suffix = snippetEnd < original.length ? "..." : "";
       const miniSong = { ...song, lyrics: original.slice(snippetStart, snippetEnd) };
@@ -1571,7 +1708,7 @@ async function loadSongs() {
       const root = document.getElementById("searchResults");
 
       if (!query.trim()) {
-        root.innerHTML = `<div class="empty">Type lyrics, singer, movie, or song name. The app shows the song list first. Tap a song to open full lyrics.</div>`;
+       root.innerHTML = `<div class="empty">Search by song, lyric, singer, or movie. Tap a result to open full lyrics.</div>`;
         return;
       }
 
