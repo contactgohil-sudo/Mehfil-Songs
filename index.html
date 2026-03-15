@@ -700,6 +700,27 @@
     const SUPABASE_URL = "https://fppyrhsnqgisfxkdbkka.supabase.co";
     const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZwcHlyaHNucWdpc2Z4a2Ria2thIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM1MzAxMjMsImV4cCI6MjA4OTEwNjEyM30.pXf_6qzEVw_fQpalyWsfxXgHrlbs1IA9BBmwfqmurDo";
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    window.addEventListener("error", (event) => {
+  console.error("GLOBAL ERROR:", event.error || event.message);
+  const authScreen = document.getElementById("authScreen");
+  if (authScreen) authScreen.classList.remove("hidden");
+  const authStatus = document.getElementById("authStatus");
+  if (authStatus) {
+    authStatus.className = "status-box show status-error";
+    authStatus.textContent = "JavaScript crash: " + (event.message || "Unknown error");
+  }
+});
+
+window.addEventListener("unhandledrejection", (event) => {
+  console.error("UNHANDLED PROMISE:", event.reason);
+  const authScreen = document.getElementById("authScreen");
+  if (authScreen) authScreen.classList.remove("hidden");
+  const authStatus = document.getElementById("authStatus");
+  if (authStatus) {
+    authStatus.className = "status-box show status-error";
+    authStatus.textContent = "Unhandled error: " + ((event.reason && event.reason.message) || event.reason || "Unknown error");
+  }
+});
 
     let session = null;
     let profile = null;
@@ -1201,41 +1222,41 @@
     }
 
     async function signUpRequest() {
-      const name = document.getElementById("authName").value.trim();
-      const email = document.getElementById("authEmail").value.trim();
-      const password = document.getElementById("authPassword").value;
+  const name = document.getElementById("authName").value.trim();
+  const email = document.getElementById("authEmail").value.trim();
+  const password = document.getElementById("authPassword").value;
 
-      if (!name || !email || !password) {
-        showStatus("authStatus", "Name, email, and password are required.", "error");
-        return;
-      }
+  if (!name || !email || !password) {
+    showStatus("authStatus", "Name, email, and password are required.", "error");
+    return;
+  }
 
-      showStatus("authStatus", "Creating account request...", "info");
+  showStatus("authStatus", "Creating account request...", "info");
 
-      const { data, error } = await supabaseClient.auth.signUp({
-        email,
-        password,
-        options: {
-          emailRedirectTo: "https://jaygohil.github.io/mehfil-lyrics",
-          data: { name }
-        }
-      });
-
-      if (error) {
-        showStatus("authStatus", error.message, "error");
-        return;
-      }
-
-      if (data?.session?.user) {
-        await ensureProfile(data.session.user, name);
-      }
-
-      showStatus(
-        "authStatus",
-        "Request created. Check your email, verify your account, then wait for admin approval and log in.",
-        "success"
-      );
+  const { data, error } = await supabaseClient.auth.signUp({
+    email,
+    password,
+    options: {
+      emailRedirectTo: "https://contactgohil-sudo.github.io/Mehfil-Songs/",
+      data: { name }
     }
+  });
+
+  if (error) {
+    showStatus("authStatus", error.message, "error");
+    return;
+  }
+
+  if (data?.session?.user) {
+    await ensureProfile(data.session.user, name);
+  }
+
+  showStatus(
+    "authStatus",
+    "Request created. Check your email, verify your account, then wait for admin approval and log in.",
+    "success"
+  );
+}
 
     async function loginUser() {
       const email = document.getElementById("authEmail").value.trim();
@@ -1259,15 +1280,20 @@
     }
 
     async function logoutUser() {
-      stopActiveRecognition();
-      await supabaseClient.auth.signOut();
-      session = null;
-      profile = null;
-      songs = [];
-      preparedSongs = [];
-      fuse = null;
-      renderScreens();
-    }
+  stopActiveRecognition();
+  await supabaseClient.auth.signOut();
+  session = null;
+  profile = null;
+  songs = [];
+  preparedSongs = [];
+  fuse = null;
+  editingSongId = null;
+  openSongId = null;
+  lastQuery = "";
+  expandedGroups = new Set();
+  renderScreens();
+  document.getElementById("authScreen").classList.remove("hidden");
+}
 
     async function loadSongs() {
       if (!isApproved()) return;
@@ -1754,47 +1780,65 @@
     }
 
     async function bootstrap() {
-      try {
-        showStatus("authStatus", "", "info");
-        showStatus("appStatus", "", "info");
+  try {
+    showStatus("authStatus", "", "info");
+    showStatus("appStatus", "", "info");
 
-        const { data, error } = await supabaseClient.auth.getSession();
-        if (error) throw error;
+    const authScreen = document.getElementById("authScreen");
+    const pendingScreen = document.getElementById("pendingScreen");
+    const appScreen = document.getElementById("appScreen");
 
-        session = data.session || null;
-
-        if (session?.user) {
-          await loadProfile();
-        } else {
-          profile = null;
-        }
-
-        renderScreens();
-
-        if (!session?.user) return;
-
-        if (!profile) {
-          document.getElementById("authScreen").classList.remove("hidden");
-          showStatus("authStatus", "Logged in, but profile could not be loaded.", "error");
-          return;
-        }
-
-        if (!profile.approved) {
-          document.getElementById("pendingScreen").classList.remove("hidden");
-          return;
-        }
-
-        renderAppShell();
-        await loadSongs();
-        activateTab("search");
-      } catch (err) {
-        console.error("BOOTSTRAP ERROR:", err);
-        document.getElementById("authScreen").classList.remove("hidden");
-        document.getElementById("pendingScreen").classList.add("hidden");
-        document.getElementById("appScreen").classList.add("hidden");
-        showStatus("authStatus", "App failed to start: " + (err?.message || err), "error");
-      }
+    if (!authScreen || !pendingScreen || !appScreen) {
+      throw new Error("Required screen elements are missing.");
     }
+
+    const { data, error } = await supabaseClient.auth.getSession();
+    if (error) throw error;
+
+    session = data.session || null;
+
+    if (session?.user) {
+      await loadProfile();
+    } else {
+      profile = null;
+    }
+
+    renderScreens();
+
+    if (!session?.user) {
+      authScreen.classList.remove("hidden");
+      return;
+    }
+
+    if (!profile) {
+      authScreen.classList.remove("hidden");
+      showStatus("authStatus", "Logged in, but profile could not be loaded.", "error");
+      return;
+    }
+
+    if (!profile.approved) {
+      pendingScreen.classList.remove("hidden");
+      return;
+    }
+
+    appScreen.classList.remove("hidden");
+    renderAppShell();
+    await loadSongs();
+    activateTab("search");
+  } catch (err) {
+    console.error("BOOTSTRAP ERROR:", err);
+
+    const authScreen = document.getElementById("authScreen");
+    const pendingScreen = document.getElementById("pendingScreen");
+    const appScreen = document.getElementById("appScreen");
+
+    if (authScreen) authScreen.classList.remove("hidden");
+    if (pendingScreen) pendingScreen.classList.add("hidden");
+    if (appScreen) appScreen.classList.add("hidden");
+
+    showStatus("authStatus", "App failed to start: " + (err?.message || err), "error");
+  }
+}
 
     function bindEvents() {
       document.getElementById("signupBtn").addEventListener("click", signUpRequest);
