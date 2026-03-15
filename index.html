@@ -141,14 +141,13 @@
     }
 
     .icon-btn {
-      border: none;
+      border: 1px solid #ccc;
       border-radius: 14px;
       padding: 0 16px;
       font-size: 22px;
       cursor: pointer;
       min-width: 54px;
       background: white;
-      border: 1px solid #ccc;
       color: #111;
       flex-shrink: 0;
     }
@@ -257,7 +256,7 @@
 
   <script>
     const SUPABASE_URL = "https://fppyrhsnqgisfxkdbkka.supabase.co";
-    const SUPABASE_KEY = "YOUR_ANON_KEY_HERE";
+    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZwcHlyaHNucWdpc2Z4a2Ria2thIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM1MzAxMjMsImV4cCI6MjA4OTEwNjEyM30.pXf_6qzEVw_fQpalyWsfxXgHrlbs1IA9BBmwfqmurDo";
 
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
@@ -304,11 +303,16 @@
       }).slice(0, 10);
     }
 
-    function renderResults(results) {
+    function renderResults(results, query = "") {
       const resultsDiv = document.getElementById("results");
 
+      if (!query.trim()) {
+        resultsDiv.innerHTML = `<div class="empty">Type or speak a few words to find lyrics.</div>`;
+        return;
+      }
+
       if (!results.length) {
-        resultsDiv.innerHTML = `<div class="empty">No results yet. Type or speak a few words.</div>`;
+        resultsDiv.innerHTML = `<div class="empty">No matching song found.</div>`;
         return;
       }
 
@@ -357,7 +361,7 @@
       await loadSongs();
 
       const input = document.getElementById("searchInput");
-      renderResults(searchSongs(input.value));
+      renderResults(searchSongs(input.value), input.value);
     }
 
     function startMicSearch() {
@@ -377,7 +381,7 @@
       recognition.onresult = (event) => {
         const spokenText = event.results[0][0].transcript;
         input.value = spokenText;
-        renderResults(searchSongs(spokenText));
+        renderResults(searchSongs(spokenText), spokenText);
       };
 
       recognition.onerror = () => {
@@ -397,12 +401,12 @@
       const adminBox = document.getElementById("adminBox");
 
       input.addEventListener("input", () => {
-        renderResults(searchSongs(input.value));
+        renderResults(searchSongs(input.value), input.value);
       });
 
       clearBtn.addEventListener("click", () => {
         input.value = "";
-        renderResults([]);
+        renderResults([], "");
         input.focus();
       });
 
@@ -419,7 +423,7 @@
       addSongForm.addEventListener("submit", addSong);
 
       await loadSongs();
-      renderResults([]);
+      renderResults([], "");
       input.focus();
     }
 
