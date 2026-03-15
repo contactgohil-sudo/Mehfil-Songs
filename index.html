@@ -1261,9 +1261,9 @@
   }
 
   return data;
-   }
-     
- async function loadProfile() {
+}
+
+async function loadProfile() {
   if (!session?.user) {
     profile = null;
     return null;
@@ -1285,46 +1285,45 @@
   profile = data;
   return profile;
 }
+
+async function signUpRequest() {
+  const name = document.getElementById("authName").value.trim();
+  const email = document.getElementById("authEmail").value.trim();
+  const password = document.getElementById("authPassword").value;
+
+  if (!name || !email || !password) {
+    showStatus("authStatus", "Name, email, and password are required.", "error");
+    return;
+  }
+
+  showStatus("authStatus", "Creating account request...", "info");
+
+  const { data, error } = await supabaseClient.auth.signUp({
+    email,
+    password,
+    options: {
+      emailRedirectTo: REDIRECT_URL,
+      data: { name }
+    }
+  });
+
+  if (error) {
+    showStatus("authStatus", error.message, "error");
+    return;
+  }
+
+  if (data?.session?.user) {
+    await ensureProfile(data.session.user, name);
+  }
+
+  showStatus(
+    "authStatus",
+    "Request created. Check your email, verify your account, then wait for admin approval and log in.",
+    "success"
+  );
 }
 
-    async function signUpRequest() {
-      const name = document.getElementById("authName").value.trim();
-      const email = document.getElementById("authEmail").value.trim();
-      const password = document.getElementById("authPassword").value;
-
-      if (!name || !email || !password) {
-        showStatus("authStatus", "Name, email, and password are required.", "error");
-        return;
-      }
-
-      showStatus("authStatus", "Creating account request...", "info");
-
-      const { data, error } = await supabaseClient.auth.signUp({
-        email,
-        password,
-        options: {
-          emailRedirectTo: REDIRECT_URL,
-          data: { name }
-        }
-      });
-
-      if (error) {
-        showStatus("authStatus", error.message, "error");
-        return;
-      }
-
-      if (data?.session?.user) {
-        await ensureProfile(data.session.user, name);
-      }
-
-      showStatus(
-        "authStatus",
-        "Request created. Check your email, verify your account, then wait for admin approval and log in.",
-        "success"
-      );
-    }
-
-    async function loginUser() {
+async function loginUser() {
   const email = document.getElementById("authEmail").value.trim();
   const password = document.getElementById("authPassword").value;
 
@@ -1335,7 +1334,10 @@
 
   showStatus("authStatus", "Logging in...", "info");
 
-  const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+  const { data, error } = await supabaseClient.auth.signInWithPassword({
+    email,
+    password
+  });
 
   if (error) {
     showStatus("authStatus", error.message, "error");
@@ -1367,47 +1369,21 @@
   }
 }
 
-    async function logoutUser() {
-      stopActiveRecognition();
-      await supabaseClient.auth.signOut();
-      session = null;
-      profile = null;
-      songs = [];
-      preparedSongs = [];
-      fuse = null;
-      editingSongId = null;
-      openSongId = null;
-      lastQuery = "";
-      expandedGroups = new Set();
-      renderScreens();
-      document.getElementById("authScreen").classList.remove("hidden");
-    }
-
-    async function loadSongs() {
-      if (!isApproved()) return;
-
-      showStatus("appStatus", "Loading songs...", "info");
-
-      const { data, error } = await supabaseClient
-        .from("songs")
-        .select("*")
-        .order("title", { ascending: true });
-
-      if (error) {
-        console.error(error);
-        showStatus("appStatus", error.message, "error");
-        return;
-      }
-
-      songs = data || [];
-      rebuildFuse();
-      refreshSuggestionLists();
-      checkEditorDuplicateState();
-      renderResults([], "");
-      renderSongGroups();
-      document.getElementById("libraryCountPill").textContent = `${songs.length} songs`;
-      showStatus("appStatus", "", "info");
-    }
+async function logoutUser() {
+  stopActiveRecognition();
+  await supabaseClient.auth.signOut();
+  session = null;
+  profile = null;
+  songs = [];
+  preparedSongs = [];
+  fuse = null;
+  editingSongId = null;
+  openSongId = null;
+  lastQuery = "";
+  expandedGroups = new Set();
+  renderScreens();
+  document.getElementById("authScreen").classList.remove("hidden");
+}
 
     async function saveSong(event) {
       event.preventDefault();
