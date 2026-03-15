@@ -8,6 +8,13 @@
   <style>
     * { box-sizing: border-box; }
 
+    mark {
+  background: #ffeb3b;
+  color: #111;
+  padding: 0 2px;
+  border-radius: 3px;
+    }
+    
     body {
       font-family: Arial, sans-serif;
       background: #f5f5f5;
@@ -320,28 +327,49 @@
     .map(item => item.song)
     .slice(0, 10);
 }
+function escapeRegExp(string) {
+  return string.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
 
+function highlightText(text, query) {
+  if (!query || !query.trim()) return String(text || "");
+
+  const rawWords = String(query)
+    .split(/\s+/)
+    .map(word => word.trim())
+    .filter(Boolean);
+
+  let highlighted = String(text || "");
+
+  rawWords.forEach(word => {
+    const pattern = new RegExp(`(${escapeRegExp(word)})`, "giu");
+    highlighted = highlighted.replace(pattern, `<mark>$1</mark>`);
+  });
+
+  return highlighted;
+}
+    
     function renderResults(results, query = "") {
-      const resultsDiv = document.getElementById("results");
+  const resultsDiv = document.getElementById("results");
 
-      if (!query.trim()) {
-        resultsDiv.innerHTML = `<div class="empty">Type or speak a few words to find lyrics.</div>`;
-        return;
-      }
+  if (!query.trim()) {
+    resultsDiv.innerHTML = `<div class="empty">Type or speak a few words to find lyrics.</div>`;
+    return;
+  }
 
-      if (!results.length) {
-        resultsDiv.innerHTML = `<div class="empty">No matching song found.</div>`;
-        return;
-      }
+  if (!results.length) {
+    resultsDiv.innerHTML = `<div class="empty">No matching song found.</div>`;
+    return;
+  }
 
-      resultsDiv.innerHTML = results.map(song => `
-        <div class="card">
-          <div class="title">${song.title || ""}</div>
-          <div class="meta">${song.movie || ""} • ${song.singer || ""}</div>
-          <div class="lyrics">${song.lyrics || ""}</div>
-        </div>
-      `).join("");
-    }
+  resultsDiv.innerHTML = results.map(song => `
+    <div class="card">
+      <div class="title">${song.title || ""}</div>
+      <div class="meta">${song.movie || ""} • ${song.singer || ""}</div>
+      <div class="lyrics">${highlightText(song.lyrics || "", query)}</div>
+    </div>
+  `).join("");
+}
 
     async function addSong(event) {
       event.preventDefault();
