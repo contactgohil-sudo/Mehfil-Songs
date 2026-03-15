@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mehfil Lyrics Search</title>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #111;
+      color: white;
+      margin: 0;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 700px;
+      margin: auto;
+    }
+
+    h1 {
+      font-size: 24px;
+      margin-bottom: 16px;
+    }
+
+    .search-bar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  position: sticky;
+  top: 0;
+  background: #111;
+  padding-bottom: 10px;
+}
+
+   input {
+  flex: 1;
+  padding: 16px;
+  font-size: 20px;
+  border-radius: 12px;
+  border: none;
+  outline: none;
+}
+
+ button {
+  padding: 16px 18px;
+  font-size: 20px;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+}
+
+    .card {
+      background: #1d1d1d;
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 12px;
+    }
+
+    .title {
+      font-size: 20px;
+      font-weight: bold;
+    }
+
+    .meta {
+      color: #bbb;
+      margin-top: 4px;
+      margin-bottom: 10px;
+    }
+
+    .lyrics {
+      line-height: 1.6;
+    }
+
+    .info {
+      color: #aaa;
+      margin-bottom: 12px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Mehfil Lyrics Search</h1>
+    <div class="info" id="status"></div>
+
+  <div class="search-bar">
+  <button id="micBtn" type="button">🎤</button>
+  <input id="searchInput" type="text" placeholder="Type or speak 2-3 words..." />
+  <button id="clearBtn" type="button">❌</button>
+</div>
+
+    <div id="results"></div>
+  </div>
+
+  <script src="songs.js"></script>
+
+  <script>
+    
+
+    function normalize(text) {
+      return String(text)
+        .toLowerCase()
+        .replace(/[^\w\s]/g, "")
+        .replace(/\s+/g, " ")
+        .trim();
+    }
+
+   function searchSongs(query) {
+  const q = normalize(query);
+  if (!q) return [];
+
+  const words = q.split(" ").filter(Boolean);
+
+  return songs.filter(song => {
+    const fullText = normalize(
+      song.title + " " + song.movie + " " + song.singer + " " + song.lyrics
+    );
+
+    return words.every(word => fullText.includes(word));
+  }).slice(0, 5);
+}
+
+    function renderResults(results) {
+      const resultsDiv = document.getElementById("results");
+
+      if (results.length === 0) {
+        resultsDiv.innerHTML = "";
+        return;
+      }
+
+      resultsDiv.innerHTML = results.map(song => `
+        <div class="card">
+          <div class="title">${song.title}</div>
+          <div class="meta">${song.movie} • ${song.singer}</div>
+          <div class="lyrics">${song.lyrics}</div>
+        </div>
+      `).join("");
+    }
+
+    function init() {
+      const micBtn = document.getElementById("micBtn");
+      const input = document.getElementById("searchInput");
+      const clearBtn = document.getElementById("clearBtn");
+      const status = document.getElementById("status");
+
+      status.textContent = `Loaded ${songs.length} songs`;
+micBtn.addEventListener("click", () => {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+  if (!SpeechRecognition) {
+    alert("Mic not supported here. Use your keyboard mic.");
+    return;
+  }
+
+  const recognition = new SpeechRecognition();
+  recognition.lang = "hi-IN";
+  recognition.interimResults = false;
+  recognition.maxAlternatives = 1;
+
+  recognition.onresult = (event) => {
+    const spokenText = event.results[0][0].transcript;
+    input.value = spokenText;
+    const results = searchSongs(spokenText);
+    renderResults(results);
+  };
+
+  recognition.onerror = () => {
+    alert("Mic failed. Try again or use keyboard mic.");
+  };
+
+  recognition.start();
+});
+      input.addEventListener("input", () => {
+        const results = searchSongs(input.value);
+        renderResults(results);
+      });
+
+      clearBtn.addEventListener("click", () => {
+        input.value = "";
+        renderResults([]);
+        input.focus();
+      });
+
+      input.focus();
+    }
+
+    init();
+  </script>
+</body>
+</html>
