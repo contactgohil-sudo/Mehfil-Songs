@@ -19,7 +19,7 @@
 
     .container {
       width: 100%;
-      max-width: 860px;
+      max-width: 900px;
       margin: 0 auto;
     }
 
@@ -53,8 +53,7 @@
       white-space: pre-wrap;
     }
 
-    .admin-toggle,
-    .lang-btn {
+    .admin-toggle {
       background: #111;
       color: white;
       border: none;
@@ -62,17 +61,6 @@
       padding: 10px 14px;
       font-size: 14px;
       cursor: pointer;
-    }
-
-    .lang-row {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-      margin-bottom: 10px;
-    }
-
-    .lang-btn.active {
-      background: #2d6cdf;
     }
 
     .admin-box {
@@ -176,59 +164,47 @@
       border-color: #ff7b7b;
     }
 
-    .card {
+    .result-card {
       background: white;
       border: 1px solid #ddd;
       border-radius: 14px;
-      padding: 16px;
-      margin-bottom: 12px;
+      padding: 14px;
+      margin-bottom: 10px;
       width: 100%;
-      overflow-wrap: break-word;
       box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-    }
-
-    .card-header {
       display: flex;
       justify-content: space-between;
-      align-items: flex-start;
       gap: 12px;
-      margin-bottom: 8px;
+      align-items: flex-start;
+      cursor: pointer;
     }
 
-    .card-main {
+    .result-card:hover {
+      border-color: #bbb;
+    }
+
+    .result-main {
       min-width: 0;
       flex: 1;
     }
 
-    .title {
-      font-size: 20px;
+    .song-title {
+      font-size: 19px;
       font-weight: bold;
+      margin-bottom: 4px;
     }
 
-    .meta {
+    .song-meta {
       color: #555;
-      margin-top: 4px;
-      margin-bottom: 10px;
       font-size: 14px;
+      margin-bottom: 6px;
     }
 
-    .lyrics {
-      line-height: 1.75;
+    .song-snippet {
+      color: #333;
+      font-size: 14px;
+      line-height: 1.5;
       white-space: pre-wrap;
-      color: #111;
-      font-size: 16px;
-    }
-
-    .empty {
-      color: #666;
-      text-align: center;
-      padding: 20px 10px;
-    }
-
-    .hint {
-      margin-top: 8px;
-      color: #666;
-      font-size: 13px;
     }
 
     .edit-btn {
@@ -245,6 +221,90 @@
       flex-shrink: 0;
     }
 
+    .empty {
+      color: #666;
+      text-align: center;
+      padding: 20px 10px;
+      background: white;
+      border: 1px solid #ddd;
+      border-radius: 14px;
+    }
+
+    .hint {
+      margin-top: 8px;
+      color: #666;
+      font-size: 13px;
+    }
+
+    .modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.45);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 14px;
+      z-index: 1000;
+    }
+
+    .modal.show {
+      display: flex;
+    }
+
+    .modal-card {
+      background: white;
+      width: 100%;
+      max-width: 760px;
+      max-height: 85vh;
+      overflow: auto;
+      border-radius: 16px;
+      padding: 16px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.18);
+    }
+
+    .modal-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+
+    .modal-title {
+      font-size: 24px;
+      font-weight: bold;
+      margin-bottom: 4px;
+    }
+
+    .modal-meta {
+      color: #555;
+      font-size: 14px;
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .modal-btn {
+      border: none;
+      border-radius: 10px;
+      padding: 10px 12px;
+      background: #111;
+      color: white;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    .lyrics-full {
+      line-height: 1.8;
+      white-space: pre-wrap;
+      font-size: 16px;
+      color: #111;
+      margin-top: 10px;
+    }
+
     mark {
       background: #ffeb3b;
       color: #111;
@@ -257,15 +317,17 @@
       h1 { font-size: 24px; }
       .search-input { font-size: 18px; padding: 14px; }
       .icon-btn { font-size: 22px; min-width: 52px; }
-      .title { font-size: 18px; }
-      .lyrics { font-size: 15px; }
-      .card-header { flex-direction: row; align-items: flex-start; }
+      .result-card { padding: 12px; }
+      .song-title { font-size: 17px; }
+      .song-snippet { font-size: 13px; }
       .edit-btn {
         width: 34px;
         height: 34px;
         min-width: 34px;
         font-size: 16px;
       }
+      .modal-title { font-size: 20px; }
+      .lyrics-full { font-size: 15px; }
     }
   </style>
 </head>
@@ -279,11 +341,6 @@
     </div>
 
     <div id="errorBox" class="error-box"></div>
-
-    <div class="lang-row">
-      <button id="langHiBtn" class="lang-btn active" type="button">Hindi Mic</button>
-      <button id="langGuBtn" class="lang-btn" type="button">Gujarati Mic</button>
-    </div>
 
     <div class="admin-box" id="adminBox">
       <h2 id="formHeading">Add Song</h2>
@@ -300,7 +357,7 @@
           <div id="formStatus" class="info"></div>
         </div>
       </form>
-      <div class="hint">Edit is enabled. Delete is not included.</div>
+      <div class="hint">Search shows song list first. Tap a song to open full lyrics. Edit is enabled. Delete is not included.</div>
     </div>
 
     <div class="search-bar">
@@ -309,7 +366,7 @@
         id="searchInput"
         class="search-input"
         type="text"
-        placeholder="Type or speak 2-3 words..."
+        placeholder="Search by lyrics, singer, movie, or song..."
         autocomplete="off"
         autocapitalize="none"
         spellcheck="false"
@@ -319,6 +376,22 @@
     </div>
 
     <div id="results"></div>
+  </div>
+
+  <div id="songModal" class="modal">
+    <div class="modal-card">
+      <div class="modal-top">
+        <div>
+          <div id="modalTitle" class="modal-title"></div>
+          <div id="modalMeta" class="modal-meta"></div>
+        </div>
+        <div class="modal-actions">
+          <button id="modalEditBtn" class="modal-btn" type="button">Edit</button>
+          <button id="modalCloseBtn" class="modal-btn" type="button">Close</button>
+        </div>
+      </div>
+      <div id="modalLyrics" class="lyrics-full"></div>
+    </div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -333,19 +406,18 @@
     let preparedSongs = [];
     let fuse = null;
     let editingSongId = null;
-    let currentMicLang = "hi-IN";
     let activeRecognition = null;
+    let openSongId = null;
+    let lastQuery = "";
 
     const DEV_VOWELS = {
       "अ":"a","आ":"aa","इ":"i","ई":"ii","उ":"u","ऊ":"uu","ऋ":"ri","ॠ":"rii","ऌ":"li","ॡ":"lii",
       "ए":"e","ऐ":"ai","ओ":"o","औ":"au","ऑ":"o","ऍ":"e"
     };
-
     const DEV_MATRAS = {
       "ा":"aa","ि":"i","ी":"ii","ु":"u","ू":"uu","ृ":"ri","ॄ":"rii","ॢ":"li","ॣ":"lii",
       "े":"e","ै":"ai","ो":"o","ौ":"au","ॅ":"e","ॉ":"o"
     };
-
     const DEV_CONS = {
       "क":"k","ख":"kh","ग":"g","घ":"gh","ङ":"ng",
       "च":"ch","छ":"chh","ज":"j","झ":"jh","ञ":"ny",
@@ -357,21 +429,16 @@
       "ळ":"l","क्ष":"ksh","ज्ञ":"gy",
       "क़":"q","ख़":"kh","ग़":"g","ज़":"z","ड़":"r","ढ़":"rh","फ़":"f","य़":"y"
     };
-
-    const DEV_SIGNS = {
-      "ं":"n","ँ":"n","ः":"h","ऽ":"", "्":"", "़":""
-    };
+    const DEV_SIGNS = { "ं":"n","ँ":"n","ः":"h","ऽ":"", "्":"", "़":"" };
 
     const GUJ_VOWELS = {
       "અ":"a","આ":"aa","ઇ":"i","ઈ":"ii","ઉ":"u","ઊ":"uu","ઋ":"ri","ૠ":"rii",
       "એ":"e","ઐ":"ai","ઓ":"o","ઔ":"au"
     };
-
     const GUJ_MATRAS = {
       "ા":"aa","િ":"i","ી":"ii","ુ":"u","ૂ":"uu","ૃ":"ri","ૄ":"rii",
       "ે":"e","ૈ":"ai","ો":"o","ૌ":"au"
     };
-
     const GUJ_CONS = {
       "ક":"k","ખ":"kh","ગ":"g","ઘ":"gh","ઙ":"ng",
       "ચ":"ch","છ":"chh","જ":"j","ઝ":"jh","ઞ":"ny",
@@ -382,10 +449,7 @@
       "શ":"sh","ષ":"sh","સ":"s","હ":"h",
       "ળ":"l"
     };
-
-    const GUJ_SIGNS = {
-      "ં":"n","ઃ":"h","ઁ":"n","્":"", "઼":""
-    };
+    const GUJ_SIGNS = { "ં":"n","ઃ":"h","ઁ":"n","્":"", "઼":"" };
 
     function showError(message) {
       const box = document.getElementById("errorBox");
@@ -428,9 +492,7 @@
       function pushChunk(chunk, start, end) {
         if (!chunk) return;
         out += chunk;
-        for (let i = 0; i < chunk.length; i++) {
-          map.push({ start, end });
-        }
+        for (let i = 0; i < chunk.length; i++) map.push({ start, end });
       }
 
       function processScript(index, vowels, matras, cons, signs, viramaChar) {
@@ -440,36 +502,29 @@
           pushChunk(vowels[ch], index, index + 1);
           return 1;
         }
-
         if (signs[ch] !== undefined) {
           pushChunk(signs[ch], index, index + 1);
           return 1;
         }
-
         if (cons[ch]) {
           const next = source[index + 1];
-
           if (next === viramaChar) {
             pushChunk(cons[ch], index, index + 2);
             return 2;
           }
-
           if (matras[next]) {
             pushChunk(cons[ch] + matras[next], index, index + 2);
             return 2;
           }
-
           pushChunk(cons[ch] + "a", index, index + 1);
           return 1;
         }
-
         return 0;
       }
 
       let i = 0;
       while (i < source.length) {
         const ch = source[i];
-
         if (/\s/.test(ch)) {
           pushChunk(" ", i, i + 1);
           i += 1;
@@ -477,24 +532,17 @@
         }
 
         let consumed = processScript(i, DEV_VOWELS, DEV_MATRAS, DEV_CONS, DEV_SIGNS, "्");
-        if (consumed) {
-          i += consumed;
-          continue;
-        }
+        if (consumed) { i += consumed; continue; }
 
         consumed = processScript(i, GUJ_VOWELS, GUJ_MATRAS, GUJ_CONS, GUJ_SIGNS, "્");
-        if (consumed) {
-          i += consumed;
-          continue;
-        }
+        if (consumed) { i += consumed; continue; }
 
         pushChunk(ch.toLowerCase(), i, i + 1);
         i += 1;
       }
 
-      const normalizedRoman = normalizeText(out);
       return {
-        roman: normalizedRoman,
+        roman: normalizeText(out),
         map,
         rawRoman: out
       };
@@ -503,7 +551,6 @@
     function addTypoFriendlyRomanVariants(text) {
       const base = normalizeText(text);
       const variants = new Set([base]);
-
       if (!base) return "";
 
       variants.add(base.replace(/aa/g, "a"));
@@ -537,20 +584,20 @@
       const singerRomanObj = transliterateIndicWithMap(singer);
       const lyricsRomanObj = transliterateIndicWithMap(lyrics);
 
-      const searchParts = [
-        normalizeText(title),
-        normalizeText(movie),
-        normalizeText(singer),
-        normalizeText(lyrics),
-        addTypoFriendlyRomanVariants(titleRomanObj.roman),
-        addTypoFriendlyRomanVariants(movieRomanObj.roman),
-        addTypoFriendlyRomanVariants(singerRomanObj.roman),
-        addTypoFriendlyRomanVariants(lyricsRomanObj.roman)
-      ];
+      const titleSearch = normalizeText([title, addTypoFriendlyRomanVariants(titleRomanObj.roman)].join(" "));
+      const movieSearch = normalizeText([movie, addTypoFriendlyRomanVariants(movieRomanObj.roman)].join(" "));
+      const singerSearch = normalizeText([singer, addTypoFriendlyRomanVariants(singerRomanObj.roman)].join(" "));
+      const lyricsSearch = normalizeText([lyrics, addTypoFriendlyRomanVariants(lyricsRomanObj.roman)].join(" "));
+
+      const searchText = normalizeText([titleSearch, movieSearch, singerSearch, lyricsSearch].join(" "));
 
       return {
         ...song,
-        _searchText: normalizeText(searchParts.join(" ")),
+        _titleSearch: titleSearch,
+        _movieSearch: movieSearch,
+        _singerSearch: singerSearch,
+        _lyricsSearch: lyricsSearch,
+        _searchText: searchText,
         _lyricsRoman: lyricsRomanObj.roman,
         _lyricsRomanMap: lyricsRomanObj.map
       };
@@ -564,10 +611,10 @@
         ignoreLocation: true,
         minMatchCharLength: 2,
         keys: [
-          { name: "_searchText", weight: 0.8 },
-          { name: "title", weight: 0.12 },
-          { name: "movie", weight: 0.04 },
-          { name: "singer", weight: 0.04 }
+          { name: "_searchText", weight: 0.84 },
+          { name: "_titleSearch", weight: 0.08 },
+          { name: "_movieSearch", weight: 0.04 },
+          { name: "_singerSearch", weight: 0.04 }
         ]
       });
     }
@@ -594,10 +641,48 @@
       status.textContent = `Loaded ${songs.length} songs`;
     }
 
+    function getQueryVariants(query) {
+      const raw = String(query || "");
+      const n = normalizeText(raw);
+      const roman = transliterateIndicWithMap(raw).roman;
+      const typo = addTypoFriendlyRomanVariants(raw);
+      return Array.from(new Set([n, roman, normalizeText(typo)])).filter(Boolean);
+    }
+
+    function anyIncludes(haystack, variants) {
+      return variants.some(v => v && haystack.includes(v));
+    }
+
     function searchSongs(query) {
       const q = normalizeText(query);
       if (!q || !fuse) return [];
-      return fuse.search(q).map(result => result.item).slice(0, 10);
+
+      const variants = getQueryVariants(query);
+      const candidates = fuse.search(q).slice(0, 30).map(r => r.item);
+
+      return candidates.map(song => {
+        const titleMatch = anyIncludes(song._titleSearch, variants);
+        const movieMatch = anyIncludes(song._movieSearch, variants);
+        const singerMatch = anyIncludes(song._singerSearch, variants);
+        const lyricsMatch = anyIncludes(song._lyricsSearch, variants) || (!titleMatch && !movieMatch && !singerMatch);
+
+        let score = 0;
+        if (titleMatch) score += 5;
+        if (movieMatch) score += 5;
+        if (singerMatch) score += 5;
+        if (lyricsMatch) score += 2;
+
+        return {
+          ...song,
+          _matchType: {
+            title: titleMatch,
+            movie: movieMatch,
+            singer: singerMatch,
+            lyrics: lyricsMatch
+          },
+          _score: score
+        };
+      }).sort((a, b) => b._score - a._score).slice(0, 15);
     }
 
     function mergeRanges(ranges) {
@@ -608,7 +693,6 @@
       for (let i = 1; i < ranges.length; i++) {
         const current = ranges[i];
         const last = merged[merged.length - 1];
-
         if (current[0] <= last[1]) {
           last[1] = Math.max(last[1], current[1]);
         } else {
@@ -625,11 +709,7 @@
 
       const ranges = [];
       const lowerSource = source.toLowerCase().normalize("NFC");
-      const rawWords = rawQuery
-        .toLowerCase()
-        .normalize("NFC")
-        .split(/\s+/)
-        .filter(Boolean);
+      const words = rawQuery.toLowerCase().normalize("NFC").split(/\s+/).filter(Boolean);
 
       const exactPhrase = rawQuery.toLowerCase().normalize("NFC");
       let idx = lowerSource.indexOf(exactPhrase);
@@ -638,7 +718,7 @@
         idx = lowerSource.indexOf(exactPhrase, idx + exactPhrase.length);
       }
 
-      for (const word of rawWords) {
+      for (const word of words) {
         let pos = lowerSource.indexOf(word);
         while (pos !== -1) {
           ranges.push([pos, pos + word.length]);
@@ -649,18 +729,16 @@
       return mergeRanges(ranges);
     }
 
-    function findRomanMappedRanges(originalText, preparedSong, query) {
+    function findRomanMappedRanges(song, query) {
       if (!isLatinQuery(query)) return [];
-
-      const roman = preparedSong._lyricsRoman || "";
-      const romanMap = preparedSong._lyricsRomanMap || [];
+      const roman = song._lyricsRoman || "";
+      const romanMap = song._lyricsRomanMap || [];
       const romanQueryVariants = addTypoFriendlyRomanVariants(query)
         .split(/\s+/)
         .filter(Boolean)
         .sort((a, b) => b.length - a.length);
 
       const ranges = [];
-
       for (const variant of romanQueryVariants) {
         const lookFor = normalizeText(variant);
         if (!lookFor) continue;
@@ -669,9 +747,7 @@
         while (pos !== -1) {
           const mapStart = romanMap[pos];
           const mapEnd = romanMap[Math.min(pos + lookFor.length - 1, romanMap.length - 1)];
-          if (mapStart && mapEnd) {
-            ranges.push([mapStart.start, mapEnd.end]);
-          }
+          if (mapStart && mapEnd) ranges.push([mapStart.start, mapEnd.end]);
           pos = roman.indexOf(lookFor, pos + 1);
         }
       }
@@ -684,12 +760,8 @@
       if (!query || !query.trim()) return escapeHtml(original);
 
       let ranges = findDirectRanges(original, query);
-      if (!ranges.length) {
-        ranges = findRomanMappedRanges(original, song, query);
-      }
-      if (!ranges.length) {
-        return escapeHtml(original);
-      }
+      if (!ranges.length) ranges = findRomanMappedRanges(song, query);
+      if (!ranges.length) return escapeHtml(original);
 
       let result = "";
       let last = 0;
@@ -702,11 +774,49 @@
       return result;
     }
 
+    function buildSnippet(song, query) {
+      const original = String(song.lyrics || "");
+      if (!song._matchType?.lyrics) return "";
+
+      let ranges = findDirectRanges(original, query);
+      if (!ranges.length) ranges = findRomanMappedRanges(song, query);
+      if (!ranges.length) return "";
+
+      const [start, end] = ranges[0];
+      const snippetStart = Math.max(0, start - 35);
+      const snippetEnd = Math.min(original.length, end + 45);
+      const prefix = snippetStart > 0 ? "..." : "";
+      const suffix = snippetEnd < original.length ? "..." : "";
+      const miniSong = { ...song, lyrics: original.slice(snippetStart, snippetEnd) };
+
+      return prefix + highlightText(miniSong, query) + suffix;
+    }
+
+    function openSong(songId, query = "") {
+      const song = preparedSongs.find(s => s.id === songId);
+      if (!song) return;
+
+      openSongId = songId;
+      lastQuery = query;
+
+      document.getElementById("modalTitle").textContent = song.title || "";
+      document.getElementById("modalMeta").textContent = `${song.movie || ""} • ${song.singer || ""}`;
+      document.getElementById("modalLyrics").innerHTML = highlightText(song, query);
+      document.getElementById("songModal").classList.add("show");
+      document.body.style.overflow = "hidden";
+    }
+
+    function closeSongModal() {
+      openSongId = null;
+      document.getElementById("songModal").classList.remove("show");
+      document.body.style.overflow = "";
+    }
+
     function renderResults(results, query = "") {
       const root = document.getElementById("results");
 
       if (!query.trim()) {
-        root.innerHTML = `<div class="empty">Type or speak a few words to find lyrics.</div>`;
+        root.innerHTML = `<div class="empty">Type lyrics, singer, movie, or song name. Tap a result to open full lyrics.</div>`;
         return;
       }
 
@@ -715,18 +825,19 @@
         return;
       }
 
-      root.innerHTML = results.map(song => `
-        <div class="card">
-          <div class="card-header">
-            <div class="card-main">
-              <div class="title">${escapeHtml(song.title || "")}</div>
-              <div class="meta">${escapeHtml(song.movie || "")} • ${escapeHtml(song.singer || "")}</div>
+      root.innerHTML = results.map(song => {
+        const snippet = buildSnippet(song, query);
+        return `
+          <div class="result-card" onclick="openSong(${song.id}, ${JSON.stringify(query)})">
+            <div class="result-main">
+              <div class="song-title">${escapeHtml(song.title || "")}</div>
+              <div class="song-meta">${escapeHtml(song.movie || "")} • ${escapeHtml(song.singer || "")}</div>
+              ${snippet ? `<div class="song-snippet">${snippet}</div>` : ""}
             </div>
-            <button class="edit-btn" type="button" onclick="startEdit(${song.id})" title="Edit">✎</button>
+            <button class="edit-btn" type="button" title="Edit" onclick="event.stopPropagation(); startEdit(${song.id});">✎</button>
           </div>
-          <div class="lyrics">${highlightText(song, query)}</div>
-        </div>
-      `).join("");
+        `;
+      }).join("");
     }
 
     function resetForm() {
@@ -754,6 +865,7 @@
       document.getElementById("songSinger").value = song.singer || "";
       document.getElementById("songLyrics").value = song.lyrics || "";
       document.getElementById("adminBox").classList.add("show");
+      closeSongModal();
       document.getElementById("songTitle").focus();
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
@@ -799,6 +911,8 @@
       const query = document.getElementById("searchInput").value;
       renderResults(searchSongs(query), query);
 
+      if (openSongId) openSong(openSongId, query);
+
       resetForm();
       document.getElementById("adminBox").classList.remove("show");
     }
@@ -822,6 +936,12 @@
       setMicUiState(false);
     }
 
+    function detectMicLanguageFromQuery(text) {
+      const value = String(text || "");
+      if (/[\u0A80-\u0AFF]/.test(value)) return "gu-IN";
+      return "hi-IN";
+    }
+
     function startMicSearch() {
       const input = document.getElementById("searchInput");
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -830,7 +950,7 @@
       showError("");
 
       if (!SpeechRecognition) {
-        showError("This phone/browser does not support the webpage mic here. Use a browser that allows speech recognition, or use the keyboard mic.");
+        showError("This phone/browser does not support the webpage mic here. Use a browser that supports speech recognition, or use the keyboard mic.");
         return;
       }
 
@@ -840,7 +960,7 @@
         const recognition = new SpeechRecognition();
         activeRecognition = recognition;
 
-        recognition.lang = currentMicLang;
+        recognition.lang = detectMicLanguageFromQuery(input.value);
         recognition.interimResults = true;
         recognition.maxAlternatives = 1;
         recognition.continuous = false;
@@ -854,7 +974,6 @@
 
         recognition.onresult = (event) => {
           let liveText = "";
-
           for (let i = event.resultIndex; i < event.results.length; i++) {
             const transcript = event.results[i][0].transcript;
             if (event.results[i].isFinal) {
@@ -875,7 +994,7 @@
           if (event.error === "not-allowed") {
             showError("Mic permission blocked. Allow microphone access in browser settings.");
           } else if (event.error === "language-not-supported") {
-            showError("This browser does not support the selected mic language.");
+            showError("This browser does not support the detected speech language.");
           } else if (event.error === "no-speech") {
             showError("No speech detected. Tap again and speak immediately.");
           } else if (event.error === "audio-capture") {
@@ -907,18 +1026,6 @@
       }
     }
 
-    function setMicLanguage(lang) {
-      currentMicLang = lang;
-
-      const hiBtn = document.getElementById("langHiBtn");
-      const guBtn = document.getElementById("langGuBtn");
-
-      hiBtn.classList.toggle("active", lang === "hi-IN");
-      guBtn.classList.toggle("active", lang === "gu-IN");
-
-      showError(lang === "hi-IN" ? "Mic language set to Hindi" : "Mic language set to Gujarati");
-    }
-
     async function init() {
       const input = document.getElementById("searchInput");
       const clearBtn = document.getElementById("clearBtn");
@@ -928,23 +1035,23 @@
       const closeAdminBtn = document.getElementById("closeAdminBtn");
       const cancelEditBtn = document.getElementById("cancelEditBtn");
       const adminBox = document.getElementById("adminBox");
-      const langHiBtn = document.getElementById("langHiBtn");
-      const langGuBtn = document.getElementById("langGuBtn");
+      const songModal = document.getElementById("songModal");
+      const modalCloseBtn = document.getElementById("modalCloseBtn");
+      const modalEditBtn = document.getElementById("modalEditBtn");
 
       input.addEventListener("input", () => {
+        lastQuery = input.value;
         renderResults(searchSongs(input.value), input.value);
       });
 
       clearBtn.addEventListener("click", () => {
         input.value = "";
+        lastQuery = "";
         renderResults([], "");
         input.focus();
       });
 
       micBtn.addEventListener("click", startMicSearch);
-
-      langHiBtn.addEventListener("click", () => setMicLanguage("hi-IN"));
-      langGuBtn.addEventListener("click", () => setMicLanguage("gu-IN"));
 
       toggleAdminBtn.addEventListener("click", () => {
         adminBox.classList.toggle("show");
@@ -960,12 +1067,26 @@
 
       form.addEventListener("submit", saveSong);
 
+      modalCloseBtn.addEventListener("click", closeSongModal);
+      modalEditBtn.addEventListener("click", () => {
+        if (openSongId) startEdit(openSongId);
+      });
+
+      songModal.addEventListener("click", (e) => {
+        if (e.target === songModal) closeSongModal();
+      });
+
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") closeSongModal();
+      });
+
       await loadSongs();
       renderResults([], "");
       input.focus();
     }
 
     window.startEdit = startEdit;
+    window.openSong = openSong;
     init();
   </script>
 </body>
