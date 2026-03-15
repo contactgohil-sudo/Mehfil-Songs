@@ -289,18 +289,36 @@
       status.textContent = `Loaded ${songs.length} songs`;
     }
 
-    function searchSongs(query) {
-      const q = normalize(query);
-      if (!q) return [];
+  function searchSongs(query) {
+  const q = normalize(query);
+  if (!q) return [];
 
-      const words = q.split(" ").filter(Boolean);
+  const words = q.split(" ").filter(Boolean);
 
-      return songs.filter(song => {
-        const fullText = normalize(
-          `${song.title || ""} ${song.movie || ""} ${song.singer || ""} ${song.lyrics || ""}`
-        );
-        return words.every(word => fullText.includes(word));
-      }).slice(0, 10);
+  const scored = songs.map(song => {
+    const title = normalize(song.title || "");
+    const movie = normalize(song.movie || "");
+    const singer = normalize(song.singer || "");
+    const lyrics = normalize(song.lyrics || "");
+
+    let score = 0;
+
+    for (const word of words) {
+      if (lyrics.includes(word)) score += 5;
+      if (title.includes(word)) score += 3;
+      if (movie.includes(word)) score += 2;
+      if (singer.includes(word)) score += 1;
+    }
+
+    return { song, score };
+  });
+
+  return scored
+    .filter(item => item.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .map(item => item.song)
+    .slice(0, 10);
+
     }
 
     function renderResults(results, query = "") {
