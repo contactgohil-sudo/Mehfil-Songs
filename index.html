@@ -515,6 +515,18 @@
       font-weight: 600;
     }
 
+    .modal-star-btn {
+  min-width: 44px;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  font-size: 22px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+    
     .lyrics-full {
       margin-top: 10px;
       white-space: pre-wrap;
@@ -691,6 +703,14 @@
         font-size: 12px;
       }
 
+      .modal-star-btn {
+  min-width: 38px;
+  width: 38px;
+  height: 38px;
+  font-size: 20px;
+  border-radius: 10px;
+}
+      
       .lyrics-full {
         font-size: 16px;
         line-height: 1.72;
@@ -907,7 +927,7 @@
         </div>
 
         <div class="modal-actions">
-          <button id="modalBookmarkBtn" class="modal-btn hidden" type="button">☆ Favourite</button>
+          <button id="modalBookmarkBtn" class="modal-btn modal-star-btn hidden" type="button" title="Toggle favourite" aria-label="Toggle favourite">☆</button>
           <button id="modalEditBtn" class="modal-btn hidden" type="button">Edit</button>
           <button id="modalDeleteBtn" class="modal-btn hidden btn-danger" type="button">Delete</button>
           <button id="modalCloseBtn" class="modal-btn" type="button">Close</button>
@@ -2054,10 +2074,12 @@
       document.getElementById("modalLyrics").innerHTML = highlightText(song, lastQuery);
 
       const isFav = favoriteSongIds.has(Number(songId));
-      const modalBookmarkBtn = document.getElementById("modalBookmarkBtn");
-      modalBookmarkBtn.classList.toggle("hidden", !isApproved());
-      modalBookmarkBtn.textContent = isFav ? "★ Favourited" : "☆ Favourite";
-      modalBookmarkBtn.dataset.songId = String(songId);
+const modalBookmarkBtn = document.getElementById("modalBookmarkBtn");
+modalBookmarkBtn.classList.toggle("hidden", !isApproved());
+modalBookmarkBtn.textContent = isFav ? "★" : "☆";
+modalBookmarkBtn.title = isFav ? "Remove from favourites" : "Add to favourites";
+modalBookmarkBtn.setAttribute("aria-label", isFav ? "Remove from favourites" : "Add to favourites");
+modalBookmarkBtn.dataset.songId = String(songId);
 
       document.getElementById("modalEditBtn").classList.toggle("hidden", !isApproved());
       document.getElementById("modalDeleteBtn").classList.toggle("hidden", !isAdmin());
