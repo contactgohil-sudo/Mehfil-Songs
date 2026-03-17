@@ -3,703 +3,705 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title> Mehfil Lyrics </title>
+  <title>Mehfil Lyrics</title>
 
   <style>
-  * { box-sizing: border-box; }
+    * { box-sizing: border-box; }
+
+    :root {
+      --bg: #f6f7fb;
+      --card: #ffffff;
+      --text: #111827;
+      --muted: #6b7280;
+      --line: #e5e7eb;
+      --primary: #111827;
+      --primary-soft: #f3f4f6;
+      --danger-soft: #fef2f2;
+      --danger: #b91c1c;
+      --warn-soft: #fff7ed;
+      --warn: #9a3412;
+      --success-soft: #ecfdf5;
+      --success: #166534;
+      --shadow: 0 8px 30px rgba(0,0,0,0.06);
+      --radius: 16px;
+    }
 
-  :root {
-    --bg: #f6f7fb;
-    --card: #ffffff;
-    --text: #111827;
-    --muted: #6b7280;
-    --line: #e5e7eb;
-    --primary: #111827;
-    --primary-soft: #f3f4f6;
-    --danger-soft: #fef2f2;
-    --danger: #b91c1c;
-    --warn-soft: #fff7ed;
-    --warn: #9a3412;
-    --success-soft: #ecfdf5;
-    --success: #166534;
-    --shadow: 0 8px 30px rgba(0,0,0,0.06);
-    --radius: 16px;
-  }
-
-  body {
-    margin: 0;
-    font-family: Arial, sans-serif;
-    background: var(--bg);
-    color: var(--text);
-    padding: 12px;
-    overflow-x: hidden;
-  }
-
-  .container {
-    width: 100%;
-    max-width: 1100px;
-    margin: 0 auto;
-  }
-
-  .hidden { display: none !important; }
-
-  .topbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 10px;
-  margin-bottom: 10px;
-  flex-wrap: nowrap;
-}
-
-  .brand-wrap {
-    min-width: 0;
-    flex: 1;
-  }
-
-   .account-actions {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 6px;
-  flex-shrink: 0;
-}
-
-.account-user {
-  text-align: right;
-  margin: 0;
-  font-size: 13px;
-  white-space: nowrap;
-}
-
-.add-tab-btn {
-  background: var(--primary);
-  color: white;
-  border-color: var(--primary);
-}
-.top-logout-btn {
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-
-.library-count-text {
-  font-size: 13px;
-  color: var(--muted);
-  margin-top: 4px;
-}
-
-  .brand {
-    margin: 0;
-    font-size: 30px;
-    line-height: 1.1;
-  }
-
-  .sub {
-    color: var(--muted);
-    font-size: 14px;
-    margin-top: 4px;
-  }
-
-  .account-actions {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 6px;
-  flex-shrink: 0;
-}
-
-.account-user {
-  text-align: right;
-  margin: 0;
-}
-
-  
-
-  .btn, .btn-secondary, .btn-danger {
-    border: none;
-    border-radius: 12px;
-    padding: 10px 14px;
-    cursor: pointer;
-    font-size: 14px;
-    font-weight: 600;
-    min-height: 42px;
-  }
-
-  .btn {
-    background: var(--primary);
-    color: white;
-  }
-
-  .btn-secondary {
-    background: var(--card);
-    color: var(--text);
-    border: 1px solid var(--line);
-  }
-
-  .btn-danger {
-    background: #b91c1c;
-    color: white;
-  }
-
-  .screen-card, .card {
-    background: var(--card);
-    border: 1px solid var(--line);
-    border-radius: var(--radius);
-    box-shadow: var(--shadow);
-  }
-
-  .screen-card {
-    max-width: 540px;
-    margin: 36px auto 0;
-    padding: 18px;
-  }
-
-  .card {
-    padding: 14px;
-    margin-bottom: 14px;
-  }
-
-  .section-title {
-    margin: 0 0 10px;
-    font-size: 20px;
-  }
-
-  .row {
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-  }
-
-  .row > .field {
-    flex: 1 1 240px;
-  }
-
-  .field {
-    margin-bottom: 10px;
-  }
-
-  .field label {
-    display: block;
-    margin-bottom: 6px;
-    font-size: 13px;
-    color: var(--muted);
-    font-weight: 600;
-  }
-
-  .input, .textarea, .select {
-    width: 100%;
-    border: 1px solid var(--line);
-    border-radius: 12px;
-    padding: 13px 14px;
-    font-size: 15px;
-    background: white;
-    color: var(--text);
-    outline: none;
-  }
-
-  .textarea {
-    min-height: 170px;
-    resize: vertical;
-  }
-
-  .stack-actions {
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-    align-items: center;
-    margin-top: 6px;
-  }
-
-  .status-box {
-    margin-bottom: 12px;
-    border-radius: 12px;
-    padding: 12px 14px;
-    font-size: 14px;
-    white-space: pre-wrap;
-    display: none;
-  }
-
-  .status-box.show { display: block; }
-  .status-info { background: var(--primary-soft); color: var(--text); border: 1px solid var(--line); }
-  .status-warn { background: var(--warn-soft); color: var(--warn); border: 1px solid #fed7aa; }
-  .status-error { background: var(--danger-soft); color: var(--danger); border: 1px solid #fecaca; }
-  .status-success { background: var(--success-soft); color: var(--success); border: 1px solid #bbf7d0; }
-
-  .tabs {
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-    margin-bottom: 12px;
-  }
-
-  .tab-btn {
-    border: 1px solid var(--line);
-    background: white;
-    color: var(--text);
-    border-radius: 999px;
-    padding: 9px 14px;
-    cursor: pointer;
-    font-weight: 600;
-    font-size: 14px;
-    min-height: 42px;
-  }
-
-  .tab-btn.active {
-    background: var(--primary);
-    color: white;
-    border-color: var(--primary);
-  }
-
-  .search-bar {
-    display: flex;
-    gap: 8px;
-    align-items: stretch;
-    margin-bottom: 12px;
-  }
-
-  .search-input {
-    flex: 1;
-    min-width: 0;
-    border: 1px solid var(--line);
-    border-radius: 14px;
-    padding: 14px 15px;
-    font-size: 18px;
-    background: white;
-    color: var(--text);
-    outline: none;
-  }
-
-  .icon-btn {
-    border: 1px solid var(--line);
-    background: white;
-    color: var(--text);
-    border-radius: 14px;
-    min-width: 52px;
-    width: 52px;
-    height: 52px;
-    padding: 0;
-    font-size: 20px;
-    cursor: pointer;
-    flex-shrink: 0;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .mic-listening {
-    background: #fee2e2;
-    border-color: #fca5a5;
-  }
-
-  .result-card, .song-row {
-    background: white;
-    border: 1px solid var(--line);
-    border-radius: 14px;
-    padding: 12px;
-    margin-bottom: 10px;
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: 10px;
-    cursor: pointer;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.03);
-  }
-
-  .result-card:hover, .song-row:hover {
-    border-color: #cbd5e1;
-  }
-
-  .result-main {
-    min-width: 0;
-    flex: 1;
-  }
-
-  .song-title {
-    font-size: 18px;
-    font-weight: 700;
-    margin-bottom: 3px;
-    line-height: 1.25;
-  }
-
-  .song-meta {
-    color: var(--muted);
-    font-size: 14px;
-    margin-bottom: 6px;
-    line-height: 1.35;
-  }
-
-  .song-snippet {
-    color: #374151;
-    font-size: 14px;
-    line-height: 1.45;
-    white-space: pre-wrap;
-  }
-
-  .edit-btn {
-    border: 1px solid var(--line);
-    background: white;
-    color: var(--text);
-    border-radius: 10px;
-    width: 34px;
-    height: 34px;
-    min-width: 34px;
-    padding: 0;
-    cursor: pointer;
-    font-size: 15px;
-    flex-shrink: 0;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .empty {
-    background: white;
-    border: 1px solid var(--line);
-    border-radius: 14px;
-    padding: 16px;
-    color: var(--muted);
-    text-align: center;
-  }
-
-  .toolbar {
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 12px;
-  }
-
-  .toolbar-left, .toolbar-right {
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-    align-items: center;
-  }
-
-  .group-card {
-    background: white;
-    border: 1px solid var(--line);
-    border-radius: 16px;
-    margin-bottom: 12px;
-    overflow: hidden;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.03);
-  }
-
-  .group-head {
-    padding: 12px 14px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    cursor: pointer;
-    background: #fafafa;
-    border-bottom: 1px solid var(--line);
-  }
-
-  .group-head strong {
-    font-size: 15px;
-  }
-
-  .group-count {
-    color: var(--muted);
-    font-size: 12px;
-  }
-
-  .group-body {
-    padding: 8px;
-  }
-
-  .group-body.hidden {
-    display: none;
-  }
-
-  .tiny {
-    font-size: 12px;
-    color: var(--muted);
-  }
-
-  .pending-user {
-    border: 1px solid var(--line);
-    border-radius: 14px;
-    padding: 12px;
-    background: white;
-    display: flex;
-    justify-content: space-between;
-    gap: 12px;
-    align-items: center;
-    margin-bottom: 10px;
-  }
-
-  .pending-user-main {
-    min-width: 0;
-  }
-
-  .pending-user-title {
-    font-weight: 700;
-    margin-bottom: 4px;
-  }
-
-  .pending-user-meta {
-    font-size: 13px;
-    color: var(--muted);
-    word-break: break-word;
-  }
-
-  .modal {
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.48);
-    display: none;
-    align-items: center;
-    justify-content: center;
-    padding: 14px;
-    z-index: 1000;
-  }
-
-  .modal.show { display: flex; }
-
-  .modal-card {
-    width: 100%;
-    max-width: 760px;
-    max-height: 86vh;
-    overflow: auto;
-    background: white;
-    border-radius: 18px;
-    padding: 18px;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.18);
-  }
-
-  .modal-top {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: 12px;
-    margin-bottom: 10px;
-  }
-
-  .modal-title {
-    font-size: 24px;
-    font-weight: 700;
-    margin-bottom: 4px;
-  }
-
-  .modal-meta {
-    color: var(--muted);
-    font-size: 14px;
-  }
-
-  .modal-actions {
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-    flex-shrink: 0;
-  }
-
-  .modal-btn {
-    border: none;
-    border-radius: 12px;
-    padding: 10px 12px;
-    background: var(--primary);
-    color: white;
-    cursor: pointer;
-    font-size: 14px;
-    font-weight: 600;
-  }
-
-  .lyrics-full {
-  margin-top: 10px;
-  white-space: pre-wrap;
-  line-height: 1.85;
-  font-size: 18px;
-  color: var(--text);
-}
-
-  mark {
-    background: #fde68a;
-    color: #111827;
-    padding: 0 2px;
-    border-radius: 3px;
-  }
-
-  .footer {
-    text-align: center;
-    color: var(--muted);
-    font-size: 13px;
-    padding: 18px 8px 12px;
-  }
-
-  @media (max-width: 640px) {
     body {
-      padding: 8px;
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      padding: 12px;
+      overflow-x: hidden;
     }
 
     .container {
-      max-width: 100%;
+      width: 100%;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .hidden { display: none !important; }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 10px;
+      margin-bottom: 10px;
+      flex-wrap: nowrap;
+    }
+
+    .brand-wrap {
+      min-width: 0;
+      flex: 1;
+    }
+
+    .account-actions {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+
+    .account-user {
+      text-align: right;
+      margin: 0;
+      font-size: 13px;
+      white-space: nowrap;
+    }
+
+    .add-tab-btn {
+      background: var(--primary);
+      color: white;
+      border-color: var(--primary);
+    }
+
+    .top-logout-btn {
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .library-count-text {
+      font-size: 13px;
+      color: var(--muted);
+      margin-top: 4px;
     }
 
     .brand {
-      font-size: 23px;
-      line-height: 1.08;
+      margin: 0;
+      font-size: 30px;
+      line-height: 1.1;
     }
 
     .sub {
-      font-size: 13px;
-      margin-top: 3px;
+      color: var(--muted);
+      font-size: 14px;
+      margin-top: 4px;
     }
 
-    .topbar {
-  gap: 8px;
-  margin-bottom: 8px;
-  align-items: flex-start;
-}
+    .btn, .btn-secondary, .btn-danger {
+      border: none;
+      border-radius: 12px;
+      padding: 10px 14px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      min-height: 42px;
+    }
 
-.account-actions {
-  gap: 5px;
-  align-items: flex-end;
-}
+    .btn {
+      background: var(--primary);
+      color: white;
+    }
 
-.account-user {
-  font-size: 12px;
-}
+    .btn-secondary {
+      background: var(--card);
+      color: var(--text);
+      border: 1px solid var(--line);
+    }
 
-.top-logout-btn {
-  min-height: 34px;
-  padding: 7px 10px;
-  font-size: 12px;
-  border-radius: 10px;
-}
+    .btn-danger {
+      background: #b91c1c;
+      color: white;
+    }
 
-.library-count-text {
-  font-size: 12px;
-  margin-top: 2px;
-}
-    
-.top-actions {
-  width: auto;
-  gap: 6px;
-  flex-shrink: 0;
-}
+    .screen-card, .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
 
-    .pill,
-.btn,
-.btn-secondary,
-.btn-danger,
-.tab-btn {
-  min-height: 36px;
-  padding: 8px 11px;
-  font-size: 12px;
-  white-space: nowrap;
-}
-
-    .tabs {
-  gap: 6px;
-  margin-bottom: 10px;
-  flex-wrap: nowrap;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
-}
-
-.tabs::-webkit-scrollbar {
-  display: none;
-}
+    .screen-card {
+      max-width: 540px;
+      margin: 36px auto 0;
+      padding: 18px;
+    }
 
     .card {
-      padding: 10px;
-      border-radius: 14px;
+      padding: 14px;
+      margin-bottom: 14px;
     }
 
-    .search-bar {
-      gap: 6px;
+    .section-title {
+      margin: 0 0 10px;
+      font-size: 20px;
+    }
+
+    .row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .row > .field {
+      flex: 1 1 240px;
+    }
+
+    .field {
       margin-bottom: 10px;
     }
 
-    .icon-btn {
-      width: 44px;
-      min-width: 44px;
-      height: 44px;
+    .field label {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 13px;
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    .input, .textarea, .select {
+      width: 100%;
+      border: 1px solid var(--line);
       border-radius: 12px;
-      font-size: 17px;
+      padding: 13px 14px;
+      font-size: 15px;
+      background: white;
+      color: var(--text);
+      outline: none;
+    }
+
+    .textarea {
+      min-height: 170px;
+      resize: vertical;
+    }
+
+    .stack-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+      margin-top: 6px;
+    }
+
+    .status-box {
+      margin-bottom: 12px;
+      border-radius: 12px;
+      padding: 12px 14px;
+      font-size: 14px;
+      white-space: pre-wrap;
+      display: none;
+    }
+
+    .status-box.show { display: block; }
+    .status-info { background: var(--primary-soft); color: var(--text); border: 1px solid var(--line); }
+    .status-warn { background: var(--warn-soft); color: var(--warn); border: 1px solid #fed7aa; }
+    .status-error { background: var(--danger-soft); color: var(--danger); border: 1px solid #fecaca; }
+    .status-success { background: var(--success-soft); color: var(--success); border: 1px solid #bbf7d0; }
+
+    .tabs {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+
+    .tab-btn {
+      border: 1px solid var(--line);
+      background: white;
+      color: var(--text);
+      border-radius: 999px;
+      padding: 9px 14px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 14px;
+      min-height: 42px;
+    }
+
+    .tab-btn.active {
+      background: var(--primary);
+      color: white;
+      border-color: var(--primary);
+    }
+
+    .search-bar {
+      display: flex;
+      gap: 8px;
+      align-items: stretch;
+      margin-bottom: 12px;
     }
 
     .search-input {
-      font-size: 16px;
-      padding: 11px 12px;
-      border-radius: 12px;
+      flex: 1;
+      min-width: 0;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 14px 15px;
+      font-size: 18px;
+      background: white;
+      color: var(--text);
+      outline: none;
     }
 
-    .result-card,
-    .song-row {
-      padding: 10px;
-      gap: 8px;
-      border-radius: 12px;
-      margin-bottom: 8px;
+    .icon-btn {
+      border: 1px solid var(--line);
+      background: white;
+      color: var(--text);
+      border-radius: 14px;
+      min-width: 52px;
+      width: 52px;
+      height: 52px;
+      padding: 0;
+      font-size: 20px;
+      cursor: pointer;
+      flex-shrink: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .mic-listening {
+      background: #fee2e2;
+      border-color: #fca5a5;
+    }
+
+    .result-card, .song-row {
+      background: white;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 12px;
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 10px;
+      cursor: pointer;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.03);
+    }
+
+    .result-card:hover, .song-row:hover {
+      border-color: #cbd5e1;
+    }
+
+    .result-main {
+      min-width: 0;
+      flex: 1;
     }
 
     .song-title {
-      font-size: 15px;
-      margin-bottom: 2px;
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 3px;
+      line-height: 1.25;
     }
 
     .song-meta {
-      font-size: 12px;
-      margin-bottom: 4px;
-    }
-
-    .song-snippet {
-      font-size: 12px;
+      color: var(--muted);
+      font-size: 14px;
+      margin-bottom: 6px;
       line-height: 1.35;
     }
 
+    .song-snippet {
+      color: #374151;
+      font-size: 14px;
+      line-height: 1.45;
+      white-space: pre-wrap;
+    }
+
     .edit-btn {
-      width: 30px;
-      height: 30px;
-      min-width: 30px;
-      font-size: 13px;
-      border-radius: 8px;
+      border: 1px solid var(--line);
+      background: white;
+      color: var(--text);
+      border-radius: 10px;
+      width: 34px;
+      height: 34px;
+      min-width: 34px;
+      padding: 0;
+      cursor: pointer;
+      font-size: 15px;
+      flex-shrink: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .star-btn {
+      border: 1px solid var(--line);
+      background: white;
+      color: #b45309;
+      border-radius: 10px;
+      width: 34px;
+      height: 34px;
+      min-width: 34px;
+      padding: 0;
+      cursor: pointer;
+      font-size: 16px;
+      flex-shrink: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .star-btn.active {
+      background: #fef3c7;
+      border-color: #f59e0b;
+    }
+
+    .empty {
+      background: white;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 16px;
+      color: var(--muted);
+      text-align: center;
+    }
+
+    .toolbar {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+
+    .toolbar-left, .toolbar-right {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .group-card {
+      background: white;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      margin-bottom: 12px;
+      overflow: hidden;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.03);
     }
 
     .group-head {
-      padding: 10px 12px;
+      padding: 12px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      cursor: pointer;
+      background: #fafafa;
+      border-bottom: 1px solid var(--line);
     }
 
     .group-head strong {
-      font-size: 14px;
+      font-size: 15px;
     }
 
     .group-count {
-      font-size: 11px;
+      color: var(--muted);
+      font-size: 12px;
     }
 
     .group-body {
-      padding: 6px;
+      padding: 8px;
     }
 
-    .modal-card {
-      padding: 14px;
+    .group-body.hidden {
+      display: none;
+    }
+
+    .tiny {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .pending-user {
+      border: 1px solid var(--line);
       border-radius: 14px;
+      padding: 12px;
+      background: white;
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .pending-user-main {
+      min-width: 0;
+    }
+
+    .pending-user-title {
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .pending-user-meta {
+      font-size: 13px;
+      color: var(--muted);
+      word-break: break-word;
+    }
+
+    .modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.48);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 14px;
+      z-index: 1000;
+    }
+
+    .modal.show { display: flex; }
+
+    .modal-card {
+      width: 100%;
+      max-width: 760px;
+      max-height: 86vh;
+      overflow: auto;
+      background: white;
+      border-radius: 18px;
+      padding: 18px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.18);
+    }
+
+    .modal-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+      margin-bottom: 10px;
     }
 
     .modal-title {
-      font-size: 19px;
+      font-size: 24px;
+      font-weight: 700;
+      margin-bottom: 4px;
     }
 
     .modal-meta {
-      font-size: 12px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      flex-shrink: 0;
+    }
+
+    .modal-btn {
+      border: none;
+      border-radius: 12px;
+      padding: 10px 12px;
+      background: var(--primary);
+      color: white;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
     }
 
     .lyrics-full {
-      font-size: 16px;
-      line-height: 1.72;
+      margin-top: 10px;
+      white-space: pre-wrap;
+      line-height: 1.85;
+      font-size: 18px;
+      color: var(--text);
+    }
+
+    mark {
+      background: #fde68a;
+      color: #111827;
+      padding: 0 2px;
+      border-radius: 3px;
     }
 
     .footer {
-      padding-top: 10px;
-      font-size: 12px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 13px;
+      padding: 18px 8px 12px;
     }
-  }
-</style>
+
+    @media (max-width: 640px) {
+      body {
+        padding: 8px;
+      }
+
+      .container {
+        max-width: 100%;
+      }
+
+      .brand {
+        font-size: 23px;
+        line-height: 1.08;
+      }
+
+      .sub {
+        font-size: 13px;
+        margin-top: 3px;
+      }
+
+      .topbar {
+        gap: 8px;
+        margin-bottom: 8px;
+        align-items: flex-start;
+      }
+
+      .account-actions {
+        gap: 5px;
+        align-items: flex-end;
+      }
+
+      .account-user {
+        font-size: 12px;
+      }
+
+      .top-logout-btn {
+        min-height: 34px;
+        padding: 7px 10px;
+        font-size: 12px;
+        border-radius: 10px;
+      }
+
+      .library-count-text {
+        font-size: 12px;
+        margin-top: 2px;
+      }
+
+      .btn,
+      .btn-secondary,
+      .btn-danger,
+      .tab-btn {
+        min-height: 36px;
+        padding: 8px 11px;
+        font-size: 12px;
+        white-space: nowrap;
+      }
+
+      .tabs {
+        gap: 6px;
+        margin-bottom: 10px;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+      }
+
+      .tabs::-webkit-scrollbar {
+        display: none;
+      }
+
+      .card {
+        padding: 10px;
+        border-radius: 14px;
+      }
+
+      .search-bar {
+        gap: 6px;
+        margin-bottom: 10px;
+      }
+
+      .icon-btn {
+        width: 44px;
+        min-width: 44px;
+        height: 44px;
+        border-radius: 12px;
+        font-size: 17px;
+      }
+
+      .search-input {
+        font-size: 16px;
+        padding: 11px 12px;
+        border-radius: 12px;
+      }
+
+      .result-card,
+      .song-row {
+        padding: 10px;
+        gap: 8px;
+        border-radius: 12px;
+        margin-bottom: 8px;
+      }
+
+      .song-title {
+        font-size: 15px;
+        margin-bottom: 2px;
+      }
+
+      .song-meta {
+        font-size: 12px;
+        margin-bottom: 4px;
+      }
+
+      .song-snippet {
+        font-size: 12px;
+        line-height: 1.35;
+      }
+
+      .edit-btn,
+      .star-btn {
+        width: 30px;
+        height: 30px;
+        min-width: 30px;
+        font-size: 13px;
+        border-radius: 8px;
+      }
+
+      .group-head {
+        padding: 10px 12px;
+      }
+
+      .group-head strong {
+        font-size: 14px;
+      }
+
+      .group-count {
+        font-size: 11px;
+      }
+
+      .group-body {
+        padding: 6px;
+      }
+
+      .modal-card {
+        padding: 14px;
+        border-radius: 14px;
+      }
+
+      .modal-title {
+        font-size: 19px;
+      }
+
+      .modal-meta {
+        font-size: 12px;
+      }
+
+      .lyrics-full {
+        font-size: 16px;
+        line-height: 1.72;
+      }
+
+      .footer {
+        padding-top: 10px;
+        font-size: 12px;
+      }
+    }
+  </style>
 </head>
 <body>
   <div class="container">
@@ -755,27 +757,27 @@
     </section>
 
     <section id="appScreen" class="hidden">
-   
       <div class="topbar">
-  <div class="brand-wrap">
-    <h1 class="brand">Mehfil Lyrics Search</h1>
-    <div id="libraryCountText" class="library-count-text">0 songs</div>
-  </div>
+        <div class="brand-wrap">
+          <h1 class="brand">Mehfil Lyrics Search</h1>
+          <div id="libraryCountText" class="library-count-text">0 songs</div>
+        </div>
 
-  <div class="account-actions">
-    <div class="sub account-user" id="welcomeLine">Loading...</div>
-    <button id="logoutBtn" class="btn-secondary top-logout-btn" type="button">Logout</button>
-  </div>
-</div>
-      
+        <div class="account-actions">
+          <div class="sub account-user" id="welcomeLine">Loading...</div>
+          <button id="logoutBtn" class="btn-secondary top-logout-btn" type="button">Logout</button>
+        </div>
+      </div>
+
       <div id="appStatus" class="status-box"></div>
 
-     <div class="tabs">
-  <button id="tabSearchBtn" class="tab-btn active" type="button">Search</button>
-  <button id="tabListBtn" class="tab-btn" type="button">List of Songs</button>
-  <button id="toggleAddBtn" class="tab-btn add-tab-btn hidden" type="button">+ Add Song</button>
-  <button id="tabAdminBtn" class="tab-btn hidden" type="button">Pending Requests</button>
-</div>
+      <div class="tabs">
+        <button id="tabSearchBtn" class="tab-btn active" type="button">Search</button>
+        <button id="tabListBtn" class="tab-btn" type="button">List of Songs</button>
+        <button id="tabFavoritesBtn" class="tab-btn" type="button">Favorites</button>
+        <button id="toggleAddBtn" class="tab-btn add-tab-btn hidden" type="button">+ Add Song</button>
+        <button id="tabAdminBtn" class="tab-btn hidden" type="button">Pending Requests</button>
+      </div>
 
       <section id="songEditorCard" class="card hidden">
         <h2 id="editorHeading" class="section-title">Add Song</h2>
@@ -864,6 +866,19 @@
         </div>
       </section>
 
+      <section id="favoritesTab" class="hidden">
+        <div class="card">
+          <div class="toolbar">
+            <div class="toolbar-left">
+              <strong>Favourite Songs</strong>
+              <span class="tiny">Your bookmarked songs</span>
+            </div>
+          </div>
+
+          <div id="favoriteSongsList"></div>
+        </div>
+      </section>
+
       <section id="adminTab" class="hidden">
         <div class="card">
           <div class="toolbar">
@@ -892,6 +907,7 @@
         </div>
 
         <div class="modal-actions">
+          <button id="modalBookmarkBtn" class="modal-btn hidden" type="button">☆ Favourite</button>
           <button id="modalEditBtn" class="modal-btn hidden" type="button">Edit</button>
           <button id="modalDeleteBtn" class="modal-btn hidden btn-danger" type="button">Delete</button>
           <button id="modalCloseBtn" class="modal-btn" type="button">Close</button>
@@ -943,6 +959,9 @@
     let lastQuery = "";
     let activeRecognition = null;
     let expandedGroups = new Set();
+    let isBootstrapping = false;
+    let favoriteSongIds = new Set();
+    let favoriteSongsCache = [];
 
     function escapeHtml(text) {
       return String(text || "")
@@ -1369,9 +1388,9 @@
       if (!ranges.length) return "";
 
       const [start, end] = ranges[0];
-     const isMobile = window.innerWidth <= 640;
-     const snippetStart = Math.max(0, start - (isMobile ? 18 : 35));
-     const snippetEnd = Math.min(original.length, end + (isMobile ? 24 : 45));
+      const isMobile = window.innerWidth <= 640;
+      const snippetStart = Math.max(0, start - (isMobile ? 18 : 35));
+      const snippetEnd = Math.min(original.length, end + (isMobile ? 24 : 45));
       const prefix = snippetStart > 0 ? "..." : "";
       const suffix = snippetEnd < original.length ? "..." : "";
       const miniSong = { ...song, lyrics: original.slice(snippetStart, snippetEnd) };
@@ -1399,7 +1418,6 @@
 
     function checkEditorDuplicateState() {
       const title = document.getElementById("songTitle").value.trim();
-      const duplicateWarning = document.getElementById("duplicateWarning");
       const saveBtn = document.getElementById("saveSongBtn");
 
       if (!title) {
@@ -1422,192 +1440,305 @@
       }
     }
 
-   async function ensureProfile(user, fallbackName = "") {
-  if (!user) return null;
+    async function ensureProfile(user, fallbackName = "") {
+      if (!user) return null;
 
-  const { data: existing, error: fetchError } = await supabaseClient
-    .from("profiles")
-    .select("*")
-    .eq("id", user.id)
-    .maybeSingle();
+      const { data: existing, error: fetchError } = await supabaseClient
+        .from("profiles")
+        .select("*")
+        .eq("id", user.id)
+        .maybeSingle();
 
-  if (fetchError) {
-    console.error("PROFILE FETCH ERROR:", fetchError);
-    throw fetchError;
-  }
+      if (fetchError) {
+        console.error("PROFILE FETCH ERROR:", fetchError);
+        throw fetchError;
+      }
 
-  if (existing) {
-    return existing;
-  }
+      if (existing) {
+        return existing;
+      }
 
-  const payload = {
-    id: user.id,
-    email: user.email || "",
-    name: fallbackName || user.user_metadata?.name || "",
-    approved: false,
-    role: "user"
-  };
+      const payload = {
+        id: user.id,
+        email: user.email || "",
+        name: fallbackName || user.user_metadata?.name || "",
+        approved: false,
+        role: "user"
+      };
 
-  const { data, error: insertError } = await supabaseClient
-    .from("profiles")
-    .insert([payload])
-    .select()
-    .single();
+      const { data, error: insertError } = await supabaseClient
+        .from("profiles")
+        .insert([payload])
+        .select()
+        .single();
 
-  if (insertError) {
-    console.error("PROFILE INSERT ERROR:", insertError);
-    throw insertError;
-  }
+      if (insertError) {
+        console.error("PROFILE INSERT ERROR:", insertError);
+        throw insertError;
+      }
 
-  return data;
-}
-
-async function loadProfile() {
-  if (!session?.user) {
-    profile = null;
-    return null;
-  }
-
-  await ensureProfile(session.user, "");
-
-  const { data, error } = await supabaseClient
-    .from("profiles")
-    .select("*")
-    .eq("id", session.user.id)
-    .single();
-
-  if (error) {
-    console.error("LOAD PROFILE ERROR:", error);
-    throw error;
-  }
-
-  profile = data;
-  return profile;
-}
-
-async function signUpRequest() {
-  const name = document.getElementById("authName").value.trim();
-  const email = document.getElementById("authEmail").value.trim();
-  const password = document.getElementById("authPassword").value;
-
-  if (!name || !email || !password) {
-    showStatus("authStatus", "Name, email, and password are required.", "error");
-    return;
-  }
-
-  showStatus("authStatus", "Creating account request...", "info");
-
-  const { data, error } = await supabaseClient.auth.signUp({
-    email,
-    password,
-    options: {
-      emailRedirectTo: REDIRECT_URL,
-      data: { name }
+      return data;
     }
-  });
 
-  if (error) {
-    showStatus("authStatus", error.message, "error");
-    return;
-  }
+    async function loadProfile() {
+      if (!session?.user) {
+        profile = null;
+        return null;
+      }
 
-  if (data?.session?.user) {
-    await ensureProfile(data.session.user, name);
-  }
+      await ensureProfile(session.user, "");
 
-  showStatus(
-    "authStatus",
-    "Request created. Check your email, verify your account, then wait for admin approval and log in.",
-    "success"
-  );
-}
+      const { data, error } = await supabaseClient
+        .from("profiles")
+        .select("*")
+        .eq("id", session.user.id)
+        .single();
 
-async function loginUser() {
-  const email = document.getElementById("authEmail").value.trim();
-  const password = document.getElementById("authPassword").value;
+      if (error) {
+        console.error("LOAD PROFILE ERROR:", error);
+        throw error;
+      }
 
-  if (!email || !password) {
-    showStatus("authStatus", "Email and password are required.", "error");
-    return;
-  }
+      profile = data;
+      return profile;
+    }
 
-  showStatus("authStatus", "Logging in...", "info");
+    async function signUpRequest() {
+      const name = document.getElementById("authName").value.trim();
+      const email = document.getElementById("authEmail").value.trim();
+      const password = document.getElementById("authPassword").value;
 
-  const { data, error } = await supabaseClient.auth.signInWithPassword({
-    email,
-    password
-  });
+      if (!name || !email || !password) {
+        showStatus("authStatus", "Name, email, and password are required.", "error");
+        return;
+      }
 
-  if (error) {
-    showStatus("authStatus", error.message, "error");
-    return;
-  }
+      showStatus("authStatus", "Creating account request...", "info");
 
-  session = data.session || null;
+      const { data, error } = await supabaseClient.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: REDIRECT_URL,
+          data: { name }
+        }
+      });
 
-  if (!session?.user) {
-    showStatus("authStatus", "Login succeeded but session was not created.", "error");
-    return;
-  }
+      if (error) {
+        showStatus("authStatus", error.message, "error");
+        return;
+      }
 
-  try {
-    await loadProfile();
-    renderScreens();
+      if (data?.session?.user) {
+        await ensureProfile(data.session.user, name);
+      }
 
-    if (profile?.approved) {
-      renderAppShell();
-      await loadSongs();
-      activateTab("search");
+      showStatus(
+        "authStatus",
+        "Request created. Check your email, verify your account, then wait for admin approval and log in.",
+        "success"
+      );
+    }
+
+    async function loginUser() {
+      const email = document.getElementById("authEmail").value.trim();
+      const password = document.getElementById("authPassword").value;
+
+      if (!email || !password) {
+        showStatus("authStatus", "Email and password are required.", "error");
+        return;
+      }
+
+      showStatus("authStatus", "Logging in...", "info");
+
+      const { data, error } = await supabaseClient.auth.signInWithPassword({
+        email,
+        password
+      });
+
+      if (error) {
+        showStatus("authStatus", error.message, "error");
+        return;
+      }
+
+      session = data.session || null;
+
+      if (!session?.user) {
+        showStatus("authStatus", "Login succeeded but session was not created.", "error");
+        return;
+      }
+
+      try {
+        await loadProfile();
+        renderScreens();
+
+        if (profile?.approved) {
+          renderAppShell();
+          await loadSongs();
+          activateTab("search");
+          showStatus("authStatus", "", "info");
+        } else {
+          showStatus("authStatus", "Your request is pending. Please wait for admin approval.", "warn");
+        }
+      } catch (err) {
+        console.error("LOGIN FLOW ERROR:", err);
+        showStatus("authStatus", "Login failed after authentication: " + (err?.message || err), "error");
+      }
+    }
+
+    async function logoutUser() {
+      stopActiveRecognition();
+      await supabaseClient.auth.signOut();
+      session = null;
+      profile = null;
+      songs = [];
+      preparedSongs = [];
+      fuse = null;
+      editingSongId = null;
+      openSongId = null;
+      lastQuery = "";
+      expandedGroups = new Set();
+      favoriteSongIds = new Set();
+      favoriteSongsCache = [];
+      renderScreens();
       showStatus("authStatus", "", "info");
-    } else {
-      showStatus("authStatus", "Your request is pending. Please wait for admin approval.", "warn");
+      showStatus("appStatus", "", "info");
+      showStatus("pendingStatus", "", "info");
     }
-  } catch (err) {
-    console.error("LOGIN FLOW ERROR:", err);
-    showStatus("authStatus", "Login failed after authentication: " + (err?.message || err), "error");
-  }
-}
 
-async function logoutUser() {
-  stopActiveRecognition();
-  await supabaseClient.auth.signOut();
-  session = null;
-  profile = null;
-  songs = [];
-  preparedSongs = [];
-  fuse = null;
-  editingSongId = null;
-  openSongId = null;
-  lastQuery = "";
-  expandedGroups = new Set();
-  renderScreens();
-  document.getElementById("authScreen").classList.remove("hidden");
-}
-async function loadSongs() {
-  if (!isApproved()) return;
+    async function refreshApprovalStatus() {
+      if (!session?.user) {
+        renderScreens();
+        return;
+      }
 
-  showStatus("appStatus", "Loading songs...", "info");
+      try {
+        await loadProfile();
+        renderScreens();
 
-  const { data, error } = await supabaseClient
-    .from("songs")
-    .select("*")
-    .order("title", { ascending: true });
+        if (profile?.approved) {
+          renderAppShell();
+          await loadSongs();
+          activateTab("search");
+          showStatus("pendingStatus", "Your account is now approved.", "success");
+        } else {
+          showStatus(
+            "pendingStatus",
+            "Your request is pending. After an admin approves your account, log in again with the same email and password.",
+            "warn"
+          );
+        }
+      } catch (error) {
+        console.error("REFRESH APPROVAL ERROR:", error);
+        showStatus("pendingStatus", error.message || "Could not refresh approval status.", "error");
+      }
+    }
 
-  if (error) {
-    console.error(error);
-    showStatus("appStatus", error.message, "error");
-    return;
-  }
+    async function loadBookmarks() {
+      if (!session?.user || !isApproved()) {
+        favoriteSongIds = new Set();
+        favoriteSongsCache = [];
+        return;
+      }
 
-  songs = data || [];
-  rebuildFuse();
-  refreshSuggestionLists();
-  checkEditorDuplicateState();
-  renderResults([], "");
-  renderSongGroups();
-  document.getElementById("libraryCountText").textContent = `${songs.length} songs`;
-  showStatus("appStatus", "", "info");
-}
+      const { data, error } = await supabaseClient
+        .from("bookmarks")
+        .select("song_id")
+        .eq("user_id", session.user.id);
+
+      if (error) {
+        console.error("LOAD BOOKMARKS ERROR:", error);
+        showStatus("appStatus", error.message, "error");
+        return;
+      }
+
+      favoriteSongIds = new Set((data || []).map(row => Number(row.song_id)));
+      favoriteSongsCache = preparedSongs.filter(song => favoriteSongIds.has(Number(song.id)));
+    }
+
+    async function toggleBookmark(songId, event = null) {
+      if (event) {
+        event.stopPropagation();
+        event.preventDefault();
+      }
+
+      if (!session?.user || !isApproved()) return;
+
+      const numericSongId = Number(songId);
+      const alreadyBookmarked = favoriteSongIds.has(numericSongId);
+
+      if (alreadyBookmarked) {
+        const { error } = await supabaseClient
+          .from("bookmarks")
+          .delete()
+          .eq("user_id", session.user.id)
+          .eq("song_id", numericSongId);
+
+        if (error) {
+          console.error("DELETE BOOKMARK ERROR:", error);
+          showStatus("appStatus", error.message, "error");
+          return;
+        }
+
+        favoriteSongIds.delete(numericSongId);
+      } else {
+        const { error } = await supabaseClient
+          .from("bookmarks")
+          .insert([{ user_id: session.user.id, song_id: numericSongId }]);
+
+        if (error) {
+          console.error("INSERT BOOKMARK ERROR:", error);
+          showStatus("appStatus", error.message, "error");
+          return;
+        }
+
+        favoriteSongIds.add(numericSongId);
+      }
+
+      favoriteSongsCache = preparedSongs.filter(song => favoriteSongIds.has(Number(song.id)));
+
+      if (lastQuery.trim()) {
+        renderResults(searchSongs(lastQuery), lastQuery);
+      } else {
+        renderResults([], "");
+      }
+
+      renderSongGroups();
+      renderFavorites();
+
+      if (openSongId === numericSongId) {
+        openSong(numericSongId);
+      }
+    }
+
+    async function loadSongs() {
+      if (!isApproved()) return;
+
+      showStatus("appStatus", "Loading songs...", "info");
+
+      const { data, error } = await supabaseClient
+        .from("songs")
+        .select("*")
+        .order("title", { ascending: true });
+
+      if (error) {
+        console.error("LOAD SONGS ERROR:", error);
+        showStatus("appStatus", error.message, "error");
+        return;
+      }
+
+      songs = data || [];
+      rebuildFuse();
+      await loadBookmarks();
+      refreshSuggestionLists();
+      checkEditorDuplicateState();
+      renderResults([], "");
+      renderSongGroups();
+      renderFavorites();
+      document.getElementById("libraryCountText").textContent = `${songs.length} songs`;
+      showStatus("appStatus", "", "info");
+    }
+
     async function saveSong(event) {
       event.preventDefault();
 
@@ -1654,7 +1785,7 @@ async function loadSongs() {
       }
 
       if (response.error) {
-        console.error(response.error);
+        console.error("SAVE SONG ERROR:", response.error);
         if (
           String(response.error.message || "").toLowerCase().includes("duplicate") ||
           String(response.error.message || "").toLowerCase().includes("unique")
@@ -1721,7 +1852,7 @@ async function loadSongs() {
         .order("created_at", { ascending: true });
 
       if (error) {
-        console.error(error);
+        console.error("LOAD PENDING USERS ERROR:", error);
         document.getElementById("pendingUsersList").innerHTML = `<div class="empty">${escapeHtml(error.message)}</div>`;
         return;
       }
@@ -1770,7 +1901,7 @@ async function loadSongs() {
       const root = document.getElementById("searchResults");
 
       if (!query.trim()) {
-       root.innerHTML = `<div class="empty">Search by song, lyric, singer, or movie. Tap a result to open full lyrics.</div>`;
+        root.innerHTML = `<div class="empty">Search by song, lyric, singer, or movie. Tap a result to open full lyrics.</div>`;
         return;
       }
 
@@ -1781,8 +1912,13 @@ async function loadSongs() {
 
       root.innerHTML = results.map(song => {
         const snippet = buildSnippet(song, query);
+        const isFav = favoriteSongIds.has(Number(song.id));
         const editButton = isApproved()
           ? `<button class="edit-btn" type="button" data-edit-id="${song.id}" title="Edit">✎</button>`
+          : "";
+
+        const starButton = isApproved()
+          ? `<button class="star-btn ${isFav ? "active" : ""}" type="button" data-bookmark-id="${song.id}" title="${isFav ? "Remove from favourites" : "Add to favourites"}">${isFav ? "★" : "☆"}</button>`
           : "";
 
         return `
@@ -1792,7 +1928,10 @@ async function loadSongs() {
               <div class="song-meta">${escapeHtml(joinMeta([song.movie, song.singer]))}</div>
               ${snippet ? `<div class="song-snippet">${snippet}</div>` : ""}
             </div>
-            ${editButton}
+            <div class="stack-actions">
+              ${starButton}
+              ${editButton}
+            </div>
           </div>
         `;
       }).join("");
@@ -1854,13 +1993,55 @@ async function loadSongs() {
                     <div class="song-title">${escapeHtml(song.title || "")}</div>
                     <div class="song-meta">${escapeHtml(joinMeta([song.movie, song.singer]))}</div>
                   </div>
-                  ${isApproved() ? `<button class="edit-btn" type="button" data-edit-id="${song.id}" title="Edit">✎</button>` : ""}
+                  <div class="stack-actions">
+                    ${isApproved() ? `<button class="star-btn ${favoriteSongIds.has(Number(song.id)) ? "active" : ""}" type="button" data-bookmark-id="${song.id}" title="${favoriteSongIds.has(Number(song.id)) ? "Remove from favourites" : "Add to favourites"}">${favoriteSongIds.has(Number(song.id)) ? "★" : "☆"}</button>` : ""}
+                    ${isApproved() ? `<button class="edit-btn" type="button" data-edit-id="${song.id}" title="Edit">✎</button>` : ""}
+                  </div>
                 </div>
               `).join("")}
             </div>
           </div>
         `;
       }).join("");
+    }
+
+    function renderFavorites() {
+      const root = document.getElementById("favoriteSongsList");
+      if (!root) return;
+
+      if (!favoriteSongsCache.length) {
+        root.innerHTML = `<div class="empty">No favourite songs yet.</div>`;
+        return;
+      }
+
+      root.innerHTML = favoriteSongsCache
+        .slice()
+        .sort((a, b) => String(a.title || "").localeCompare(String(b.title || "")))
+        .map(song => {
+          const isFav = favoriteSongIds.has(Number(song.id));
+          const editButton = isApproved()
+            ? `<button class="edit-btn" type="button" data-edit-id="${song.id}" title="Edit">✎</button>`
+            : "";
+
+          return `
+            <div class="song-row" data-song-id="${song.id}">
+              <div class="result-main">
+                <div class="song-title">${escapeHtml(song.title || "")}</div>
+                <div class="song-meta">${escapeHtml(joinMeta([song.movie, song.singer]))}</div>
+              </div>
+              <div class="stack-actions">
+                <button
+                  class="star-btn ${isFav ? "active" : ""}"
+                  type="button"
+                  data-bookmark-id="${song.id}"
+                  title="${isFav ? "Remove from favourites" : "Add to favourites"}"
+                >${isFav ? "★" : "☆"}</button>
+                ${editButton}
+              </div>
+            </div>
+          `;
+        })
+        .join("");
     }
 
     function openSong(songId) {
@@ -1871,6 +2052,13 @@ async function loadSongs() {
       document.getElementById("modalTitle").textContent = song.title || "";
       document.getElementById("modalMeta").textContent = joinMeta([song.movie, song.singer]);
       document.getElementById("modalLyrics").innerHTML = highlightText(song, lastQuery);
+
+      const isFav = favoriteSongIds.has(Number(songId));
+      const modalBookmarkBtn = document.getElementById("modalBookmarkBtn");
+      modalBookmarkBtn.classList.toggle("hidden", !isApproved());
+      modalBookmarkBtn.textContent = isFav ? "★ Favourited" : "☆ Favourite";
+      modalBookmarkBtn.dataset.songId = String(songId);
+
       document.getElementById("modalEditBtn").classList.toggle("hidden", !isApproved());
       document.getElementById("modalDeleteBtn").classList.toggle("hidden", !isAdmin());
       document.getElementById("songModal").classList.add("show");
@@ -1929,20 +2117,23 @@ async function loadSongs() {
     }
 
     function activateTab(tabName) {
-      const searchTab = document.getElementById("searchTab");
-      const listTab = document.getElementById("listTab");
-      const adminTab = document.getElementById("adminTab");
-
       document.getElementById("tabSearchBtn").classList.toggle("active", tabName === "search");
       document.getElementById("tabListBtn").classList.toggle("active", tabName === "list");
+      document.getElementById("tabFavoritesBtn").classList.toggle("active", tabName === "favorites");
       document.getElementById("tabAdminBtn").classList.toggle("active", tabName === "admin");
 
-      searchTab.classList.toggle("hidden", tabName !== "search");
-      listTab.classList.toggle("hidden", tabName !== "list");
-      adminTab.classList.toggle("hidden", tabName !== "admin");
+      document.getElementById("searchTab").classList.toggle("hidden", tabName !== "search");
+      document.getElementById("listTab").classList.toggle("hidden", tabName !== "list");
+      document.getElementById("favoritesTab").classList.toggle("hidden", tabName !== "favorites");
+      document.getElementById("adminTab").classList.toggle("hidden", tabName !== "admin");
 
-      if (tabName === "list") renderSongGroups();
-      if (tabName === "admin" && isAdmin()) loadPendingUsers();
+      if (tabName === "favorites") {
+        renderFavorites();
+      }
+
+      if (tabName === "admin" && isAdmin()) {
+        loadPendingUsers();
+      }
     }
 
     function setMicUiState(listening) {
@@ -2088,14 +2279,14 @@ async function loadSongs() {
     }
 
     function renderAppShell() {
-  if (!profile) return;
+      if (!profile) return;
 
-  const userLabel = profile.name || profile.email || "User";
-  document.getElementById("welcomeLine").textContent = `Logged in as ${userLabel}${isAdmin() ? " • Admin" : ""}`;
-  document.getElementById("toggleAddBtn").classList.toggle("hidden", !isApproved());
-  document.getElementById("tabAdminBtn").classList.toggle("hidden", !isAdmin());
-  document.getElementById("libraryCountText").textContent = `${songs.length} songs`;
-}
+      const userLabel = profile.name || profile.email || "User";
+      document.getElementById("welcomeLine").textContent = `Logged in as ${userLabel}${isAdmin() ? " • Admin" : ""}`;
+      document.getElementById("toggleAddBtn").classList.toggle("hidden", !isApproved());
+      document.getElementById("tabAdminBtn").classList.toggle("hidden", !isAdmin());
+      document.getElementById("libraryCountText").textContent = `${songs.length} songs`;
+    }
 
     async function bootstrap() {
       try {
@@ -2141,26 +2332,7 @@ async function loadSongs() {
       document.getElementById("loginBtn").addEventListener("click", loginUser);
       document.getElementById("logoutBtn").addEventListener("click", logoutUser);
       document.getElementById("pendingLogoutBtn").addEventListener("click", logoutUser);
-
-      document.getElementById("pendingRefreshBtn").addEventListener("click", async () => {
-  try {
-    showStatus("pendingStatus", "Checking approval status...", "info");
-    await loadProfile();
-    renderScreens();
-
-    if (profile?.approved) {
-      renderAppShell();
-      await loadSongs();
-      activateTab("search");
-      showStatus("pendingStatus", "", "info");
-    } else {
-      showStatus("pendingStatus", "Your request is still pending. Please try again in a moment.", "warn");
-    }
-  } catch (err) {
-    console.error("PENDING REFRESH ERROR:", err);
-    showStatus("pendingStatus", "Could not refresh approval status: " + (err?.message || err), "error");
-  }
-});
+      document.getElementById("pendingRefreshBtn").addEventListener("click", refreshApprovalStatus);
 
       document.getElementById("toggleAddBtn").addEventListener("click", () => {
         resetSongForm();
@@ -2174,13 +2346,11 @@ async function loadSongs() {
       });
 
       document.getElementById("songTitle").addEventListener("input", checkEditorDuplicateState);
-      document.getElementById("songMovie").addEventListener("input", () => {});
-      document.getElementById("songSinger").addEventListener("input", () => {});
-
       document.getElementById("songForm").addEventListener("submit", saveSong);
 
       document.getElementById("tabSearchBtn").addEventListener("click", () => activateTab("search"));
       document.getElementById("tabListBtn").addEventListener("click", () => activateTab("list"));
+      document.getElementById("tabFavoritesBtn").addEventListener("click", () => activateTab("favorites"));
       document.getElementById("tabAdminBtn").addEventListener("click", () => activateTab("admin"));
 
       document.getElementById("refreshPendingBtn").addEventListener("click", loadPendingUsers);
@@ -2204,7 +2374,13 @@ async function loadSongs() {
 
       document.getElementById("micBtn").addEventListener("click", startMicSearch);
 
-      document.getElementById("searchResults").addEventListener("click", (e) => {
+      document.getElementById("searchResults").addEventListener("click", async (e) => {
+        const bookmarkBtn = e.target.closest("[data-bookmark-id]");
+        if (bookmarkBtn) {
+          await toggleBookmark(Number(bookmarkBtn.dataset.bookmarkId), e);
+          return;
+        }
+
         const editBtn = e.target.closest("[data-edit-id]");
         if (editBtn) {
           e.stopPropagation();
@@ -2213,12 +2389,16 @@ async function loadSongs() {
         }
 
         const card = e.target.closest("[data-song-id]");
-        if (card) {
-          openSong(Number(card.dataset.songId));
-        }
+        if (card) openSong(Number(card.dataset.songId));
       });
 
-      document.getElementById("songGroups").addEventListener("click", (e) => {
+      document.getElementById("songGroups").addEventListener("click", async (e) => {
+        const bookmarkBtn = e.target.closest("[data-bookmark-id]");
+        if (bookmarkBtn) {
+          await toggleBookmark(Number(bookmarkBtn.dataset.bookmarkId), e);
+          return;
+        }
+
         const editBtn = e.target.closest("[data-edit-id]");
         if (editBtn) {
           e.stopPropagation();
@@ -2236,9 +2416,25 @@ async function loadSongs() {
         }
 
         const row = e.target.closest("[data-song-id]");
-        if (row) {
-          openSong(Number(row.dataset.songId));
+        if (row) openSong(Number(row.dataset.songId));
+      });
+
+      document.getElementById("favoriteSongsList").addEventListener("click", async (e) => {
+        const bookmarkBtn = e.target.closest("[data-bookmark-id]");
+        if (bookmarkBtn) {
+          await toggleBookmark(Number(bookmarkBtn.dataset.bookmarkId), e);
+          return;
         }
+
+        const editBtn = e.target.closest("[data-edit-id]");
+        if (editBtn) {
+          e.stopPropagation();
+          startEdit(Number(editBtn.dataset.editId));
+          return;
+        }
+
+        const row = e.target.closest("[data-song-id]");
+        if (row) openSong(Number(row.dataset.songId));
       });
 
       document.getElementById("pendingUsersList").addEventListener("click", (e) => {
@@ -2247,9 +2443,15 @@ async function loadSongs() {
       });
 
       document.getElementById("modalCloseBtn").addEventListener("click", closeSongModal);
+
+      document.getElementById("modalBookmarkBtn").addEventListener("click", async () => {
+        if (openSongId) await toggleBookmark(openSongId);
+      });
+
       document.getElementById("modalEditBtn").addEventListener("click", () => {
         if (openSongId) startEdit(openSongId);
       });
+
       document.getElementById("modalDeleteBtn").addEventListener("click", () => {
         if (openSongId) deleteSong(openSongId);
       });
@@ -2262,20 +2464,8 @@ async function loadSongs() {
         if (e.key === "Escape") closeSongModal();
       });
 
-      supabaseClient.auth.onAuthStateChange((event, newSession) => {
+      supabaseClient.auth.onAuthStateChange((_event, newSession) => {
         session = newSession || null;
-
-        if (!session?.user) {
-          profile = null;
-          renderScreens();
-          return;
-        }
-
-        bootstrap().catch(err => {
-          console.error("AUTH STATE ERROR:", err);
-          document.getElementById("authScreen").classList.remove("hidden");
-          showStatus("authStatus", "Auth state error: " + (err?.message || err), "error");
-        });
       });
     }
 
