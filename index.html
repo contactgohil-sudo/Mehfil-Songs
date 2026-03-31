@@ -1488,11 +1488,21 @@ function getStrongQueryVariants(query) {
 
   const ranked = preparedSongs
     .map(song => {
-      const titleExact = song._titleSearch === q;
-      const titleStarts = song._titleSearch.startsWith(q);
-      const titleContains = anyIncludes(song._titleSearch, variants);
-      const movieContains = anyIncludes(song._movieSearch, variants);
-      const singerContains = anyIncludes(song._singerSearch, variants);
+      const titleSearch = song._titleSearch || "";
+      const movieSearch = song._movieSearch || "";
+      const singerSearch = song._singerSearch || "";
+
+      const titleExact = titleSearch === q;
+      const movieExact = movieSearch === q;
+      const singerExact = singerSearch === q;
+
+      const titleStarts = titleSearch.startsWith(q);
+      const movieStarts = movieSearch.startsWith(q);
+      const singerStarts = singerSearch.startsWith(q);
+
+      const titleContains = anyIncludes(titleSearch, variants);
+      const movieContains = anyIncludes(movieSearch, variants);
+      const singerContains = anyIncludes(singerSearch, variants);
 
       const lyricInfo = getLyricMatchInfo(song, query);
       const lyricPhraseScore = lyricInfo.score || 0;
@@ -1501,19 +1511,44 @@ function getStrongQueryVariants(query) {
         ? strongLyricVariants.some(v => song._lyricsSearch.includes(v))
         : false;
 
+      const hasStrongMetaMatch =
+        titleExact || movieExact || singerExact ||
+        titleStarts || movieStarts || singerStarts;
+
+      const hasAnyMetaMatch =
+        hasStrongMetaMatch || titleContains || movieContains || singerContains;
+
       let score = 0;
 
-      if (titleExact) score += 120;
-      if (titleStarts) score += 70;
-      if (titleContains) score += 35;
-      if (movieContains) score += 18;
-      if (singerContains) score += 18;
+      // Title priority
+      if (titleExact) score += 260;
+      else if (titleStarts) score += 180;
+      else if (titleContains) score += 90;
 
-      if (strongLyricsContains) score += 14;
-      if (lyricPhraseScore > 0) score += Math.round(lyricPhraseScore * 120);
+      // Movie priority
+      if (movieExact) score += 240;
+      else if (movieStarts) score += 170;
+      else if (movieContains) score += 85;
 
-      if (!titleContains && !movieContains && !singerContains && lyricPhraseScore >= 0.82) {
-        score += 24;
+      // Singer priority
+      if (singerExact) score += 220;
+      else if (singerStarts) score += 150;
+      else if (singerContains) score += 75;
+
+      // Lyrics should help, but not overpower metadata search
+      if (!hasStrongMetaMatch) {
+        if (strongLyricsContains) score += 14;
+        if (lyricPhraseScore > 0) score += Math.round(lyricPhraseScore * 120);
+      } else {
+        if (strongLyricsContains) score += 6;
+        if (lyricPhraseScore > 0) score += Math.round(lyricPhraseScore * 35);
+      }
+
+      // If query clearly matches title/movie/singer, reward that heavily
+      if (hasStrongMetaMatch) {
+        score += 40;
+      } else if (hasAnyMetaMatch) {
+        score += 15;
       }
 
       score += fuseScoreMap.get(song.id) || 0;
