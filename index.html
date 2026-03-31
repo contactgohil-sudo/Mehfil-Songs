@@ -512,11 +512,11 @@
       font-size: 14px;
     }
 .modal-extra-meta {
-  margin-top: -2px;
-  margin-bottom: 8px;
   color: var(--muted);
   font-size: 13px;
-  line-height: 1.5;
+  line-height: 1.4;
+  text-align: right;
+  max-width: 260px;
 }
     .modal-actions {
       display: flex;
@@ -524,7 +524,13 @@
       flex-wrap: wrap;
       flex-shrink: 0;
     }
-
+.modal-side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  flex-shrink: 0;
+}
     .modal-btn {
       border: none;
       border-radius: 12px;
@@ -575,6 +581,15 @@
         padding: 8px;
       }
 
+      .modal-side {
+  gap: 6px;
+}
+
+.modal-extra-meta {
+  font-size: 12px;
+  max-width: 220px;
+}
+      
       .input-thin {
   min-height: 34px;
   padding: 7px 10px;
@@ -968,21 +983,22 @@
 
   <div id="songModal" class="modal">
     <div class="modal-card">
-      <div class="modal-top">
+     <div class="modal-top">
   <div>
     <div id="modalTitle" class="modal-title"></div>
     <div id="modalMeta" class="modal-meta"></div>
   </div>
 
-  <div class="modal-actions">
-    <button id="modalBookmarkBtn" class="modal-btn modal-star-btn hidden" type="button" title="Toggle favourite" aria-label="Toggle favourite">☆</button>
-    <button id="modalEditBtn" class="modal-btn hidden" type="button">Edit</button>
-    <button id="modalDeleteBtn" class="modal-btn hidden btn-danger" type="button">Delete</button>
-    <button id="modalCloseBtn" class="modal-btn" type="button">Close</button>
+  <div class="modal-side">
+    <div class="modal-actions">
+      <button id="modalBookmarkBtn" class="modal-btn modal-star-btn hidden" type="button" title="Toggle favourite" aria-label="Toggle favourite">☆</button>
+      <button id="modalEditBtn" class="modal-btn hidden" type="button">Edit</button>
+      <button id="modalDeleteBtn" class="modal-btn hidden btn-danger" type="button">Delete</button>
+      <button id="modalCloseBtn" class="modal-btn" type="button">Close</button>
+    </div>
+    <div id="modalExtraMeta" class="modal-extra-meta hidden"></div>
   </div>
 </div>
-
-<div id="modalExtraMeta" class="modal-extra-meta hidden"></div>
 
 <div id="modalLyrics" class="lyrics-full"></div>
     </div>
