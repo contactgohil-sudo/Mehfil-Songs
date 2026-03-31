@@ -1417,34 +1417,112 @@
       return mergeRanges(ranges);
     }
 
-    function findRomanMappedRanges(song, query) {
-      if (!isLatinQuery(query)) return [];
-      const roman = song._lyricsRoman || "";
-      const romanMap = song._lyricsRomanMap || [];
-      const romanQueryVariants = addTypoFriendlyRomanVariants(query)
-        .split(/\s+/)
-        .filter(Boolean)
-        .sort((a, b) => b.length - a.length);
+   function findRomanMappedRanges(song, query) {
+  if (!isLatinQuery(query)) return [];
 
-      const ranges = [];
+  const original = String(song.lyrics || "");
+  const romanObj = transliterateIndicWithMap(original);
+  const romanRaw = String(romanObj.rawRoman || "");
+  const romanMap = romanObj.map || [];
 
-      for (const variant of romanQueryVariants) {
-        const lookFor = normalizeText(variant);
-        if (!lookFor) continue;
+  if (!romanRaw || !romanMap.length) return [];
 
-        let pos = roman.indexOf(lookFor);
-        while (pos !== -1) {
-          const mapStart = romanMap[pos];
-          const mapEnd = romanMap[Math.min(pos + lookFor.length - 1, romanMap.length - 1)];
-          if (mapStart && mapEnd) {
-            ranges.push([mapStart.start, mapEnd.end]);
-          }
-          pos = roman.indexOf(lookFor, pos + 1);
+  const queryWords = normalizeText(query).split(/\s+/).filter(Boolean);
+  if (!queryWords.length) return [];
+
+  const lyricWords = [];
+  let wordStart = -1;
+
+  for (let i = 0; i < romanRaw.length; i++) {
+    const ch = romanRaw[i];
+    const isSpace = /\s/.test(ch);
+
+    if (!isSpace && wordStart === -1) {
+      wordStart = i;
+    }
+
+    if ((isSpace || i === romanRaw.length - 1) && wordStart !== -1) {
+      const wordEnd = isSpace ? i : i + 1;
+      const rawWord = romanRaw.slice(wordStart, wordEnd);
+      const normWord = normalizeText(rawWord);
+
+      if (normWord) {
+        const startMap = romanMap[wordStart];
+        const endMap = romanMap[wordEnd - 1];
+        if (startMap && endMap) {
+          lyricWords.push({
+            norm: normWord,
+            start: startMap.start,
+            end: endMap.end
+          });
         }
       }
 
-      return mergeRanges(ranges);
+      wordStart = -1;
     }
+  }
+
+  if (!lyricWords.length) return [];
+
+  const queryVariants = queryWords.map(word =>
+    Array.from(new Set(
+      addTypoFriendlyRomanVariants(word)
+        .split(/\s+/)
+        .map(normalizeText)
+        .filter(Boolean)
+    ))
+  );
+
+  const ranges = [];
+
+  for (let i = 0; i <= lyricWords.length - queryWords.length; i++) {
+    let matched = true;
+
+    for (let j = 0; j < queryWords.length; j++) {
+      const lyricWord = lyricWords[i + j].norm;
+      const allowed = queryVariants[j];
+
+      const wordMatches = allowed.some(v =>
+        lyricWord === v ||
+        lyricWord.includes(v) ||
+        v.includes(lyricWord)
+      );
+
+      if (!wordMatches) {
+        matched = false;
+        break;
+      }
+    }
+
+    if (matched) {
+      ranges.push([
+        lyricWords[i].start,
+        lyricWords[i + queryWords.length - 1].end
+      ]);
+    }
+  }
+
+  if (ranges.length) return mergeRanges(ranges);
+
+  for (let i = 0; i < lyricWords.length; i++) {
+    for (let j = 0; j < queryVariants.length; j++) {
+      const lyricWord = lyricWords[i].norm;
+      const allowed = queryVariants[j];
+
+      const wordMatches = allowed.some(v =>
+        lyricWord === v ||
+        lyricWord.includes(v) ||
+        v.includes(lyricWord)
+      );
+
+      if (wordMatches) {
+        ranges.push([lyricWords[i].start, lyricWords[i].end]);
+      }
+    }
+  }
+
+  return mergeRanges(ranges);
+}
 
     function highlightText(song, query) {
       const original = String(song.lyrics || "");
