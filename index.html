@@ -1417,7 +1417,7 @@
       return mergeRanges(ranges);
     }
 
-   function findRomanMappedRanges(song, query) {
+  function findRomanMappedRanges(song, query) {
   if (!isLatinQuery(query)) return [];
 
   const original = String(song.lyrics || "");
@@ -1499,25 +1499,6 @@
         lyricWords[i].start,
         lyricWords[i + queryWords.length - 1].end
       ]);
-    }
-  }
-
-  if (ranges.length) return mergeRanges(ranges);
-
-  for (let i = 0; i < lyricWords.length; i++) {
-    for (let j = 0; j < queryVariants.length; j++) {
-      const lyricWord = lyricWords[i].norm;
-      const allowed = queryVariants[j];
-
-      const wordMatches = allowed.some(v =>
-        lyricWord === v ||
-        lyricWord.includes(v) ||
-        v.includes(lyricWord)
-      );
-
-      if (wordMatches) {
-        ranges.push([lyricWords[i].start, lyricWords[i].end]);
-      }
     }
   }
 
