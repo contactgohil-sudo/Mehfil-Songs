@@ -1297,82 +1297,100 @@
       return variants.some(v => v && haystack.includes(v));
     }
 
+function getLyricPhraseRanges(song, query) {
+  let ranges = findDirectRanges(String(song.lyrics || ""), query);
+  if (!ranges.length) ranges = findRomanMappedRanges(song, query);
+  return ranges;
+}
+    
     function searchSongs(query) {
-      const q = normalizeText(query);
-      if (!q || !fuse) return [];
+  const q = normalizeText(query);
+  if (!q || !fuse) return [];
 
-      const variants = getQueryVariants(query);
+  const variants = getQueryVariants(query);
 
-      const directMatches = preparedSongs
-        .map(song => {
-          const titleExact = song._titleSearch === q;
-          const titleStarts = song._titleSearch.startsWith(q);
-          const titleContains = anyIncludes(song._titleSearch, variants);
-          const movieContains = anyIncludes(song._movieSearch, variants);
-          const singerContains = anyIncludes(song._singerSearch, variants);
-          const lyricsContains = anyIncludes(song._lyricsSearch, variants);
+  const directMatches = preparedSongs
+    .map(song => {
+      const titleExact = song._titleSearch === q;
+      const titleStarts = song._titleSearch.startsWith(q);
+      const titleContains = anyIncludes(song._titleSearch, variants);
+      const movieContains = anyIncludes(song._movieSearch, variants);
+      const singerContains = anyIncludes(song._singerSearch, variants);
+      const lyricsContains = anyIncludes(song._lyricsSearch, variants);
 
-          let score = 0;
-          if (titleExact) score += 100;
-          if (titleStarts) score += 60;
-          if (titleContains) score += 30;
-          if (movieContains) score += 20;
-          if (singerContains) score += 20;
-          if (lyricsContains) score += 10;
+      const lyricPhraseRanges = getLyricPhraseRanges(song, query);
+      const lyricPhraseMatch = lyricPhraseRanges.length > 0;
 
-          if (score === 0) return null;
+      let score = 0;
+      if (titleExact) score += 100;
+      if (titleStarts) score += 60;
+      if (titleContains) score += 30;
+      if (movieContains) score += 20;
+      if (singerContains) score += 20;
+      if (lyricsContains) score += 10;
 
-          return {
-            ...song,
-            _matchType: {
-              title: titleContains,
-              movie: movieContains,
-              singer: singerContains,
-              lyrics: lyricsContains
-            },
-            _score: score
-          };
-        })
-        .filter(Boolean);
+      if (lyricPhraseMatch) {
+        score += 75;
+        if (!titleContains && !movieContains && !singerContains) {
+          score += 20;
+        }
+      }
 
-      const fuseMatches = fuse.search(q).slice(0, 40).map(r => {
-        const song = r.item;
-        const titleMatch = anyIncludes(song._titleSearch, variants);
-        const movieMatch = anyIncludes(song._movieSearch, variants);
-        const singerMatch = anyIncludes(song._singerSearch, variants);
-        const lyricsMatch = anyIncludes(song._lyricsSearch, variants) || (!titleMatch && !movieMatch && !singerMatch);
+      if (score === 0) return null;
 
-        let score = 0;
-        if (titleMatch) score += 14;
-        if (movieMatch) score += 10;
-        if (singerMatch) score += 10;
-        if (lyricsMatch) score += 6;
+      return {
+        ...song,
+        _matchType: {
+          title: titleContains,
+          movie: movieContains,
+          singer: singerContains,
+          lyrics: lyricsContains || lyricPhraseMatch
+        },
+        _score: score
+      };
+    })
+    .filter(Boolean);
 
-        score += Math.max(0, Math.round((1 - (r.score || 1)) * 20));
+  const fuseMatches = fuse.search(q).slice(0, 40).map(r => {
+    const song = r.item;
+    const titleMatch = anyIncludes(song._titleSearch, variants);
+    const movieMatch = anyIncludes(song._movieSearch, variants);
+    const singerMatch = anyIncludes(song._singerSearch, variants);
+    const lyricPhraseRanges = getLyricPhraseRanges(song, query);
+    const lyricPhraseMatch = lyricPhraseRanges.length > 0;
+    const lyricsMatch = lyricPhraseMatch || anyIncludes(song._lyricsSearch, variants) || (!titleMatch && !movieMatch && !singerMatch);
 
-        return {
-          ...song,
-          _matchType: {
-            title: titleMatch,
-            movie: movieMatch,
-            singer: singerMatch,
-            lyrics: lyricsMatch
-          },
-          _score: score
-        };
-      });
+    let score = 0;
+    if (titleMatch) score += 14;
+    if (movieMatch) score += 10;
+    if (singerMatch) score += 10;
+    if (lyricsMatch) score += 6;
+    if (lyricPhraseMatch) score += 30;
 
-      const merged = new Map();
-      [...directMatches, ...fuseMatches].forEach(song => {
-        const prev = merged.get(song.id);
-        if (!prev || song._score > prev._score) merged.set(song.id, song);
-      });
+    score += Math.max(0, Math.round((1 - (r.score || 1)) * 20));
 
-      return Array.from(merged.values())
-        .sort((a, b) => b._score - a._score || String(a.title).localeCompare(String(b.title)))
-        .slice(0, 20);
-    }
+    return {
+      ...song,
+      _matchType: {
+        title: titleMatch,
+        movie: movieMatch,
+        singer: singerMatch,
+        lyrics: lyricsMatch
+      },
+      _score: score
+    };
+  });
 
+  const merged = new Map();
+  [...directMatches, ...fuseMatches].forEach(song => {
+    const prev = merged.get(song.id);
+    if (!prev || song._score > prev._score) merged.set(song.id, song);
+  });
+
+  return Array.from(merged.values())
+    .sort((a, b) => b._score - a._score || String(a.title).localeCompare(String(b.title)))
+    .slice(0, 20);
+}
     function mergeRanges(ranges) {
       if (!ranges.length) return [];
       ranges.sort((a, b) => a[0] - b[0]);
@@ -1417,7 +1435,7 @@
       return mergeRanges(ranges);
     }
 
-  function findRomanMappedRanges(song, query) {
+ function findRomanMappedRanges(song, query) {
   if (!isLatinQuery(query)) return [];
 
   const original = String(song.lyrics || "");
@@ -1543,11 +1561,32 @@
       const rawScore = similarityScore(lyricWord.norm, variant.raw);
       const phoneticScore = similarityScore(lyricWord.phonetic, variant.phonetic);
       const score = Math.max(rawScore, phoneticScore);
-
       if (score > best) best = score;
     }
 
     return best;
+  }
+
+  function dedupeAndSortRanges(matches, keepAllNearBest = false) {
+    if (!matches.length) return [];
+
+    matches.sort((a, b) => b.avg - a.avg || a.span - b.span || a.range[0] - b.range[0]);
+
+    const bestAvg = matches[0].avg;
+    const kept = matches.filter(m => {
+      if (!keepAllNearBest) return m === matches[0];
+      return m.avg >= bestAvg - 0.06;
+    });
+
+    const ranges = [];
+    for (const item of kept) {
+      const [start, end] = item.range;
+      const overlaps = ranges.some(([s, e]) => !(end <= s || start >= e));
+      if (!overlaps) ranges.push([start, end]);
+    }
+
+    ranges.sort((a, b) => a[0] - b[0]);
+    return mergeRanges(ranges);
   }
 
   // Stage 1: contiguous phrase match with scoring
@@ -1577,8 +1616,7 @@
   }
 
   if (strictMatches.length) {
-    strictMatches.sort((a, b) => b.avg - a.avg || a.span - b.span || a.range[0] - b.range[0]);
-    return [strictMatches[0].range];
+    return dedupeAndSortRanges(strictMatches, true);
   }
 
   // Stage 2: ordered phrase with small local gaps
@@ -1627,12 +1665,11 @@
   }
 
   if (softMatches.length) {
-    softMatches.sort((a, b) => b.avg - a.avg || a.span - b.span || a.range[0] - b.range[0]);
-    return [softMatches[0].range];
+    return dedupeAndSortRanges(softMatches, queryWords.length <= 2);
   }
 
-  // Stage 3: only for 1-2 word queries, allow best local partial phrase
-  if (queryWords.length <= 2) {
+  // Stage 3: only for 1-word queries, allow best local partial phrase
+  if (queryWords.length === 1) {
     const partialMatches = [];
 
     for (let i = 0; i < lyricWords.length; i++) {
@@ -1647,8 +1684,7 @@
     }
 
     if (partialMatches.length) {
-      partialMatches.sort((a, b) => b.avg - a.avg || a.span - b.span || a.range[0] - b.range[0]);
-      return [partialMatches[0].range];
+      return dedupeAndSortRanges(partialMatches, true);
     }
   }
 
@@ -2365,6 +2401,13 @@ if (extraParts.length) {
 }
 
 document.getElementById("modalLyrics").innerHTML = highlightText(song, lastQuery);
+
+      requestAnimationFrame(() => {
+  const firstMark = document.querySelector("#modalLyrics mark");
+  if (firstMark) {
+    firstMark.scrollIntoView({ block: "center", behavior: "smooth" });
+  }
+});
 
       const isFav = favoriteSongIds.has(Number(songId));
 const modalBookmarkBtn = document.getElementById("modalBookmarkBtn");
