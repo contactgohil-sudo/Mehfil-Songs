@@ -1567,58 +1567,84 @@ function getLyricPhraseRanges(song, query) {
     return best;
   }
 
+   const weakWords = new Set(["ke", "ne", "ki", "ka", "ko", "to", "ye", "wo", "si", "se"]);
+
+function isWeakQueryWord(wordVariants) {
+  return wordVariants.some(v => weakWords.has(v.raw));
+}
+
   function dedupeAndSortRanges(matches, keepAllNearBest = false) {
-    if (!matches.length) return [];
+  if (!matches.length) return [];
 
-    matches.sort((a, b) => b.avg - a.avg || a.span - b.span || a.range[0] - b.range[0]);
+  matches.sort((a, b) => b.avg - a.avg || a.span - b.span || a.range[0] - b.range[0]);
 
-    const bestAvg = matches[0].avg;
-    const kept = matches.filter(m => {
-      if (!keepAllNearBest) return m === matches[0];
-      return m.avg >= bestAvg - 0.06;
-    });
+  const bestAvg = matches[0].avg;
+  const kept = matches.filter(m => {
+    if (!keepAllNearBest) return m.avg >= bestAvg - 0.03;
+    return m.avg >= bestAvg - 0.05;
+  });
 
-    const ranges = [];
-    for (const item of kept) {
-      const [start, end] = item.range;
-      const overlaps = ranges.some(([s, e]) => !(end <= s || start >= e));
-      if (!overlaps) ranges.push([start, end]);
-    }
-
-    ranges.sort((a, b) => a[0] - b[0]);
-    return mergeRanges(ranges);
+  const ranges = [];
+  for (const item of kept) {
+    const [start, end] = item.range;
+    const overlaps = ranges.some(([s, e]) => !(end <= s || start >= e));
+    if (!overlaps) ranges.push([start, end]);
   }
+
+  ranges.sort((a, b) => a[0] - b[0]);
+  return ranges.slice(0, 3);
+}
 
   // Stage 1: contiguous phrase match with scoring
-  const strictMatches = [];
+  // Stage 1: phrase-window match with scoring
+const strictMatches = [];
+const minWindow = queryWords.length;
+const maxWindow = Math.min(queryWords.length + 2, queryWords.length * 2);
 
-  for (let i = 0; i <= lyricWords.length - queryWords.length; i++) {
-    let scores = [];
-    let failed = false;
+for (let start = 0; start < lyricWords.length; start++) {
+  for (let windowSize = minWindow; windowSize <= maxWindow; windowSize++) {
+    const end = start + windowSize - 1;
+    if (end >= lyricWords.length) continue;
 
-    for (let j = 0; j < queryWords.length; j++) {
-      const score = bestWordScore(lyricWords[i + j], queryVariants[j]);
-      if (score < 0.72) {
-        failed = true;
-        break;
+    let q = 0;
+    let l = start;
+    let matchedScores = [];
+    let strongMatches = 0;
+    let weakMatches = 0;
+
+    while (q < queryVariants.length && l <= end) {
+      const score = bestWordScore(lyricWords[l], queryVariants[q]);
+      if (score >= 0.78) {
+        matchedScores.push(score);
+        if (isWeakQueryWord(queryVariants[q])) weakMatches++;
+        else strongMatches++;
+        q++;
       }
-      scores.push(score);
+      l++;
     }
 
-    if (!failed) {
-      const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
-      strictMatches.push({
-        range: [lyricWords[i].start, lyricWords[i + queryWords.length - 1].end],
-        avg,
-        span: lyricWords[i + queryWords.length - 1].end - lyricWords[i].start
-      });
-    }
-  }
+    const matchedCount = matchedScores.length;
+    const neededCount =
+      queryWords.length <= 2 ? queryWords.length :
+      Math.max(2, queryWords.length - 1);
 
-  if (strictMatches.length) {
-    return dedupeAndSortRanges(strictMatches, true);
-  }
+    if (matchedCount < neededCount) continue;
+    if (strongMatches === 0) continue;
 
+    const avg = matchedScores.reduce((a, b) => a + b, 0) / matchedScores.length;
+    const span = lyricWords[end].end - lyricWords[start].start;
+
+    // Penalize overly wide windows
+    const compactnessPenalty = Math.max(0, windowSize - queryWords.length) * 0.03;
+    const finalScore = avg - compactnessPenalty + strongMatches * 0.02;
+
+    strictMatches.push({
+      range: [lyricWords[start].start, lyricWords[end].end],
+      avg: finalScore,
+      span
+    });
+  }
+}
   // Stage 2: ordered phrase with small local gaps
   const softMatches = [];
   const maxGap = 2;
@@ -1665,8 +1691,8 @@ function getLyricPhraseRanges(song, query) {
   }
 
   if (softMatches.length) {
-    return dedupeAndSortRanges(softMatches, queryWords.length <= 2);
-  }
+  return dedupeAndSortRanges(softMatches, false);
+}
 
   // Stage 3: only for 1-word queries, allow best local partial phrase
   if (queryWords.length === 1) {
