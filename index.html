@@ -1452,6 +1452,7 @@
         if (startMap && endMap) {
           lyricWords.push({
             norm: normWord,
+            phonetic: toPhoneticKey(normWord),
             start: startMap.start,
             end: endMap.end
           });
@@ -1464,103 +1465,191 @@
 
   if (!lyricWords.length) return [];
 
-  const queryVariants = queryWords.map(word =>
-    Array.from(new Set(
+  const queryVariants = queryWords.map(word => {
+    const variants = Array.from(new Set(
       addTypoFriendlyRomanVariants(word)
         .split(/\s+/)
         .map(normalizeText)
         .filter(Boolean)
-    ))
-  );
+    ));
 
-  function wordMatches(lyricWord, allowed) {
-    return allowed.some(v => {
-      if (!v) return false;
+    return variants.map(v => ({
+      raw: v,
+      phonetic: toPhoneticKey(v)
+    }));
+  });
 
-      if (lyricWord === v) return true;
-      if (lyricWord.includes(v)) return true;
-      if (v.includes(lyricWord)) return true;
-
-      if (v.length >= 4 && lyricWord.startsWith(v)) return true;
-      if (lyricWord.length >= 4 && v.startsWith(lyricWord)) return true;
-
-      return false;
-    });
+  function toPhoneticKey(text) {
+    return normalizeText(text)
+      .replace(/aa/g, "a")
+      .replace(/ii/g, "i")
+      .replace(/ee/g, "i")
+      .replace(/uu/g, "u")
+      .replace(/oo/g, "u")
+      .replace(/ai/g, "e")
+      .replace(/au/g, "o")
+      .replace(/kh/g, "k")
+      .replace(/gh/g, "g")
+      .replace(/chh/g, "ch")
+      .replace(/jh/g, "j")
+      .replace(/th/g, "t")
+      .replace(/dh/g, "d")
+      .replace(/ph/g, "f")
+      .replace(/bh/g, "b")
+      .replace(/sh/g, "s")
+      .replace(/v/g, "w")
+      .replace(/q/g, "k")
+      .replace(/x/g, "ks")
+      .replace(/[^a-z0-9]/g, "");
   }
 
-  // Stage 1: strict contiguous phrase match
-  const strictRanges = [];
+  function editDistance(a, b) {
+    const m = a.length;
+    const n = b.length;
+    const dp = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0));
+
+    for (let i = 0; i <= m; i++) dp[i][0] = i;
+    for (let j = 0; j <= n; j++) dp[0][j] = j;
+
+    for (let i = 1; i <= m; i++) {
+      for (let j = 1; j <= n; j++) {
+        const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+        dp[i][j] = Math.min(
+          dp[i - 1][j] + 1,
+          dp[i][j - 1] + 1,
+          dp[i - 1][j - 1] + cost
+        );
+      }
+    }
+
+    return dp[m][n];
+  }
+
+  function similarityScore(a, b) {
+    if (!a || !b) return 0;
+    if (a === b) return 1;
+    if (a.includes(b) || b.includes(a)) return 0.92;
+
+    const dist = editDistance(a, b);
+    const maxLen = Math.max(a.length, b.length);
+    if (!maxLen) return 0;
+    return 1 - dist / maxLen;
+  }
+
+  function bestWordScore(lyricWord, variantList) {
+    let best = 0;
+
+    for (const variant of variantList) {
+      const rawScore = similarityScore(lyricWord.norm, variant.raw);
+      const phoneticScore = similarityScore(lyricWord.phonetic, variant.phonetic);
+      const score = Math.max(rawScore, phoneticScore);
+
+      if (score > best) best = score;
+    }
+
+    return best;
+  }
+
+  // Stage 1: contiguous phrase match with scoring
+  const strictMatches = [];
 
   for (let i = 0; i <= lyricWords.length - queryWords.length; i++) {
-    let matched = true;
-
-    for (let j = 0; j < queryWords.length; j++) {
-      if (!wordMatches(lyricWords[i + j].norm, queryVariants[j])) {
-        matched = false;
-        break;
-      }
-    }
-
-    if (matched) {
-      strictRanges.push([
-        lyricWords[i].start,
-        lyricWords[i + queryWords.length - 1].end
-      ]);
-    }
-  }
-
-  if (strictRanges.length) {
-    return mergeRanges(strictRanges);
-  }
-
-  // Stage 2: soft ordered phrase match with small gaps
-  const softRanges = [];
-  const maxGap = Math.max(1, Math.min(3, queryWords.length));
-
-  for (let startIndex = 0; startIndex < lyricWords.length; startIndex++) {
-    if (!wordMatches(lyricWords[startIndex].norm, queryVariants[0])) continue;
-
-    let currentIndex = startIndex;
-    let endIndex = startIndex;
-    let matchedCount = 1;
+    let scores = [];
     let failed = false;
 
-    for (let q = 1; q < queryVariants.length; q++) {
-      let found = false;
-      const limit = Math.min(lyricWords.length, currentIndex + maxGap + 2);
-
-      for (let k = currentIndex + 1; k < limit; k++) {
-        if (wordMatches(lyricWords[k].norm, queryVariants[q])) {
-          currentIndex = k;
-          endIndex = k;
-          matchedCount++;
-          found = true;
-          break;
-        }
-      }
-
-      if (!found) {
+    for (let j = 0; j < queryWords.length; j++) {
+      const score = bestWordScore(lyricWords[i + j], queryVariants[j]);
+      if (score < 0.72) {
         failed = true;
         break;
       }
+      scores.push(score);
     }
 
-    // require enough of the phrase to match to avoid noise
-    const minimumNeeded =
-      queryWords.length <= 2 ? queryWords.length :
-      queryWords.length === 3 ? 2 : Math.ceil(queryWords.length * 0.7);
-
-    if (!failed && matchedCount >= minimumNeeded) {
-      softRanges.push([
-        lyricWords[startIndex].start,
-        lyricWords[endIndex].end
-      ]);
+    if (!failed) {
+      const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
+      strictMatches.push({
+        range: [lyricWords[i].start, lyricWords[i + queryWords.length - 1].end],
+        avg,
+        span: lyricWords[i + queryWords.length - 1].end - lyricWords[i].start
+      });
     }
   }
 
-  if (softRanges.length) {
-    softRanges.sort((a, b) => (a[1] - a[0]) - (b[1] - b[0]) || a[0] - b[0]);
-    return [softRanges[0]];
+  if (strictMatches.length) {
+    strictMatches.sort((a, b) => b.avg - a.avg || a.span - b.span || a.range[0] - b.range[0]);
+    return [strictMatches[0].range];
+  }
+
+  // Stage 2: ordered phrase with small local gaps
+  const softMatches = [];
+  const maxGap = 2;
+
+  for (let startIndex = 0; startIndex < lyricWords.length; startIndex++) {
+    const firstScore = bestWordScore(lyricWords[startIndex], queryVariants[0]);
+    if (firstScore < 0.72) continue;
+
+    let matchedScores = [firstScore];
+    let currentIndex = startIndex;
+    let endIndex = startIndex;
+    let failed = false;
+
+    for (let q = 1; q < queryVariants.length; q++) {
+      let bestLocalIndex = -1;
+      let bestLocalScore = 0;
+
+      for (let k = currentIndex + 1; k < Math.min(lyricWords.length, currentIndex + maxGap + 2); k++) {
+        const score = bestWordScore(lyricWords[k], queryVariants[q]);
+        if (score > bestLocalScore) {
+          bestLocalScore = score;
+          bestLocalIndex = k;
+        }
+      }
+
+      if (bestLocalIndex === -1 || bestLocalScore < 0.72) {
+        failed = true;
+        break;
+      }
+
+      matchedScores.push(bestLocalScore);
+      currentIndex = bestLocalIndex;
+      endIndex = bestLocalIndex;
+    }
+
+    if (!failed) {
+      const avg = matchedScores.reduce((a, b) => a + b, 0) / matchedScores.length;
+      softMatches.push({
+        range: [lyricWords[startIndex].start, lyricWords[endIndex].end],
+        avg,
+        span: lyricWords[endIndex].end - lyricWords[startIndex].start
+      });
+    }
+  }
+
+  if (softMatches.length) {
+    softMatches.sort((a, b) => b.avg - a.avg || a.span - b.span || a.range[0] - b.range[0]);
+    return [softMatches[0].range];
+  }
+
+  // Stage 3: only for 1-2 word queries, allow best local partial phrase
+  if (queryWords.length <= 2) {
+    const partialMatches = [];
+
+    for (let i = 0; i < lyricWords.length; i++) {
+      const score = bestWordScore(lyricWords[i], queryVariants[0]);
+      if (score >= 0.82) {
+        partialMatches.push({
+          range: [lyricWords[i].start, lyricWords[i].end],
+          avg: score,
+          span: lyricWords[i].end - lyricWords[i].start
+        });
+      }
+    }
+
+    if (partialMatches.length) {
+      partialMatches.sort((a, b) => b.avg - a.avg || a.span - b.span || a.range[0] - b.range[0]);
+      return [partialMatches[0].range];
+    }
   }
 
   return [];
