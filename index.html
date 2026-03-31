@@ -1471,6 +1471,53 @@ function getStrongQueryVariants(query) {
       return variants.some(v => v && haystack.includes(v));
     }
 
+    function splitMetaParts(value) {
+  return String(value || "")
+   .split(/&|,|\/|\+|;|\bfeat\.?\b|\bft\.?\b|\band\b/gi)
+    .map(v => normalizeText(v))
+    .filter(Boolean);
+}
+
+function fieldMatchesIntent(fieldValue, query) {
+  const q = normalizeText(query);
+  if (!q) return { exact: false, starts: false, contains: false, partsContains: false };
+
+  const full = normalizeText(fieldValue);
+  const parts = splitMetaParts(fieldValue);
+
+  return {
+    exact: full === q || parts.includes(q),
+    starts: full.startsWith(q) || parts.some(p => p.startsWith(q)),
+    contains: full.includes(q) || parts.some(p => p.includes(q)),
+    partsContains: parts.some(p => p.includes(q))
+  };
+}
+
+function detectSearchIntent(query) {
+  const q = normalizeText(query);
+  if (!q) return { type: "none" };
+
+  let singerHits = 0;
+  let movieHits = 0;
+
+  for (const song of preparedSongs) {
+    const singerMatch = fieldMatchesIntent(song.singer, q);
+    const movieMatch = fieldMatchesIntent(song.movie, q);
+
+    if (singerMatch.exact || singerMatch.starts || singerMatch.contains) singerHits++;
+    if (movieMatch.exact || movieMatch.starts || movieMatch.contains) movieHits++;
+  }
+
+  if (singerHits > 0 && singerHits >= movieHits) {
+    return { type: "singer", hits: singerHits };
+  }
+
+  if (movieHits > 0) {
+    return { type: "movie", hits: movieHits };
+  }
+
+  return { type: "lyrics" };
+}
     
     function searchSongs(query) {
   const q = normalizeText(query);
@@ -1478,6 +1525,7 @@ function getStrongQueryVariants(query) {
 
   const variants = getQueryVariants(query);
   const strongLyricVariants = getStrongQueryVariants(query);
+  const intent = detectSearchIntent(query);
 
   const fuseScoreMap = new Map();
   if (fuse) {
@@ -1488,21 +1536,15 @@ function getStrongQueryVariants(query) {
 
   const ranked = preparedSongs
     .map(song => {
-      const titleSearch = song._titleSearch || "";
-      const movieSearch = song._movieSearch || "";
-      const singerSearch = song._singerSearch || "";
+      const titleExact = song._titleSearch === q;
+      const titleStarts = song._titleSearch.startsWith(q);
+      const titleContains = anyIncludes(song._titleSearch, variants);
 
-      const titleExact = titleSearch === q;
-      const movieExact = movieSearch === q;
-      const singerExact = singerSearch === q;
+      const singerIntentMatch = fieldMatchesIntent(song.singer, query);
+      const movieIntentMatch = fieldMatchesIntent(song.movie, query);
 
-      const titleStarts = titleSearch.startsWith(q);
-      const movieStarts = movieSearch.startsWith(q);
-      const singerStarts = singerSearch.startsWith(q);
-
-      const titleContains = anyIncludes(titleSearch, variants);
-      const movieContains = anyIncludes(movieSearch, variants);
-      const singerContains = anyIncludes(singerSearch, variants);
+      const singerContains = singerIntentMatch.contains;
+      const movieContains = movieIntentMatch.contains;
 
       const lyricInfo = getLyricMatchInfo(song, query);
       const lyricPhraseScore = lyricInfo.score || 0;
@@ -1511,44 +1553,41 @@ function getStrongQueryVariants(query) {
         ? strongLyricVariants.some(v => song._lyricsSearch.includes(v))
         : false;
 
-      const hasStrongMetaMatch =
-        titleExact || movieExact || singerExact ||
-        titleStarts || movieStarts || singerStarts;
-
-      const hasAnyMetaMatch =
-        hasStrongMetaMatch || titleContains || movieContains || singerContains;
-
       let score = 0;
 
-      // Title priority
-      if (titleExact) score += 260;
-      else if (titleStarts) score += 180;
-      else if (titleContains) score += 90;
+      if (titleExact) score += 120;
+      if (titleStarts) score += 70;
+      if (titleContains) score += 35;
 
-      // Movie priority
-      if (movieExact) score += 240;
-      else if (movieStarts) score += 170;
-      else if (movieContains) score += 85;
+      if (movieIntentMatch.exact) score += 140;
+      else if (movieIntentMatch.starts) score += 90;
+      else if (movieIntentMatch.contains) score += 45;
 
-      // Singer priority
-      if (singerExact) score += 220;
-      else if (singerStarts) score += 150;
-      else if (singerContains) score += 75;
+      if (singerIntentMatch.exact) score += 140;
+      else if (singerIntentMatch.starts) score += 90;
+      else if (singerIntentMatch.contains) score += 45;
 
-      // Lyrics should help, but not overpower metadata search
-      if (!hasStrongMetaMatch) {
-        if (strongLyricsContains) score += 14;
-        if (lyricPhraseScore > 0) score += Math.round(lyricPhraseScore * 120);
-      } else {
-        if (strongLyricsContains) score += 6;
-        if (lyricPhraseScore > 0) score += Math.round(lyricPhraseScore * 35);
+      if (intent.type === "movie") {
+        if (!movieIntentMatch.contains && !titleContains) {
+          return null;
+        }
+        score += 120;
       }
 
-      // If query clearly matches title/movie/singer, reward that heavily
-      if (hasStrongMetaMatch) {
-        score += 40;
-      } else if (hasAnyMetaMatch) {
-        score += 15;
+      if (intent.type === "singer") {
+        if (!singerIntentMatch.contains && !titleContains) {
+          return null;
+        }
+        score += 120;
+      }
+
+      if (intent.type === "lyrics") {
+        if (strongLyricsContains) score += 14;
+        if (lyricPhraseScore > 0) score += Math.round(lyricPhraseScore * 120);
+
+        if (!titleContains && !movieContains && !singerContains && lyricPhraseScore >= 0.82) {
+          score += 24;
+        }
       }
 
       score += fuseScoreMap.get(song.id) || 0;
@@ -1562,14 +1601,14 @@ function getStrongQueryVariants(query) {
           title: titleContains,
           movie: movieContains,
           singer: singerContains,
-          lyrics: strongLyricsContains || lyricPhraseScore > 0
+          lyrics: intent.type === "lyrics" && (strongLyricsContains || lyricPhraseScore > 0)
         },
         _score: score
       };
     })
     .filter(Boolean)
     .sort((a, b) => b._score - a._score || String(a.title || "").localeCompare(String(b.title || "")))
-    .slice(0, 20);
+    .slice(0, 50);
 
   return ranked;
 }
