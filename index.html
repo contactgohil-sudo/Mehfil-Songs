@@ -1473,36 +1473,97 @@
     ))
   );
 
-  const ranges = [];
+  function wordMatches(lyricWord, allowed) {
+    return allowed.some(v => {
+      if (!v) return false;
+
+      if (lyricWord === v) return true;
+      if (lyricWord.includes(v)) return true;
+      if (v.includes(lyricWord)) return true;
+
+      if (v.length >= 4 && lyricWord.startsWith(v)) return true;
+      if (lyricWord.length >= 4 && v.startsWith(lyricWord)) return true;
+
+      return false;
+    });
+  }
+
+  // Stage 1: strict contiguous phrase match
+  const strictRanges = [];
 
   for (let i = 0; i <= lyricWords.length - queryWords.length; i++) {
     let matched = true;
 
     for (let j = 0; j < queryWords.length; j++) {
-      const lyricWord = lyricWords[i + j].norm;
-      const allowed = queryVariants[j];
-
-      const wordMatches = allowed.some(v =>
-        lyricWord === v ||
-        lyricWord.includes(v) ||
-        v.includes(lyricWord)
-      );
-
-      if (!wordMatches) {
+      if (!wordMatches(lyricWords[i + j].norm, queryVariants[j])) {
         matched = false;
         break;
       }
     }
 
     if (matched) {
-      ranges.push([
+      strictRanges.push([
         lyricWords[i].start,
         lyricWords[i + queryWords.length - 1].end
       ]);
     }
   }
 
-  return mergeRanges(ranges);
+  if (strictRanges.length) {
+    return mergeRanges(strictRanges);
+  }
+
+  // Stage 2: soft ordered phrase match with small gaps
+  const softRanges = [];
+  const maxGap = Math.max(1, Math.min(3, queryWords.length));
+
+  for (let startIndex = 0; startIndex < lyricWords.length; startIndex++) {
+    if (!wordMatches(lyricWords[startIndex].norm, queryVariants[0])) continue;
+
+    let currentIndex = startIndex;
+    let endIndex = startIndex;
+    let matchedCount = 1;
+    let failed = false;
+
+    for (let q = 1; q < queryVariants.length; q++) {
+      let found = false;
+      const limit = Math.min(lyricWords.length, currentIndex + maxGap + 2);
+
+      for (let k = currentIndex + 1; k < limit; k++) {
+        if (wordMatches(lyricWords[k].norm, queryVariants[q])) {
+          currentIndex = k;
+          endIndex = k;
+          matchedCount++;
+          found = true;
+          break;
+        }
+      }
+
+      if (!found) {
+        failed = true;
+        break;
+      }
+    }
+
+    // require enough of the phrase to match to avoid noise
+    const minimumNeeded =
+      queryWords.length <= 2 ? queryWords.length :
+      queryWords.length === 3 ? 2 : Math.ceil(queryWords.length * 0.7);
+
+    if (!failed && matchedCount >= minimumNeeded) {
+      softRanges.push([
+        lyricWords[startIndex].start,
+        lyricWords[endIndex].end
+      ]);
+    }
+  }
+
+  if (softRanges.length) {
+    softRanges.sort((a, b) => (a[1] - a[0]) - (b[1] - b[0]) || a[0] - b[0]);
+    return [softRanges[0]];
+  }
+
+  return [];
 }
 
     function highlightText(song, query) {
