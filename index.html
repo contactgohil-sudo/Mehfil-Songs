@@ -48,7 +48,7 @@
       justify-content: space-between;
       align-items: flex-start;
       gap: 10px;
-      margin-bottom: 10px;
+      margin-bottom: 4px;
       flex-wrap: nowrap;
     }
 
@@ -79,9 +79,13 @@
     }
 
     .top-logout-btn {
-      white-space: nowrap;
-      flex-shrink: 0;
-    }
+  white-space: nowrap;
+  flex-shrink: 0;
+  min-height: 38px;
+  padding: 6px 18px;
+  border-radius: 14px;
+  font-size: 13px;
+}
 
     .library-count-text {
       font-size: 13px;
@@ -163,6 +167,10 @@
     .field {
       margin-bottom: 10px;
     }
+    .field-compact {
+  margin-bottom: 6px;
+}
+    
 
     .field label {
       display: block;
@@ -182,6 +190,12 @@
       color: var(--text);
       outline: none;
     }
+
+    .input-thin {
+  padding: 9px 12px;
+  min-height: 40px;
+  font-size: 14px;
+}
 
     .textarea {
       min-height: 170px;
@@ -216,6 +230,7 @@
       gap: 8px;
       flex-wrap: wrap;
       margin-bottom: 12px;
+      margin-top: 0;
     }
 
     .tab-btn {
@@ -496,7 +511,13 @@
       color: var(--muted);
       font-size: 14px;
     }
-
+.modal-extra-meta {
+  margin-top: -2px;
+  margin-bottom: 8px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
     .modal-actions {
       display: flex;
       gap: 8px;
@@ -554,6 +575,21 @@
         padding: 8px;
       }
 
+      .input-thin {
+  min-height: 34px;
+  padding: 7px 10px;
+  font-size: 13px;
+}
+
+      .field-compact {
+  margin-bottom: 5px;
+}
+
+      .modal-extra-meta {
+  font-size: 12px;
+  margin-bottom: 6px;
+}
+      
       .container {
         max-width: 100%;
       }
@@ -569,8 +605,8 @@
       }
 
       .topbar {
-        gap: 8px;
-        margin-bottom: 8px;
+        gap: 6px;
+        margin-bottom: 2px;
         align-items: flex-start;
       }
 
@@ -584,11 +620,11 @@
       }
 
       .top-logout-btn {
-        min-height: 34px;
-        padding: 7px 10px;
-        font-size: 12px;
-        border-radius: 10px;
-      }
+  min-height: 32px;
+  padding: 5px 14px;
+  font-size: 12px;
+  border-radius: 10px;
+}
 
       .library-count-text {
         font-size: 12px;
@@ -607,6 +643,7 @@
 
       .tabs {
         gap: 6px;
+        margin-top: 0;
         margin-bottom: 10px;
         flex-wrap: nowrap;
         overflow-x: auto;
@@ -804,12 +841,12 @@
 
         <form id="songForm">
           <div class="row">
-            <div class="field">
+            <div class="field field-compact">
               <label for="songTitle">Song title</label>
               <input id="songTitle" class="input" type="text" placeholder="Song title" list="songTitleSuggestions" autocomplete="off" />
               <datalist id="songTitleSuggestions"></datalist>
             </div>
-            <div class="field">
+            <div class="field field-compact">
               <label for="songMovie">Movie name</label>
               <input id="songMovie" class="input" type="text" placeholder="Movie name" list="movieSuggestions" autocomplete="off" />
               <datalist id="movieSuggestions"></datalist>
@@ -817,12 +854,23 @@
           </div>
 
           <div class="row">
-            <div class="field">
-              <label for="songSinger">Singer name</label>
-              <input id="songSinger" class="input" type="text" placeholder="Singer name" list="singerSuggestions" autocomplete="off" />
-              <datalist id="singerSuggestions"></datalist>
-            </div>
-          </div>
+  <div class="field field-compact">
+    <label for="songSinger">Singer name</label>
+    <input id="songSinger" class="input" type="text" placeholder="Singer name" list="singerSuggestions" autocomplete="off" />
+    <datalist id="singerSuggestions"></datalist>
+  </div>
+</div>
+
+<div class="row">
+  <div class="field field-compact">
+    <label for="songOriginalKey">Original Key</label>
+    <input id="songOriginalKey" class="input input-thin" type="text" placeholder="e.g. C#m" autocomplete="off" />
+  </div>
+  <div class="field field-compact">
+    <label for="songChord">Chord</label>
+    <input id="songChord" class="input input-thin" type="text" placeholder="e.g. Capo 2 / Basic chords" autocomplete="off" />
+  </div>
+</div>
 
           <div id="duplicateWarning" class="status-box"></div>
 
@@ -921,20 +969,22 @@
   <div id="songModal" class="modal">
     <div class="modal-card">
       <div class="modal-top">
-        <div>
-          <div id="modalTitle" class="modal-title"></div>
-          <div id="modalMeta" class="modal-meta"></div>
-        </div>
+  <div>
+    <div id="modalTitle" class="modal-title"></div>
+    <div id="modalMeta" class="modal-meta"></div>
+  </div>
 
-        <div class="modal-actions">
-          <button id="modalBookmarkBtn" class="modal-btn modal-star-btn hidden" type="button" title="Toggle favourite" aria-label="Toggle favourite">☆</button>
-          <button id="modalEditBtn" class="modal-btn hidden" type="button">Edit</button>
-          <button id="modalDeleteBtn" class="modal-btn hidden btn-danger" type="button">Delete</button>
-          <button id="modalCloseBtn" class="modal-btn" type="button">Close</button>
-        </div>
-      </div>
+  <div class="modal-actions">
+    <button id="modalBookmarkBtn" class="modal-btn modal-star-btn hidden" type="button" title="Toggle favourite" aria-label="Toggle favourite">☆</button>
+    <button id="modalEditBtn" class="modal-btn hidden" type="button">Edit</button>
+    <button id="modalDeleteBtn" class="modal-btn hidden btn-danger" type="button">Delete</button>
+    <button id="modalCloseBtn" class="modal-btn" type="button">Close</button>
+  </div>
+</div>
 
-      <div id="modalLyrics" class="lyrics-full"></div>
+<div id="modalExtraMeta" class="modal-extra-meta hidden"></div>
+
+<div id="modalLyrics" class="lyrics-full"></div>
     </div>
   </div>
 
@@ -1763,9 +1813,11 @@
       event.preventDefault();
 
       const title = document.getElementById("songTitle").value.trim();
-      const movie = document.getElementById("songMovie").value.trim();
-      const singer = document.getElementById("songSinger").value.trim();
-      const lyrics = document.getElementById("songLyrics").value.trim();
+const movie = document.getElementById("songMovie").value.trim();
+const singer = document.getElementById("songSinger").value.trim();
+const originalKey = document.getElementById("songOriginalKey").value.trim();
+const chord = document.getElementById("songChord").value.trim();
+const lyrics = document.getElementById("songLyrics").value.trim();
       const editorStatus = document.getElementById("editorStatus");
 
       if (!title || !lyrics) {
@@ -1781,14 +1833,16 @@
       }
 
       const payload = {
-        title,
-        movie,
-        singer,
-        lyrics,
-        title_norm: normalizeKey(title),
-        movie_norm: normalizeKey(movie),
-        singer_norm: normalizeKey(singer)
-      };
+  title,
+  movie,
+  singer,
+  original_key: originalKey,
+  chord,
+  lyrics,
+  title_norm: normalizeKey(title),
+  movie_norm: normalizeKey(movie),
+  singer_norm: normalizeKey(singer)
+};
 
       editorStatus.textContent = editingSongId ? "Updating..." : "Saving...";
 
@@ -2070,8 +2124,22 @@
 
       openSongId = Number(songId);
       document.getElementById("modalTitle").textContent = song.title || "";
-      document.getElementById("modalMeta").textContent = joinMeta([song.movie, song.singer]);
-      document.getElementById("modalLyrics").innerHTML = highlightText(song, lastQuery);
+document.getElementById("modalMeta").textContent = joinMeta([song.movie, song.singer]);
+
+const modalExtraMeta = document.getElementById("modalExtraMeta");
+const extraParts = [];
+if (song.original_key) extraParts.push(`Original Key: ${song.original_key}`);
+if (song.chord) extraParts.push(`Chord: ${song.chord}`);
+
+if (extraParts.length) {
+  modalExtraMeta.textContent = extraParts.join(" • ");
+  modalExtraMeta.classList.remove("hidden");
+} else {
+  modalExtraMeta.textContent = "";
+  modalExtraMeta.classList.add("hidden");
+}
+
+document.getElementById("modalLyrics").innerHTML = highlightText(song, lastQuery);
 
       const isFav = favoriteSongIds.has(Number(songId));
 const modalBookmarkBtn = document.getElementById("modalBookmarkBtn");
@@ -2101,6 +2169,8 @@ modalBookmarkBtn.dataset.songId = String(songId);
       document.getElementById("songTitle").value = "";
       document.getElementById("songMovie").value = "";
       document.getElementById("songSinger").value = "";
+      document.getElementById("songOriginalKey").value = "";
+      document.getElementById("songChord").value = "";
       document.getElementById("songLyrics").value = "";
       document.getElementById("editorStatus").textContent = "";
       showStatus("duplicateWarning", "", "warn");
@@ -2133,12 +2203,19 @@ modalBookmarkBtn.dataset.songId = String(songId);
       document.getElementById("songTitle").value = song.title || "";
       document.getElementById("songMovie").value = song.movie || "";
       document.getElementById("songSinger").value = song.singer || "";
+      document.getElementById("songOriginalKey").value = song.original_key || "";
+      document.getElementById("songChord").value = song.chord || "";
       document.getElementById("songLyrics").value = song.lyrics || "";
       openEditor();
       closeSongModal();
     }
 
     function activateTab(tabName) {
+
+if (tabName !== "search") {
+  closeEditor();
+}
+      
       document.getElementById("tabSearchBtn").classList.toggle("active", tabName === "search");
       document.getElementById("tabListBtn").classList.toggle("active", tabName === "list");
       document.getElementById("tabFavoritesBtn").classList.toggle("active", tabName === "favorites");
@@ -2149,6 +2226,7 @@ modalBookmarkBtn.dataset.songId = String(songId);
       document.getElementById("favoritesTab").classList.toggle("hidden", tabName !== "favorites");
       document.getElementById("adminTab").classList.toggle("hidden", tabName !== "admin");
 
+     
       if (tabName === "favorites") {
         renderFavorites();
       }
