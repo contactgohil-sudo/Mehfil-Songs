@@ -196,6 +196,11 @@
   min-height: 40px;
   font-size: 14px;
 }
+    .input-autofilled {
+  border-color: #f59e0b !important;
+  background: #fff7ed !important;
+  box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.12);
+}
 
     .textarea {
       min-height: 170px;
@@ -1828,6 +1833,11 @@ function highlightText(song, query) {
       document.getElementById("singerSuggestions").innerHTML = singerSet.map(v => `<option value="${escapeHtml(v)}"></option>`).join("");
     }
 
+  function markInputAutofilled(inputEl, shouldMark = true) {
+  if (!inputEl) return;
+  inputEl.classList.toggle("input-autofilled", !!shouldMark);
+}
+    
     function checkEditorDuplicateState() {
       const title = document.getElementById("songTitle").value.trim();
       const saveBtn = document.getElementById("saveSongBtn");
@@ -1959,51 +1969,79 @@ async function fetchLyricsForEditor() {
   const singer = singerInput.value.trim();
 
   if (!title) {
+    status.style.color = "#b91c1c";
     status.textContent = "Enter song title first.";
     return;
   }
 
   fetchBtn.disabled = true;
   fetchBtn.style.opacity = "0.6";
+  status.style.color = "#6b7280";
   status.textContent = "Trying LRCLIB...";
 
   try {
     let result = await fetchLyricsFromLRCLIB(title, singer);
 
     if (!result) {
+      status.style.color = "#6b7280";
       status.textContent = "Trying lyrics.ovh...";
       result = await fetchLyricsFromLyricsOvh(title, singer);
     }
 
     if (!result) {
-      status.textContent = "No lyrics found. You may need to paste manually.";
+      status.style.color = "#b91c1c";
+      status.textContent = "No lyrics found. Please add manually.";
       return;
     }
 
+    let replacedLyrics = false;
+
     if (!lyricsBox.value.trim()) {
       lyricsBox.value = result.lyrics;
+      replacedLyrics = true;
     } else {
       const shouldReplace = confirm(`Lyrics found from ${result.source}. Replace current lyrics box content?`);
       if (shouldReplace) {
         lyricsBox.value = result.lyrics;
+        replacedLyrics = true;
       }
     }
 
+    let autofilledSomething = false;
+
     if (result.matchedArtist && !singerInput.value.trim()) {
       singerInput.value = result.matchedArtist;
+      markInputAutofilled(singerInput, true);
+      autofilledSomething = true;
     }
 
     if (result.matchedAlbum && !movieInput.value.trim()) {
       movieInput.value = result.matchedAlbum;
+      markInputAutofilled(movieInput, true);
+      autofilledSomething = true;
     }
 
     if (result.matchedTitle && !titleInput.value.trim()) {
       titleInput.value = result.matchedTitle;
+      markInputAutofilled(titleInput, true);
+      autofilledSomething = true;
     }
 
-    status.textContent = `Lyrics fetched from ${result.source}. Metadata filled where available. Please review before saving.`;
+    if (!autofilledSomething) {
+      markInputAutofilled(titleInput, false);
+      markInputAutofilled(movieInput, false);
+      markInputAutofilled(singerInput, false);
+    }
+
+    status.style.color = "#b91c1c";
+    status.textContent = "Fetched data found. Verify movie, singer, and lyrics carefully before saving.";
+
+    if (replacedLyrics) {
+      lyricsBox.focus();
+    }
   } catch (error) {
     console.error("FETCH LYRICS ERROR:", error);
+    status.style.color = "#b91c1c";
     status.textContent = "Lyrics fetch failed.";
   } finally {
     fetchBtn.disabled = false;
@@ -2686,6 +2724,9 @@ modalBookmarkBtn.dataset.songId = String(songId);
       const saveBtn = document.getElementById("saveSongBtn");
       saveBtn.disabled = false;
       saveBtn.style.opacity = "1";
+      markInputAutofilled(document.getElementById("songTitle"), false);
+markInputAutofilled(document.getElementById("songMovie"), false);
+markInputAutofilled(document.getElementById("songSinger"), false);
     }
 
     function openEditor() {
@@ -2955,7 +2996,18 @@ if (tabName !== "search") {
         closeEditor();
       });
 
-      document.getElementById("songTitle").addEventListener("input", checkEditorDuplicateState);
+     document.getElementById("songTitle").addEventListener("input", () => {
+  markInputAutofilled(document.getElementById("songTitle"), false);
+  checkEditorDuplicateState();
+});
+
+document.getElementById("songMovie").addEventListener("input", () => {
+  markInputAutofilled(document.getElementById("songMovie"), false);
+});
+
+document.getElementById("songSinger").addEventListener("input", () => {
+  markInputAutofilled(document.getElementById("songSinger"), false);
+});
       document.getElementById("songForm").addEventListener("submit", saveSong);
 
       document.getElementById("tabSearchBtn").addEventListener("click", () => activateTab("search"));
