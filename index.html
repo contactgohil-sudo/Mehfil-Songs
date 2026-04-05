@@ -1913,7 +1913,8 @@ async function fetchLyricsFromLRCLIB(title, singer) {
         lyrics,
         source: "LRCLIB",
         matchedTitle: best.trackName || candidate.title,
-        matchedArtist: best.artistName || candidate.artist
+        matchedArtist: best.artistName || candidate.artist,
+        matchedAlbum: best.albumName || ""
       };
     }
   }
@@ -1937,7 +1938,8 @@ async function fetchLyricsFromLyricsOvh(title, singer) {
         lyrics,
         source: "lyrics.ovh",
         matchedTitle: title,
-        matchedArtist: artist
+        matchedArtist: artist,
+        matchedAlbum: ""
       };
     }
   }
@@ -1946,11 +1948,15 @@ async function fetchLyricsFromLyricsOvh(title, singer) {
 }
 
 async function fetchLyricsForEditor() {
-  const title = document.getElementById("songTitle").value.trim();
-  const singer = document.getElementById("songSinger").value.trim();
+  const titleInput = document.getElementById("songTitle");
+  const singerInput = document.getElementById("songSinger");
+  const movieInput = document.getElementById("songMovie");
   const lyricsBox = document.getElementById("songLyrics");
   const status = document.getElementById("editorStatus");
   const fetchBtn = document.getElementById("fetchLyricsBtn");
+
+  const title = titleInput.value.trim();
+  const singer = singerInput.value.trim();
 
   if (!title) {
     status.textContent = "Enter song title first.";
@@ -1983,7 +1989,19 @@ async function fetchLyricsForEditor() {
       }
     }
 
-    status.textContent = `Lyrics fetched from ${result.source}. Please review before saving.`;
+    if (result.matchedArtist && !singerInput.value.trim()) {
+      singerInput.value = result.matchedArtist;
+    }
+
+    if (result.matchedAlbum && !movieInput.value.trim()) {
+      movieInput.value = result.matchedAlbum;
+    }
+
+    if (result.matchedTitle && !titleInput.value.trim()) {
+      titleInput.value = result.matchedTitle;
+    }
+
+    status.textContent = `Lyrics fetched from ${result.source}. Metadata filled where available. Please review before saving.`;
   } catch (error) {
     console.error("FETCH LYRICS ERROR:", error);
     status.textContent = "Lyrics fetch failed.";
@@ -1992,7 +2010,6 @@ async function fetchLyricsForEditor() {
     fetchBtn.style.opacity = "1";
   }
 }
-
     
     
     async function ensureProfile(user, fallbackName = "") {
