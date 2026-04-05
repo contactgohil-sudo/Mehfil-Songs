@@ -202,6 +202,12 @@
   box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.12);
 }
 
+    .textarea-autofilled {
+  border-color: #f59e0b !important;
+  background: #fff7ed !important;
+  box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.12);
+}
+    
     .textarea {
       min-height: 170px;
       resize: vertical;
@@ -1837,6 +1843,11 @@ function highlightText(song, query) {
   if (!inputEl) return;
   inputEl.classList.toggle("input-autofilled", !!shouldMark);
 }
+
+    function markTextareaAutofilled(textareaEl, shouldMark = true) {
+  if (!textareaEl) return;
+  textareaEl.classList.toggle("textarea-autofilled", !!shouldMark);
+}
     
     function checkEditorDuplicateState() {
       const title = document.getElementById("songTitle").value.trim();
@@ -1997,15 +2008,17 @@ async function fetchLyricsForEditor() {
     let replacedLyrics = false;
 
     if (!lyricsBox.value.trim()) {
-      lyricsBox.value = result.lyrics;
-      replacedLyrics = true;
-    } else {
-      const shouldReplace = confirm(`Lyrics found from ${result.source}. Replace current lyrics box content?`);
-      if (shouldReplace) {
-        lyricsBox.value = result.lyrics;
-        replacedLyrics = true;
-      }
-    }
+  lyricsBox.value = result.lyrics;
+  markTextareaAutofilled(lyricsBox, true);
+  replacedLyrics = true;
+} else {
+  const shouldReplace = confirm(`Lyrics found from ${result.source}. Replace current lyrics box content?`);
+  if (shouldReplace) {
+    lyricsBox.value = result.lyrics;
+    markTextareaAutofilled(lyricsBox, true);
+    replacedLyrics = true;
+  }
+}
 
     let autofilledSomething = false;
 
@@ -2034,7 +2047,7 @@ async function fetchLyricsForEditor() {
     }
 
     status.style.color = "#b91c1c";
-    status.textContent = "Fetched data found. Verify movie, singer, and lyrics carefully before saving.";
+    status.textContent = "Fetched data found. Review orange fields and lyrics carefully before saving.";
 
     if (replacedLyrics) {
       lyricsBox.focus();
@@ -2727,6 +2740,7 @@ modalBookmarkBtn.dataset.songId = String(songId);
       markInputAutofilled(document.getElementById("songTitle"), false);
 markInputAutofilled(document.getElementById("songMovie"), false);
 markInputAutofilled(document.getElementById("songSinger"), false);
+      markTextareaAutofilled(document.getElementById("songLyrics"), false);
     }
 
     function openEditor() {
@@ -2988,6 +3002,10 @@ if (tabName !== "search") {
         resetSongForm();
         openEditor();
       });
+
+      document.getElementById("songLyrics").addEventListener("input", () => {
+  markTextareaAutofilled(document.getElementById("songLyrics"), false);
+});
 
       document.getElementById("closeEditorBtn").addEventListener("click", closeEditor);
       document.getElementById("fetchLyricsBtn").addEventListener("click", fetchLyricsForEditor);
