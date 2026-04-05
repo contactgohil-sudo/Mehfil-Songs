@@ -202,10 +202,10 @@
   box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.12);
 }
 
-    .textarea-autofilled {
+    #songLyrics.textarea-autofilled {
   border-color: #f59e0b !important;
   background: #fff7ed !important;
-  box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.12);
+  box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.12) !important;
 }
     
     .textarea {
@@ -1968,6 +1968,11 @@ async function fetchLyricsFromLyricsOvh(title, singer) {
   return null;
 }
 
+function markTextareaAutofilled(textareaEl, shouldMark = true) {
+  if (!textareaEl) return;
+  textareaEl.classList.toggle("textarea-autofilled", !!shouldMark);
+}
+    
 async function fetchLyricsForEditor() {
   const titleInput = document.getElementById("songTitle");
   const singerInput = document.getElementById("songSinger");
@@ -2009,15 +2014,17 @@ async function fetchLyricsForEditor() {
 
     if (!lyricsBox.value.trim()) {
   lyricsBox.value = result.lyrics;
-  markTextareaAutofilled(lyricsBox, true);
   replacedLyrics = true;
 } else {
   const shouldReplace = confirm(`Lyrics found from ${result.source}. Replace current lyrics box content?`);
   if (shouldReplace) {
     lyricsBox.value = result.lyrics;
-    markTextareaAutofilled(lyricsBox, true);
     replacedLyrics = true;
   }
+}
+
+if (replacedLyrics) {
+  markTextareaAutofilled(lyricsBox, true);
 }
 
     let autofilledSomething = false;
