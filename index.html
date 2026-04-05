@@ -894,12 +894,13 @@
             <textarea id="songLyrics" class="textarea" placeholder="Paste full lyrics"></textarea>
           </div>
 
-          <div class="stack-actions">
-            <button id="saveSongBtn" class="btn" type="submit">Save Song</button>
-            <button id="cancelEditBtn" class="btn-secondary hidden" type="button">Cancel Edit</button>
-            <button id="closeEditorBtn" class="btn-secondary" type="button">Close</button>
-            <span id="editorStatus" class="tiny"></span>
-          </div>
+         <div class="stack-actions">
+  <button id="saveSongBtn" class="btn" type="submit">Save Song</button>
+  <button id="fetchLyricsBtn" class="btn-secondary" type="button">Fetch Lyrics</button>
+  <button id="cancelEditBtn" class="btn-secondary hidden" type="button">Cancel Edit</button>
+  <button id="closeEditorBtn" class="btn-secondary" type="button">Close</button>
+  <span id="editorStatus" class="tiny"></span>
+</div>
 
           <div class="tiny" style="margin-top:10px;">
             Duplicate songs are blocked using song title only. Movie and singer fields support autosuggest.
@@ -1851,6 +1852,149 @@ function highlightText(song, query) {
       }
     }
 
+    function cleanLyricsText(text) {
+  return String(text || "")
+    .replace(/\r\n/g, "\n")
+    .replace(/\r/g, "\n")
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+function decodeHtmlEntities(text) {
+  const el = document.createElement("textarea");
+  el.innerHTML = String(text || "");
+  return el.value;
+}
+
+function buildSearchCandidates(title, movie, singer) {
+  const candidates = [];
+  const singerParts = splitMetaParts(singer);
+
+  if (title && singerParts.length) {
+    singerParts.forEach(name => {
+      candidates.push({ title, artist: name });
+    });
+  }
+
+  if (title && singer) {
+    candidates.push({ title, artist: singer });
+  }
+
+  if (title) {
+    candidates.push({ title, artist: "" });
+  }
+
+  if (movie && title) {
+    candidates.push({ title: `${title} ${movie}`, artist: "" });
+  }
+
+  return candidates;
+}
+
+async function fetchLyricsFromLRCLIB(title, singer) {
+  const candidates = buildSearchCandidates(title, "", singer);
+
+  for (const candidate of candidates) {
+    const params = new URLSearchParams();
+    if (candidate.title) params.set("track_name", candidate.title);
+    if (candidate.artist) params.set("artist_name", candidate.artist);
+
+    const response = await fetch(`https://lrclib.net/api/search?${params.toString()}`);
+    if (!response.ok) continue;
+
+    const results = await response.json();
+    if (!Array.isArray(results) || !results.length) continue;
+
+    const best = results.find(item => item.plainLyrics) || results[0];
+    const lyrics = cleanLyricsText(best?.plainLyrics || best?.syncedLyrics || "");
+    if (lyrics) {
+      return {
+        lyrics,
+        source: "LRCLIB",
+        matchedTitle: best.trackName || candidate.title,
+        matchedArtist: best.artistName || candidate.artist
+      };
+    }
+  }
+
+  return null;
+}
+
+async function fetchLyricsFromLyricsOvh(title, singer) {
+  const singerParts = splitMetaParts(singer);
+  const artistCandidates = singerParts.length ? singerParts : [singer].filter(Boolean);
+
+  for (const artist of artistCandidates) {
+    const url = `https://api.lyrics.ovh/v1/${encodeURIComponent(artist)}/${encodeURIComponent(title)}`;
+    const response = await fetch(url);
+    if (!response.ok) continue;
+
+    const data = await response.json();
+    const lyrics = cleanLyricsText(decodeHtmlEntities(data?.lyrics || ""));
+    if (lyrics) {
+      return {
+        lyrics,
+        source: "lyrics.ovh",
+        matchedTitle: title,
+        matchedArtist: artist
+      };
+    }
+  }
+
+  return null;
+}
+
+async function fetchLyricsForEditor() {
+  const title = document.getElementById("songTitle").value.trim();
+  const singer = document.getElementById("songSinger").value.trim();
+  const lyricsBox = document.getElementById("songLyrics");
+  const status = document.getElementById("editorStatus");
+  const fetchBtn = document.getElementById("fetchLyricsBtn");
+
+  if (!title) {
+    status.textContent = "Enter song title first.";
+    return;
+  }
+
+  fetchBtn.disabled = true;
+  fetchBtn.style.opacity = "0.6";
+  status.textContent = "Trying LRCLIB...";
+
+  try {
+    let result = await fetchLyricsFromLRCLIB(title, singer);
+
+    if (!result) {
+      status.textContent = "Trying lyrics.ovh...";
+      result = await fetchLyricsFromLyricsOvh(title, singer);
+    }
+
+    if (!result) {
+      status.textContent = "No lyrics found. You may need to paste manually.";
+      return;
+    }
+
+    if (!lyricsBox.value.trim()) {
+      lyricsBox.value = result.lyrics;
+    } else {
+      const shouldReplace = confirm(`Lyrics found from ${result.source}. Replace current lyrics box content?`);
+      if (shouldReplace) {
+        lyricsBox.value = result.lyrics;
+      }
+    }
+
+    status.textContent = `Lyrics fetched from ${result.source}. Please review before saving.`;
+  } catch (error) {
+    console.error("FETCH LYRICS ERROR:", error);
+    status.textContent = "Lyrics fetch failed.";
+  } finally {
+    fetchBtn.disabled = false;
+    fetchBtn.style.opacity = "1";
+  }
+}
+
+    
+    
     async function ensureProfile(user, fallbackName = "") {
       if (!user) return null;
 
@@ -2788,6 +2932,7 @@ if (tabName !== "search") {
       });
 
       document.getElementById("closeEditorBtn").addEventListener("click", closeEditor);
+      document.getElementById("fetchLyricsBtn").addEventListener("click", fetchLyricsForEditor);
       document.getElementById("cancelEditBtn").addEventListener("click", () => {
         resetSongForm();
         closeEditor();
