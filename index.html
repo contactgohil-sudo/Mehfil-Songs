@@ -1047,19 +1047,20 @@
       }
     });
 
-    let session = null;
-    let profile = null;
-    let songs = [];
-    let preparedSongs = [];
-    let fuse = null;
-    let editingSongId = null;
-    let openSongId = null;
-    let lastQuery = "";
-    let activeRecognition = null;
-    let expandedGroups = new Set();
-    let isBootstrapping = false;
-    let favoriteSongIds = new Set();
-    let favoriteSongsCache = [];
+   let session = null;
+let profile = null;
+let songs = [];
+let preparedSongs = [];
+let fuse = null;
+let editingSongId = null;
+let openSongId = null;
+let lastQuery = "";
+let activeRecognition = null;
+let expandedGroups = new Set();
+let isBootstrapping = false;
+let favoriteSongIds = new Set();
+let favoriteSongsCache = [];
+let searchInputTimer = null;
 
     function escapeHtml(text) {
       return String(text || "")
@@ -1280,6 +1281,12 @@ function toPhoneticKey(text) {
     .replace(/[^a-z0-9]/g, "");
 }
 
+function toCompactPhoneticKey(text) {
+  return toPhoneticKey(text)
+    .replace(/a(?=[bcdfghjklmnpqrstvwxyz])/g, "")
+    .replace(/a$/g, "");
+}
+
 function editDistance(a, b) {
   const m = a.length;
   const n = b.length;
@@ -1313,34 +1320,54 @@ function similarityScore(a, b) {
   return 1 - dist / maxLen;
 }
 
-function buildQueryWordGroups(query) {
-  const words = normalizeText(query).split(/\s+/).filter(Boolean);
+function buildRomanWordVariants(word) {
+  const base = normalizeText(word).replace(/\s+/g, "");
+  const variants = new Set([base]);
 
-  return words.map(word => {
-    const variants = new Set([word]);
+  addTypoFriendlyRomanVariants(base)
+    .split(/\s+/)
+    .map(v => normalizeText(v).replace(/\s+/g, ""))
+    .filter(Boolean)
+    .forEach(v => variants.add(v));
 
-    addTypoFriendlyRomanVariants(word)
-      .split(/\s+/)
-      .map(normalizeText)
-      .filter(Boolean)
-      .forEach(v => variants.add(v));
+  variants.add(base.replace(/a(?=[bcdfghjklmnpqrstvwxyz])/g, ""));
+  variants.add(base.replace(/a$/g, ""));
+  variants.add(base.replace(/([bcdfghjklmnpqrstvwxyz])([bcdfghjklmnpqrstvwxyz])/g, "$1a$2"));
+  variants.add(base.replace(/([bcdfghjklmnpqrstvwxyz])a([bcdfghjklmnpqrstvwxyz])/g, "$1$2"));
 
-    if (word.length >= 4) {
-      if (word.endsWith("e")) variants.add(word.slice(0, -1) + "i");
-      if (word.endsWith("i")) variants.add(word.slice(0, -1) + "e");
-      if (word.endsWith("aye")) variants.add(word.slice(0, -2) + "e");
-      if (word.endsWith("aya")) variants.add(word.slice(0, -1) + "e");
-    }
+  if (base.length >= 4) {
+    if (base.endsWith("e")) variants.add(base.slice(0, -1) + "i");
+    if (base.endsWith("i")) variants.add(base.slice(0, -1) + "e");
+    if (base.endsWith("aye")) variants.add(base.slice(0, -2) + "e");
+    if (base.endsWith("aya")) variants.add(base.slice(0, -1) + "e");
+  }
 
-    const finalVariants = Array.from(variants).filter(Boolean);
+  return Array.from(variants).filter(Boolean);
+}
+    
+function buildRomanWordVariants(word) {
+  const base = normalizeText(word).replace(/\s+/g, "");
+  const variants = new Set([base]);
 
-    return {
-      raw: word,
-      weak: WEAK_QUERY_WORDS.has(word),
-      variants: finalVariants,
-      phoneticVariants: finalVariants.map(toPhoneticKey)
-    };
-  });
+  addTypoFriendlyRomanVariants(base)
+    .split(/\s+/)
+    .map(v => normalizeText(v).replace(/\s+/g, ""))
+    .filter(Boolean)
+    .forEach(v => variants.add(v));
+
+  variants.add(base.replace(/a(?=[bcdfghjklmnpqrstvwxyz])/g, ""));
+  variants.add(base.replace(/a$/g, ""));
+  variants.add(base.replace(/([bcdfghjklmnpqrstvwxyz])([bcdfghjklmnpqrstvwxyz])/g, "$1a$2"));
+  variants.add(base.replace(/([bcdfghjklmnpqrstvwxyz])a([bcdfghjklmnpqrstvwxyz])/g, "$1$2"));
+
+  if (base.length >= 4) {
+    if (base.endsWith("e")) variants.add(base.slice(0, -1) + "i");
+    if (base.endsWith("i")) variants.add(base.slice(0, -1) + "e");
+    if (base.endsWith("aye")) variants.add(base.slice(0, -2) + "e");
+    if (base.endsWith("aya")) variants.add(base.slice(0, -1) + "e");
+  }
+
+  return Array.from(variants).filter(Boolean);
 }
 
 function tokenizeRomanMappedLyrics(text) {
@@ -1372,6 +1399,7 @@ function tokenizeRomanMappedLyrics(text) {
           tokens.push({
             norm: normWord,
             phonetic: toPhoneticKey(normWord),
+            compact: toCompactPhoneticKey(normWord),
             start: startMap.start,
             end: endMap.end
           });
@@ -1391,7 +1419,8 @@ function bestWordScore(token, queryGroup) {
   for (let i = 0; i < queryGroup.variants.length; i++) {
     const rawScore = similarityScore(token.norm, queryGroup.variants[i]);
     const phoneticScore = similarityScore(token.phonetic, queryGroup.phoneticVariants[i]);
-    const score = Math.max(rawScore, phoneticScore);
+    const compactScore = similarityScore(token.compact, queryGroup.compactVariants[i]);
+    const score = Math.max(rawScore, phoneticScore, compactScore);
     if (score > best) best = score;
   }
 
@@ -1426,34 +1455,38 @@ function getStrongQueryVariants(query) {
 }
 
     function buildPreparedSong(song) {
-      const title = String(song.title || "");
-      const movie = String(song.movie || "");
-      const singer = String(song.singer || "");
-      const lyrics = String(song.lyrics || "");
+  const title = String(song.title || "");
+  const movie = String(song.movie || "");
+  const singer = String(song.singer || "");
+  const lyrics = String(song.lyrics || "");
 
-      const titleRomanObj = transliterateIndicWithMap(title);
-      const movieRomanObj = transliterateIndicWithMap(movie);
-      const singerRomanObj = transliterateIndicWithMap(singer);
-      const lyricsRomanObj = transliterateIndicWithMap(lyrics);
+  const titleRomanObj = transliterateIndicWithMap(title);
+  const movieRomanObj = transliterateIndicWithMap(movie);
+  const singerRomanObj = transliterateIndicWithMap(singer);
+  const lyricsRomanObj = transliterateIndicWithMap(lyrics);
+  const lyricTokens = tokenizeRomanMappedLyrics(lyrics);
 
-      const titleSearch = normalizeText([title, addTypoFriendlyRomanVariants(titleRomanObj.roman)].join(" "));
-      const movieSearch = normalizeText([movie, addTypoFriendlyRomanVariants(movieRomanObj.roman)].join(" "));
-      const singerSearch = normalizeText([singer, addTypoFriendlyRomanVariants(singerRomanObj.roman)].join(" "));
-      const lyricsSearch = normalizeText([lyrics, addTypoFriendlyRomanVariants(lyricsRomanObj.roman)].join(" "));
+  const titleSearch = normalizeText([title, addTypoFriendlyRomanVariants(titleRomanObj.roman)].join(" "));
+  const movieSearch = normalizeText([movie, addTypoFriendlyRomanVariants(movieRomanObj.roman)].join(" "));
+  const singerSearch = normalizeText([singer, addTypoFriendlyRomanVariants(singerRomanObj.roman)].join(" "));
+  const lyricsSearch = normalizeText([lyrics, addTypoFriendlyRomanVariants(lyricsRomanObj.roman)].join(" "));
+  const lyricsCompactSearch = lyricTokens.map(t => t.compact).filter(Boolean).join(" ");
 
-      const searchText = normalizeText([titleSearch, movieSearch, singerSearch, lyricsSearch].join(" "));
+  const searchText = normalizeText([titleSearch, movieSearch, singerSearch, lyricsSearch].join(" "));
 
-      return {
-        ...song,
-        _titleSearch: titleSearch,
-        _movieSearch: movieSearch,
-        _singerSearch: singerSearch,
-        _lyricsSearch: lyricsSearch,
-        _searchText: searchText,
-        _lyricsRoman: lyricsRomanObj.roman,
-        _lyricsRomanMap: lyricsRomanObj.map
-      };
-    }
+  return {
+    ...song,
+    _titleSearch: titleSearch,
+    _movieSearch: movieSearch,
+    _singerSearch: singerSearch,
+    _lyricsSearch: lyricsSearch,
+    _lyricsCompactSearch: lyricsCompactSearch,
+    _searchText: searchText,
+    _lyricsRoman: lyricsRomanObj.roman,
+    _lyricsRomanMap: lyricsRomanObj.map,
+    _lyricTokens: lyricTokens
+  };
+}
 
     function rebuildFuse() {
       preparedSongs = songs.map(buildPreparedSong);
@@ -1531,38 +1564,61 @@ function detectSearchIntent(query) {
   return { type: "lyrics" };
 }
     
-    function searchSongs(query) {
+   function searchSongs(query) {
   const q = normalizeText(query);
   if (!q) return [];
 
   const variants = getQueryVariants(query);
   const strongLyricVariants = getStrongQueryVariants(query);
-  const intent = detectSearchIntent(query);
+  const compactLyricVariants = strongLyricVariants.map(toCompactPhoneticKey).filter(Boolean);
+  const shouldDoHeavyLyricMatch = q.length >= 3;
+
+  const titleMovieSingerCandidates = new Map();
+
+  preparedSongs.forEach(song => {
+    const titleContains = anyIncludes(song._titleSearch, variants);
+    const movieContains = anyIncludes(song._movieSearch, variants);
+    const singerContains = anyIncludes(song._singerSearch, variants);
+
+    const quickLyricsContains =
+      strongLyricVariants.some(v => song._lyricsSearch.includes(v)) ||
+      compactLyricVariants.some(v => song._lyricsCompactSearch.includes(v));
+
+    if (titleContains || movieContains || singerContains || quickLyricsContains) {
+      titleMovieSingerCandidates.set(song.id, song);
+    }
+  });
 
   const fuseScoreMap = new Map();
   if (fuse) {
-    fuse.search(q).slice(0, 40).forEach(r => {
+    fuse.search(q).slice(0, 60).forEach(r => {
       fuseScoreMap.set(r.item.id, Math.max(0, Math.round((1 - (r.score || 1)) * 18)));
+      if (!titleMovieSingerCandidates.has(r.item.id)) {
+        titleMovieSingerCandidates.set(r.item.id, r.item);
+      }
     });
   }
 
-  const ranked = preparedSongs
+  const ranked = Array.from(titleMovieSingerCandidates.values())
     .map(song => {
       const titleExact = song._titleSearch === q;
       const titleStarts = song._titleSearch.startsWith(q);
       const titleContains = anyIncludes(song._titleSearch, variants);
+      const movieContains = anyIncludes(song._movieSearch, variants);
+      const singerContains = anyIncludes(song._singerSearch, variants);
 
-      const singerIntentMatch = fieldMatchesIntent(song.singer, query);
-      const movieIntentMatch = fieldMatchesIntent(song.movie, query);
+      let lyricInfo = { ranges: [], score: 0 };
+      if (shouldDoHeavyLyricMatch) {
+        lyricInfo = getLyricMatchInfo(song, query);
+      }
 
-      const singerContains = singerIntentMatch.contains;
-      const movieContains = movieIntentMatch.contains;
-
-      const lyricInfo = getLyricMatchInfo(song, query);
       const lyricPhraseScore = lyricInfo.score || 0;
 
       const strongLyricsContains = strongLyricVariants.length
-        ? strongLyricVariants.some(v => song._lyricsSearch.includes(v))
+        ? (
+            strongLyricVariants.some(v => song._lyricsSearch.includes(v)) ||
+            compactLyricVariants.some(v => song._lyricsCompactSearch.includes(v))
+          )
         : false;
 
       let score = 0;
@@ -1570,36 +1626,14 @@ function detectSearchIntent(query) {
       if (titleExact) score += 120;
       if (titleStarts) score += 70;
       if (titleContains) score += 35;
+      if (movieContains) score += 24;
+      if (singerContains) score += 24;
 
-      if (movieIntentMatch.exact) score += 140;
-      else if (movieIntentMatch.starts) score += 90;
-      else if (movieIntentMatch.contains) score += 45;
+      if (strongLyricsContains) score += 16;
+      if (lyricPhraseScore > 0) score += Math.round(lyricPhraseScore * 120);
 
-      if (singerIntentMatch.exact) score += 140;
-      else if (singerIntentMatch.starts) score += 90;
-      else if (singerIntentMatch.contains) score += 45;
-
-      if (intent.type === "movie") {
-        if (!movieIntentMatch.contains && !titleContains) {
-          return null;
-        }
-        score += 120;
-      }
-
-      if (intent.type === "singer") {
-        if (!singerIntentMatch.contains && !titleContains) {
-          return null;
-        }
-        score += 120;
-      }
-
-      if (intent.type === "lyrics") {
-        if (strongLyricsContains) score += 14;
-        if (lyricPhraseScore > 0) score += Math.round(lyricPhraseScore * 120);
-
-        if (!titleContains && !movieContains && !singerContains && lyricPhraseScore >= 0.82) {
-          score += 24;
-        }
+      if (!titleContains && !movieContains && !singerContains && lyricPhraseScore >= 0.82) {
+        score += 24;
       }
 
       score += fuseScoreMap.get(song.id) || 0;
@@ -1613,14 +1647,14 @@ function detectSearchIntent(query) {
           title: titleContains,
           movie: movieContains,
           singer: singerContains,
-          lyrics: intent.type === "lyrics" && (strongLyricsContains || lyricPhraseScore > 0)
+          lyrics: strongLyricsContains || lyricPhraseScore > 0
         },
         _score: score
       };
     })
     .filter(Boolean)
     .sort((a, b) => b._score - a._score || String(a.title || "").localeCompare(String(b.title || "")))
-    .slice(0, 50);
+    .slice(0, 20);
 
   return ranked;
 }
@@ -1679,7 +1713,7 @@ function detectSearchIntent(query) {
  function findRomanMappedMatchInfo(song, query) {
   if (!isLatinQuery(query)) return { ranges: [], score: 0 };
 
-  const tokens = tokenizeRomanMappedLyrics(String(song.lyrics || ""));
+  const tokens = song._lyricTokens || tokenizeRomanMappedLyrics(String(song.lyrics || ""));
   const queryGroups = buildQueryWordGroups(query);
 
   if (!tokens.length || !queryGroups.length) {
@@ -1705,7 +1739,7 @@ function detectSearchIntent(query) {
 
       for (let t = start; t <= end && q < queryGroups.length; t++) {
         const score = bestWordScore(tokens[t], queryGroups[q]);
-        const threshold = queryGroups[q].weak ? 0.88 : 0.72;
+        const threshold = queryGroups[q].weak ? 0.90 : 0.70;
 
         if (score >= threshold) {
           if (firstMatchedToken === -1) firstMatchedToken = t;
@@ -1774,7 +1808,6 @@ function detectSearchIntent(query) {
     score: bestScore
   };
 }
-
 function findRomanMappedRanges(song, query) {
   return findRomanMappedMatchInfo(song, query).ranges;
 }
@@ -3048,16 +3081,21 @@ document.getElementById("songSinger").addEventListener("input", () => {
       });
 
       document.getElementById("searchInput").addEventListener("input", (e) => {
-        lastQuery = e.target.value;
-        renderResults(searchSongs(lastQuery), lastQuery);
-      });
+  lastQuery = e.target.value;
+
+  clearTimeout(searchInputTimer);
+  searchInputTimer = setTimeout(() => {
+    renderResults(searchSongs(lastQuery), lastQuery);
+  }, 120);
+});
 
       document.getElementById("clearBtn").addEventListener("click", () => {
-        document.getElementById("searchInput").value = "";
-        lastQuery = "";
-        renderResults([], "");
-        document.getElementById("searchInput").focus();
-      });
+  clearTimeout(searchInputTimer);
+  document.getElementById("searchInput").value = "";
+  lastQuery = "";
+  renderResults([], "");
+  document.getElementById("searchInput").focus();
+});
 
       document.getElementById("micBtn").addEventListener("click", startMicSearch);
 
