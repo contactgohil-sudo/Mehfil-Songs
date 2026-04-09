@@ -1345,30 +1345,6 @@ function buildRomanWordVariants(word) {
   return Array.from(variants).filter(Boolean);
 }
     
-function buildRomanWordVariants(word) {
-  const base = normalizeText(word).replace(/\s+/g, "");
-  const variants = new Set([base]);
-
-  addTypoFriendlyRomanVariants(base)
-    .split(/\s+/)
-    .map(v => normalizeText(v).replace(/\s+/g, ""))
-    .filter(Boolean)
-    .forEach(v => variants.add(v));
-
-  variants.add(base.replace(/a(?=[bcdfghjklmnpqrstvwxyz])/g, ""));
-  variants.add(base.replace(/a$/g, ""));
-  variants.add(base.replace(/([bcdfghjklmnpqrstvwxyz])([bcdfghjklmnpqrstvwxyz])/g, "$1a$2"));
-  variants.add(base.replace(/([bcdfghjklmnpqrstvwxyz])a([bcdfghjklmnpqrstvwxyz])/g, "$1$2"));
-
-  if (base.length >= 4) {
-    if (base.endsWith("e")) variants.add(base.slice(0, -1) + "i");
-    if (base.endsWith("i")) variants.add(base.slice(0, -1) + "e");
-    if (base.endsWith("aye")) variants.add(base.slice(0, -2) + "e");
-    if (base.endsWith("aya")) variants.add(base.slice(0, -1) + "e");
-  }
-
-  return Array.from(variants).filter(Boolean);
-}
 
 function tokenizeRomanMappedLyrics(text) {
   const romanObj = transliterateIndicWithMap(text);
@@ -1877,11 +1853,7 @@ function highlightText(song, query) {
   inputEl.classList.toggle("input-autofilled", !!shouldMark);
 }
 
-    function markTextareaAutofilled(textareaEl, shouldMark = true) {
-  if (!textareaEl) return;
-  textareaEl.classList.toggle("textarea-autofilled", !!shouldMark);
-}
-    
+       
     function checkEditorDuplicateState() {
       const title = document.getElementById("songTitle").value.trim();
       const saveBtn = document.getElementById("saveSongBtn");
@@ -3189,9 +3161,33 @@ document.getElementById("songSinger").addEventListener("input", () => {
         if (e.key === "Escape") closeSongModal();
       });
 
-      supabaseClient.auth.onAuthStateChange((_event, newSession) => {
-        session = newSession || null;
-      });
+      supabaseClient.auth.onAuthStateChange(async (_event, newSession) => {
+  session = newSession || null;
+
+  try {
+    if (session?.user) {
+      await loadProfile();
+      renderScreens();
+
+      if (profile?.approved) {
+        renderAppShell();
+        await loadSongs();
+        activateTab("search");
+      }
+    } else {
+      profile = null;
+      songs = [];
+      preparedSongs = [];
+      fuse = null;
+      favoriteSongIds = new Set();
+      favoriteSongsCache = [];
+      renderScreens();
+    }
+  } catch (err) {
+    console.error("AUTH STATE CHANGE ERROR:", err);
+    showStatus("authStatus", "Session update failed: " + (err?.message || err), "error");
+  }
+});
     }
 
     document.addEventListener("DOMContentLoaded", () => {
