@@ -1061,6 +1061,7 @@ let isBootstrapping = false;
 let favoriteSongIds = new Set();
 let favoriteSongsCache = [];
 let searchInputTimer = null;
+let songsRealtimeChannel = null;
 
     function escapeHtml(text) {
       return String(text || "")
@@ -2274,6 +2275,7 @@ if (replacedLyrics) {
 
     async function logoutUser() {
       stopActiveRecognition();
+      unsubscribeFromSongsRealtime();
       if (searchInputTimer) {
   clearTimeout(searchInputTimer);
   searchInputTimer = null;
@@ -2427,8 +2429,118 @@ if (replacedLyrics) {
       renderFavorites();
       document.getElementById("libraryCountText").textContent = `${songs.length} songs`;
       showStatus("appStatus", "", "info");
+      subscribeToSongsRealtime();
     }
 
+    function sortSongsInMemory() {
+  songs.sort((a, b) => String(a.title || "").localeCompare(String(b.title || "")));
+}
+
+function refreshUiFromSongsState(options = {}) {
+  const { preserveOpenModal = true } = options;
+
+  rebuildFuse();
+  refreshSuggestionLists();
+  checkEditorDuplicateState();
+  favoriteSongsCache = preparedSongs.filter(song => favoriteSongIds.has(Number(song.id)));
+  document.getElementById("libraryCountText").textContent = `${songs.length} songs`;
+
+  if (lastQuery.trim()) {
+    renderResults(searchSongs(lastQuery), lastQuery);
+  } else {
+    renderResults([], "");
+  }
+
+  renderSongGroups();
+  renderFavorites();
+
+  if (preserveOpenModal && openSongId != null) {
+    const stillExists = preparedSongs.find(s => Number(s.id) === Number(openSongId));
+    if (stillExists) {
+      openSong(openSongId);
+    } else {
+      closeSongModal();
+    }
+  }
+}
+
+function applySongRealtimeChange(eventType, row) {
+  if (!row) return;
+
+  const rowId = Number(row.id);
+
+  if (eventType === "INSERT") {
+    const existingIndex = songs.findIndex(s => Number(s.id) === rowId);
+    if (existingIndex === -1) {
+      songs.push(row);
+    } else {
+      songs[existingIndex] = row;
+    }
+  }
+
+  if (eventType === "UPDATE") {
+    const existingIndex = songs.findIndex(s => Number(s.id) === rowId);
+    if (existingIndex === -1) {
+      songs.push(row);
+    } else {
+      songs[existingIndex] = row;
+    }
+  }
+
+  if (eventType === "DELETE") {
+    songs = songs.filter(s => Number(s.id) !== rowId);
+
+    if (favoriteSongIds.has(rowId)) {
+      favoriteSongIds.delete(rowId);
+    }
+  }
+
+  sortSongsInMemory();
+  refreshUiFromSongsState({ preserveOpenModal: true });
+}
+
+async function unsubscribeFromSongsRealtime() {
+  if (songsRealtimeChannel) {
+    try {
+      await supabaseClient.removeChannel(songsRealtimeChannel);
+    } catch (error) {
+      console.error("REMOVE REALTIME CHANNEL ERROR:", error);
+    }
+    songsRealtimeChannel = null;
+  }
+}
+
+function subscribeToSongsRealtime() {
+  if (!isApproved()) return;
+  if (songsRealtimeChannel) return;
+
+  songsRealtimeChannel = supabaseClient
+    .channel("mehfil-songs-live")
+    .on(
+      "postgres_changes",
+      {
+        event: "*",
+        schema: "public",
+        table: "songs"
+      },
+      (payload) => {
+        try {
+          if (payload.eventType === "DELETE") {
+            applySongRealtimeChange("DELETE", payload.old);
+          } else {
+            applySongRealtimeChange(payload.eventType, payload.new);
+          }
+        } catch (error) {
+          console.error("REALTIME SONG UPDATE ERROR:", error);
+        }
+      }
+    )
+    .subscribe((status) => {
+      console.log("Songs realtime status:", status);
+    });
+}
+
+    
     async function saveSong(event) {
       event.preventDefault();
 
@@ -2468,15 +2580,20 @@ const lyrics = document.getElementById("songLyrics").value.trim();
 
       let response;
       if (editingSongId) {
-        response = await supabaseClient
-          .from("songs")
-          .update(payload)
-          .eq("id", editingSongId);
-      } else {
-        response = await supabaseClient
-          .from("songs")
-          .insert([payload]);
-      }
+  response = await supabaseClient
+    .from("songs")
+    .update(payload)
+    .eq("id", editingSongId)
+    .select()
+    .single();
+} else {
+  response = await supabaseClient
+    .from("songs")
+    .insert([payload])
+    .select()
+    .single();
+}
+      
 
       if (response.error) {
         console.error("SAVE SONG ERROR:", response.error);
@@ -2491,20 +2608,18 @@ const lyrics = document.getElementById("songLyrics").value.trim();
         return;
       }
 
-      editorStatus.textContent = editingSongId ? "Song updated." : "Song saved.";
+      if (response.data) {
+  applySongRealtimeChange(editingSongId ? "UPDATE" : "INSERT", response.data);
+}
 
-      const currentEditId = editingSongId;
-      resetSongForm();
-      closeEditor();
-      await loadSongs();
+     const wasEditingId = editingSongId;
+editorStatus.textContent = wasEditingId ? "Song updated." : "Song saved.";
 
-      if (lastQuery.trim()) {
-        renderResults(searchSongs(lastQuery), lastQuery);
-      }
+closeEditor();
 
-      if (currentEditId) {
-        openSong(currentEditId);
-      }
+if (wasEditingId) {
+  openSongId = wasEditingId;
+}
     }
 
     async function deleteSong(songId) {
@@ -2526,14 +2641,9 @@ const lyrics = document.getElementById("songLyrics").value.trim();
         return;
       }
 
-      closeSongModal();
-      await loadSongs();
-
-      if (lastQuery.trim()) {
-        renderResults(searchSongs(lastQuery), lastQuery);
-      }
-
-      showStatus("appStatus", "Song deleted.", "success");
+     applySongRealtimeChange("DELETE", { id: songId });
+closeSongModal();
+showStatus("appStatus", "Song deleted.", "success");
     }
 
     async function loadPendingUsers() {
@@ -3226,8 +3336,12 @@ document.getElementById("songSinger").addEventListener("input", () => {
       });
 
       supabaseClient.auth.onAuthStateChange((_event, newSession) => {
-        session = newSession || null;
-      });
+  session = newSession || null;
+
+  if (!session?.user) {
+    unsubscribeFromSongsRealtime();
+  }
+});
     }
 
     document.addEventListener("DOMContentLoaded", () => {
