@@ -58,13 +58,20 @@
     }
 
     .account-actions {
-      display: flex;
-      flex-direction: column;
-      align-items: flex-end;
-      gap: 6px;
-      flex-shrink: 0;
-    }
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  flex-shrink: 0;
+}
 
+.account-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: nowrap;
+}
     .account-user {
       text-align: right;
       margin: 0;
@@ -91,12 +98,13 @@
   background: transparent;
   color: #b91c1c;
   font-size: 11px;
-  font-weight: 700;
-  padding: 0;
+  font-weight: 800;
+  padding: 0 2px;
   margin: 0;
   line-height: 1;
   min-height: auto;
   cursor: pointer;
+  letter-spacing: 0.3px;
 }
 
 .live-mini-btn.hidden {
@@ -520,54 +528,74 @@
       box-shadow: 0 20px 60px rgba(0,0,0,0.18);
     }
 
-    .modal-top {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      gap: 12px;
-      margin-bottom: 10px;
-    }
-
-    .modal-title {
-      font-size: 24px;
-      font-weight: 700;
-      margin-bottom: 4px;
-    }
-
-    .modal-meta {
-      color: var(--muted);
-      font-size: 14px;
-    }
-.modal-extra-meta {
-  color: var(--muted);
-  font-size: 13px;
-  line-height: 1.4;
-  text-align: right;
-  max-width: 260px;
+  .modal-top {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: start;
+  margin-bottom: 10px;
 }
-    .modal-actions {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-      flex-shrink: 0;
-    }
+
+.modal-main {
+  min-width: 0;
+}
+
+.modal-title {
+  font-size: 24px;
+  font-weight: 700;
+  margin-bottom: 4px;
+  line-height: 1.12;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.modal-meta {
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
 .modal-side {
+  min-width: 0;
+  max-width: 100%;
   display: flex;
   flex-direction: column;
   align-items: flex-end;
   gap: 8px;
-  flex-shrink: 0;
 }
-    .modal-btn {
-      border: none;
-      border-radius: 12px;
-      padding: 10px 12px;
-      background: var(--primary);
-      color: white;
-      cursor: pointer;
-      font-size: 14px;
-      font-weight: 600;
-    }
+
+.modal-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  max-width: min(100%, 320px);
+}
+
+.modal-extra-meta {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.45;
+  text-align: right;
+  max-width: 320px;
+  word-break: break-word;
+}
+
+.modal-btn {
+  border: none;
+  border-radius: 12px;
+  padding: 10px 12px;
+  background: var(--primary);
+  color: white;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  flex: 0 0 auto;
+  max-width: 100%;
+}
 
     .modal-star-btn {
   min-width: 44px;
@@ -608,6 +636,14 @@
         padding: 8px;
       }
 
+      .account-row {
+  gap: 6px;
+}
+
+.live-mini-btn {
+  font-size: 10px;
+}
+      
       .modal-side {
   gap: 6px;
 }
@@ -629,6 +665,32 @@
 
       .field-compact {
   margin-bottom: 5px;
+}
+
+      .modal-top {
+  grid-template-columns: 1fr;
+}
+
+.modal-side {
+  width: 100%;
+  align-items: stretch;
+}
+
+.modal-actions {
+  width: 100%;
+  max-width: 100%;
+  justify-content: flex-start;
+}
+
+.modal-btn {
+  min-height: 36px;
+  padding: 8px 10px;
+  font-size: 12px;
+}
+
+.modal-extra-meta {
+  max-width: 100%;
+  text-align: left;
 }
 
       .modal-extra-meta {
@@ -866,11 +928,13 @@
           <div id="libraryCountText" class="library-count-text">0 songs</div>
         </div>
 
-                <div class="account-actions">
-          <div class="sub account-user" id="welcomeLine">Loading...</div>
-          <button id="liveMiniBtn" class="live-mini-btn hidden" type="button">LIVE</button>
-          <button id="logoutBtn" class="btn-secondary top-logout-btn" type="button">Logout</button>
-        </div>
+               <div class="account-actions">
+  <div class="sub account-user" id="welcomeLine">Loading...</div>
+  <div class="account-row">
+    <button id="liveMiniBtn" class="live-mini-btn hidden" type="button">LIVE</button>
+    <button id="logoutBtn" class="btn-secondary top-logout-btn" type="button">Logout</button>
+  </div>
+</div>
       </div>
 
       <div id="appStatus" class="status-box"></div>
@@ -1026,19 +1090,19 @@
 
   <div id="songModal" class="modal">
     <div class="modal-card">
-     <div class="modal-top">
-  <div>
+    <div class="modal-top">
+  <div class="modal-main">
     <div id="modalTitle" class="modal-title"></div>
     <div id="modalMeta" class="modal-meta"></div>
   </div>
 
   <div class="modal-side">
     <div class="modal-actions">
-     <button id="modalBookmarkBtn" class="modal-btn modal-star-btn hidden" type="button" title="Toggle favourite" aria-label="Toggle favourite">☆</button>
-<button id="modalShareNowBtn" class="modal-btn hidden" type="button">Share Now</button>
-<button id="modalEditBtn" class="modal-btn hidden" type="button">Edit</button>
-<button id="modalDeleteBtn" class="modal-btn hidden btn-danger" type="button">Delete</button>
-<button id="modalCloseBtn" class="modal-btn" type="button">Close</button>
+      <button id="modalBookmarkBtn" class="modal-btn modal-star-btn hidden" type="button" title="Toggle favourite" aria-label="Toggle favourite">☆</button>
+      <button id="modalShareNowBtn" class="modal-btn hidden" type="button">Share Now</button>
+      <button id="modalEditBtn" class="modal-btn hidden" type="button">Edit</button>
+      <button id="modalDeleteBtn" class="modal-btn hidden btn-danger" type="button">Delete</button>
+      <button id="modalCloseBtn" class="modal-btn" type="button">Close</button>
     </div>
     <div id="modalExtraMeta" class="modal-extra-meta hidden"></div>
   </div>
@@ -2662,7 +2726,17 @@ async function shareSongNow(songId) {
       return;
     }
 
-    showStatus("appStatus", `Shared live: ${song.title}`, "success");
+   currentLiveSongId = Number(songId);
+updateLiveMiniButton();
+
+showStatus("appStatus", `Shared live: ${song.title}`, "success");
+
+setTimeout(() => {
+  const appStatusEl = document.getElementById("appStatus");
+  if (appStatusEl && appStatusEl.textContent === `Shared live: ${song.title}`) {
+    showStatus("appStatus", "", "info");
+  }
+}, 1800);
   } finally {
     if (shareBtn) {
       shareBtn.disabled = false;
@@ -2710,15 +2784,11 @@ pendingLiveEventByMe = sharedByMe;
 currentLiveSongId = songId;
 updateLiveMiniButton();
 
- if (sharedByMe) {
-  showLiveNowBar(
-    `You shared live: ${title}${meta ? " • " + meta : ""}`,
-    "success",
-    {
-      showOpen: false,
-      showDismiss: true
-    }
-  );
+if (sharedByMe) {
+  pendingLiveSongId = null;
+  pendingLiveEventByMe = false;
+  currentLiveSongId = songId;
+  updateLiveMiniButton();
   return;
 }
 
@@ -2778,12 +2848,13 @@ function subscribeToLiveSongChannel() {
         table: "live_song_events"
       },
       (payload) => {
-        try {
-          handleIncomingLiveSongEvent(payload);
-        } catch (error) {
-          console.error("LIVE SONG EVENT ERROR:", error);
-        }
-      }
+  try {
+    console.log("LIVE SONG EVENT RECEIVED:", payload);
+    handleIncomingLiveSongEvent(payload);
+  } catch (error) {
+    console.error("LIVE SONG EVENT ERROR:", error);
+  }
+}
     )
     .subscribe((status) => {
       console.log("Live song channel status:", status);
@@ -3106,18 +3177,24 @@ showStatus("appStatus", "Song deleted.", "success");
 document.getElementById("modalMeta").textContent = joinMeta([song.movie, song.singer]);
 
 const modalExtraMeta = document.getElementById("modalExtraMeta");
-const extraParts = [];
-if (song.original_key) extraParts.push(`Original Key: ${song.original_key}`);
-if (song.chord) extraParts.push(`Chord: ${song.chord}`);
+const extraLines = [];
 
-if (extraParts.length) {
-  modalExtraMeta.textContent = extraParts.join(" • ");
-  modalExtraMeta.classList.remove("hidden");
-} else {
-  modalExtraMeta.textContent = "";
-  modalExtraMeta.classList.add("hidden");
+if (song.original_key) {
+  extraLines.push(`<div><strong>Original Key:</strong> ${escapeHtml(song.original_key)}</div>`);
 }
 
+if (song.chord) {
+  extraLines.push(`<div><strong>Chord:</strong> ${escapeHtml(song.chord)}</div>`);
+}
+
+if (extraLines.length) {
+  modalExtraMeta.innerHTML = extraLines.join("");
+  modalExtraMeta.classList.remove("hidden");
+} else {
+  modalExtraMeta.innerHTML = "";
+  modalExtraMeta.classList.add("hidden");
+}
+      
 document.getElementById("modalLyrics").innerHTML = highlightText(song, lastQuery);
 
       requestAnimationFrame(() => {
@@ -3596,12 +3673,12 @@ document.getElementById("liveNowDismissBtn").addEventListener("click", dismissPe
 
   if (!session?.user) {
     unsubscribeFromSongsRealtime();
-    unsubscribeFromLiveSongChannel();
-    showLiveNowBar("");
-    lastLiveEventId = null;
-    pendingLiveSongId = null;
-    pendingLiveEventByMe = false;
-    currentLiveSongId = null;
+   unsubscribeFromLiveSongChannel();
+showLiveNowBar("");
+lastLiveEventId = null;
+pendingLiveSongId = null;
+pendingLiveEventByMe = false;
+currentLiveSongId = null;
 updateLiveMiniButton();
   }
 });
