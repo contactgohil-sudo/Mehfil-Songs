@@ -2809,23 +2809,12 @@ function openPendingLiveSong() {
   if (!targetSongId) return;
 
   const songId = Number(targetSongId);
-  openSong(songId);
-
-  const song = preparedSongs.find(s => Number(s.id) === songId) || songs.find(s => Number(s.id) === songId);
-  const title = song?.title || "Shared Song";
-  const meta = song ? joinMeta([song.movie, song.singer]) : "";
 
   pendingLiveSongId = null;
   pendingLiveEventByMe = false;
+  showLiveNowBar("");
 
-  showLiveNowBar(
-    `Opened live: ${title}${meta ? " • " + meta : ""}`,
-    "success",
-    {
-      showOpen: false,
-      showDismiss: true
-    }
-  );
+  openSong(songId);
 }
 
 function dismissPendingLiveSong() {
