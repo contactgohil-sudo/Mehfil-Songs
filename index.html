@@ -86,6 +86,22 @@
   border-radius: 14px;
   font-size: 13px;
 }
+    .live-mini-btn {
+  border: none;
+  background: transparent;
+  color: #b91c1c;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 0;
+  margin: 0;
+  line-height: 1;
+  min-height: auto;
+  cursor: pointer;
+}
+
+.live-mini-btn.hidden {
+  display: none !important;
+}
 
     .library-count-text {
       font-size: 13px;
@@ -596,6 +612,10 @@
   gap: 6px;
 }
 
+      .live-mini-btn {
+  font-size: 10px;
+}
+      
 .modal-extra-meta {
   font-size: 12px;
   max-width: 220px;
@@ -846,13 +866,24 @@
           <div id="libraryCountText" class="library-count-text">0 songs</div>
         </div>
 
-        <div class="account-actions">
+                <div class="account-actions">
           <div class="sub account-user" id="welcomeLine">Loading...</div>
+          <button id="liveMiniBtn" class="live-mini-btn hidden" type="button">LIVE</button>
           <button id="logoutBtn" class="btn-secondary top-logout-btn" type="button">Logout</button>
         </div>
       </div>
 
       <div id="appStatus" class="status-box"></div>
+      
+      <div id="liveNowBar" class="status-box">
+  <div id="liveNowBarContent" class="hidden" style="display:flex; gap:10px; justify-content:space-between; align-items:center; flex-wrap:wrap;">
+    <div id="liveNowText" style="font-weight:600;"></div>
+    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+      <button id="liveNowOpenBtn" class="btn-secondary" type="button">Open</button>
+      <button id="liveNowDismissBtn" class="btn-secondary" type="button">Dismiss</button>
+    </div>
+  </div>
+</div>
 
       <div class="tabs">
         <button id="tabSearchBtn" class="tab-btn active" type="button">Search</button>
@@ -1003,10 +1034,11 @@
 
   <div class="modal-side">
     <div class="modal-actions">
-      <button id="modalBookmarkBtn" class="modal-btn modal-star-btn hidden" type="button" title="Toggle favourite" aria-label="Toggle favourite">☆</button>
-      <button id="modalEditBtn" class="modal-btn hidden" type="button">Edit</button>
-      <button id="modalDeleteBtn" class="modal-btn hidden btn-danger" type="button">Delete</button>
-      <button id="modalCloseBtn" class="modal-btn" type="button">Close</button>
+     <button id="modalBookmarkBtn" class="modal-btn modal-star-btn hidden" type="button" title="Toggle favourite" aria-label="Toggle favourite">☆</button>
+<button id="modalShareNowBtn" class="modal-btn hidden" type="button">Share Now</button>
+<button id="modalEditBtn" class="modal-btn hidden" type="button">Edit</button>
+<button id="modalDeleteBtn" class="modal-btn hidden btn-danger" type="button">Delete</button>
+<button id="modalCloseBtn" class="modal-btn" type="button">Close</button>
     </div>
     <div id="modalExtraMeta" class="modal-extra-meta hidden"></div>
   </div>
@@ -1047,7 +1079,7 @@
       }
     });
 
-    let session = null;
+   let session = null;
 let profile = null;
 let songs = [];
 let preparedSongs = [];
@@ -1062,6 +1094,11 @@ let favoriteSongIds = new Set();
 let favoriteSongsCache = [];
 let searchInputTimer = null;
 let songsRealtimeChannel = null;
+let liveSongChannel = null;
+let lastLiveEventId = null;
+let pendingLiveSongId = null;
+let pendingLiveEventByMe = false;
+    let currentLiveSongId = null;
 
     function escapeHtml(text) {
       return String(text || "")
@@ -2276,10 +2313,14 @@ if (replacedLyrics) {
     async function logoutUser() {
       stopActiveRecognition();
       unsubscribeFromSongsRealtime();
+      unsubscribeFromLiveSongChannel();
+showLiveNowBar("");
+lastLiveEventId = null;
       if (searchInputTimer) {
   clearTimeout(searchInputTimer);
   searchInputTimer = null;
 }
+      
       await supabaseClient.auth.signOut();
       session = null;
       profile = null;
@@ -2430,6 +2471,7 @@ if (replacedLyrics) {
       document.getElementById("libraryCountText").textContent = `${songs.length} songs`;
       showStatus("appStatus", "", "info");
       subscribeToSongsRealtime();
+      subscribeToLiveSongChannel();
     }
 
     function sortSongsInMemory() {
@@ -2540,6 +2582,213 @@ function subscribeToSongsRealtime() {
     });
 }
 
+
+    function showLiveNowBar(message, type = "success", options = {}) {
+  const el = document.getElementById("liveNowBar");
+  const content = document.getElementById("liveNowBarContent");
+  const textEl = document.getElementById("liveNowText");
+  const openBtn = document.getElementById("liveNowOpenBtn");
+  const dismissBtn = document.getElementById("liveNowDismissBtn");
+
+  if (!el || !content || !textEl || !openBtn || !dismissBtn) return;
+
+  const {
+    showOpen = false,
+    showDismiss = false
+  } = options;
+
+  if (!message) {
+    el.className = "status-box";
+    textEl.textContent = "";
+    content.classList.add("hidden");
+    content.style.display = "none";
+    openBtn.classList.add("hidden");
+    dismissBtn.classList.add("hidden");
+    return;
+  }
+
+  el.className = `status-box show status-${type}`;
+  textEl.textContent = message;
+  content.classList.remove("hidden");
+  content.style.display = "flex";
+  openBtn.classList.toggle("hidden", !showOpen);
+  dismissBtn.classList.toggle("hidden", !showDismiss);
+}
+function updateLiveMiniButton() {
+  const btn = document.getElementById("liveMiniBtn");
+  if (!btn) return;
+
+  btn.classList.toggle("hidden", !currentLiveSongId);
+}
+    
+function triggerLiveAttention() {
+  try {
+    if (navigator.vibrate) {
+      navigator.vibrate([120, 80, 120]);
+    }
+  } catch (_) {}
+
+  try {
+    const audio = new Audio("data:audio/wav;base64,UklGRlQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YTAAAAA=");
+    audio.volume = 0.2;
+    audio.play().catch(() => {});
+  } catch (_) {}
+}
+
+async function shareSongNow(songId) {
+  if (!session?.user || !isApproved()) return;
+
+  const song = songs.find(s => Number(s.id) === Number(songId));
+  if (!song) return;
+
+  const shareBtn = document.getElementById("modalShareNowBtn");
+  if (shareBtn) {
+    shareBtn.disabled = true;
+    shareBtn.style.opacity = "0.6";
+  }
+
+  try {
+    const { error } = await supabaseClient
+      .from("live_song_events")
+      .insert([{
+        song_id: Number(songId),
+        shared_by: session.user.id,
+        shared_message: ""
+      }]);
+
+    if (error) {
+      console.error("SHARE SONG NOW ERROR:", error);
+      showStatus("appStatus", error.message || "Could not share live song.", "error");
+      return;
+    }
+
+    showStatus("appStatus", `Shared live: ${song.title}`, "success");
+  } finally {
+    if (shareBtn) {
+      shareBtn.disabled = false;
+      shareBtn.style.opacity = "1";
+    }
+  }
+}
+
+function unsubscribeFromLiveSongChannel() {
+  if (liveSongChannel) {
+    supabaseClient.removeChannel(liveSongChannel);
+    liveSongChannel = null;
+  }
+}
+
+function handleIncomingLiveSongEvent(payload) {
+  const row = payload?.new;
+  if (!row) return;
+
+  const eventId = Number(row.id);
+  if (lastLiveEventId === eventId) return;
+  lastLiveEventId = eventId;
+
+  const songId = Number(row.song_id);
+  const song = preparedSongs.find(s => Number(s.id) === songId) || songs.find(s => Number(s.id) === songId);
+
+  if (!song) {
+  pendingLiveSongId = null;
+  pendingLiveEventByMe = false;
+  currentLiveSongId = null;
+  updateLiveMiniButton();
+  showLiveNowBar("A live song was shared.", "success", {
+    showOpen: false,
+    showDismiss: true
+  });
+  return;
+}
+
+  const sharedByMe = !!session?.user && row.shared_by === session.user.id;
+  const title = song.title || "Shared Song";
+  const meta = joinMeta([song.movie, song.singer]);
+
+  pendingLiveSongId = songId;
+pendingLiveEventByMe = sharedByMe;
+currentLiveSongId = songId;
+updateLiveMiniButton();
+
+ if (sharedByMe) {
+  showLiveNowBar(
+    `You shared live: ${title}${meta ? " • " + meta : ""}`,
+    "success",
+    {
+      showOpen: false,
+      showDismiss: true
+    }
+  );
+  return;
+}
+
+  triggerLiveAttention();
+
+  showLiveNowBar(
+    `Live now: ${title}${meta ? " • " + meta : ""}`,
+    "success",
+    {
+      showOpen: true,
+      showDismiss: true
+    }
+  );
+}
+
+function openPendingLiveSong() {
+  const targetSongId = pendingLiveSongId || currentLiveSongId;
+  if (!targetSongId) return;
+
+  const songId = Number(targetSongId);
+  openSong(songId);
+
+  const song = preparedSongs.find(s => Number(s.id) === songId) || songs.find(s => Number(s.id) === songId);
+  const title = song?.title || "Shared Song";
+  const meta = song ? joinMeta([song.movie, song.singer]) : "";
+
+  pendingLiveSongId = null;
+  pendingLiveEventByMe = false;
+
+  showLiveNowBar(
+    `Opened live: ${title}${meta ? " • " + meta : ""}`,
+    "success",
+    {
+      showOpen: false,
+      showDismiss: true
+    }
+  );
+}
+
+function dismissPendingLiveSong() {
+  pendingLiveSongId = null;
+  pendingLiveEventByMe = false;
+  showLiveNowBar("");
+}
+    
+function subscribeToLiveSongChannel() {
+  if (!isApproved()) return;
+  if (liveSongChannel) return;
+
+  liveSongChannel = supabaseClient
+    .channel("mehfil-live-song-events")
+    .on(
+      "postgres_changes",
+      {
+        event: "INSERT",
+        schema: "public",
+        table: "live_song_events"
+      },
+      (payload) => {
+        try {
+          handleIncomingLiveSongEvent(payload);
+        } catch (error) {
+          console.error("LIVE SONG EVENT ERROR:", error);
+        }
+      }
+    )
+    .subscribe((status) => {
+      console.log("Live song channel status:", status);
+    });
+}
     
     async function saveSong(event) {
       event.preventDefault();
@@ -2886,6 +3135,7 @@ modalBookmarkBtn.title = isFav ? "Remove from favourites" : "Add to favourites";
 modalBookmarkBtn.setAttribute("aria-label", isFav ? "Remove from favourites" : "Add to favourites");
 modalBookmarkBtn.dataset.songId = String(songId);
 
+      document.getElementById("modalShareNowBtn").classList.toggle("hidden", !isApproved());
       document.getElementById("modalEditBtn").classList.toggle("hidden", !isApproved());
       document.getElementById("modalDeleteBtn").classList.toggle("hidden", !isAdmin());
       document.getElementById("songModal").classList.add("show");
@@ -3180,7 +3430,7 @@ if (tabName !== "search") {
         openEditor();
       });
 
-      document.getElementById("songLyrics").addEventListener("input", () => {
+            document.getElementById("songLyrics").addEventListener("input", () => {
   markTextareaAutofilled(document.getElementById("songLyrics"), false);
 });
 
@@ -3211,6 +3461,9 @@ document.getElementById("songSinger").addEventListener("input", () => {
       document.getElementById("tabAdminBtn").addEventListener("click", () => activateTab("admin"));
 
       document.getElementById("refreshPendingBtn").addEventListener("click", loadPendingUsers);
+      document.getElementById("liveNowOpenBtn").addEventListener("click", openPendingLiveSong);
+document.getElementById("liveNowDismissBtn").addEventListener("click", dismissPendingLiveSong);
+      document.getElementById("liveMiniBtn").addEventListener("click", openPendingLiveSong);
 
       document.getElementById("groupMode").addEventListener("change", () => {
         expandedGroups = new Set();
@@ -3318,7 +3571,10 @@ document.getElementById("songSinger").addEventListener("input", () => {
       document.getElementById("modalBookmarkBtn").addEventListener("click", async () => {
         if (openSongId) await toggleBookmark(openSongId);
       });
-
+      document.getElementById("modalShareNowBtn").addEventListener("click", () => {
+  if (openSongId) shareSongNow(openSongId);
+});
+      
       document.getElementById("modalEditBtn").addEventListener("click", () => {
         if (openSongId) startEdit(openSongId);
       });
@@ -3335,11 +3591,18 @@ document.getElementById("songSinger").addEventListener("input", () => {
         if (e.key === "Escape") closeSongModal();
       });
 
-      supabaseClient.auth.onAuthStateChange((_event, newSession) => {
+     supabaseClient.auth.onAuthStateChange((_event, newSession) => {
   session = newSession || null;
 
   if (!session?.user) {
     unsubscribeFromSongsRealtime();
+    unsubscribeFromLiveSongChannel();
+    showLiveNowBar("");
+    lastLiveEventId = null;
+    pendingLiveSongId = null;
+    pendingLiveEventByMe = false;
+    currentLiveSongId = null;
+updateLiveMiniButton();
   }
 });
     }
