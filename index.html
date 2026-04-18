@@ -2533,9 +2533,10 @@ lastLiveEventId = null;
       renderSongGroups();
       renderFavorites();
       document.getElementById("libraryCountText").textContent = `${songs.length} songs`;
-      showStatus("appStatus", "", "info");
-      subscribeToSongsRealtime();
-      subscribeToLiveSongChannel();
+     showStatus("appStatus", "", "info");
+subscribeToSongsRealtime();
+subscribeToLiveSongChannel();
+await restoreCurrentLiveSong();
     }
 
     function sortSongsInMemory() {
@@ -2848,6 +2849,43 @@ function subscribeToLiveSongChannel() {
     .subscribe((status) => {
       console.log("Live song channel status:", status);
     });
+}
+
+    async function restoreCurrentLiveSong() {
+  if (!session?.user || !isApproved()) return;
+
+  try {
+    const { data, error } = await supabaseClient
+      .from("live_song_events")
+      .select("id, song_id, shared_by, created_at")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (error) {
+      console.error("RESTORE LIVE SONG ERROR:", error);
+      return;
+    }
+
+    if (!data || !data.song_id) {
+      currentLiveSongId = null;
+      pendingLiveSongId = null;
+      pendingLiveEventByMe = false;
+      updateLiveMiniButton();
+      showLiveNowBar("");
+      return;
+    }
+
+    currentLiveSongId = Number(data.song_id);
+    pendingLiveSongId = null;
+    pendingLiveEventByMe = false;
+    lastLiveEventId = Number(data.id) || lastLiveEventId;
+
+    updateLiveMiniButton();
+    showLiveNowBar("");
+  } catch (error) {
+    console.error("RESTORE LIVE SONG EXCEPTION:", error);
+  }
 }
     
     async function saveSong(event) {
