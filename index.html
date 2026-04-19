@@ -2533,6 +2533,7 @@ lastLiveEventId = null;
       renderSongGroups();
       renderFavorites();
       document.getElementById("libraryCountText").textContent = `${songs.length} songs`;
+      lastSongsRefreshAt = Date.now();
      showStatus("appStatus", "", "info");
 subscribeToSongsRealtime();
 subscribeToLiveSongChannel();
@@ -2569,6 +2570,20 @@ function refreshUiFromSongsState(options = {}) {
       closeSongModal();
     }
   }
+}
+
+    let lastSongsRefreshAt = 0;
+
+async function refreshSongsIfStale(force = false) {
+  if (!session?.user || !isApproved()) return;
+
+  const now = Date.now();
+  const recentlyRefreshed = now - lastSongsRefreshAt < 4000;
+
+  if (!force && recentlyRefreshed) return;
+
+  lastSongsRefreshAt = now;
+  await loadSongs();
 }
 
 function applySongRealtimeChange(eventType, row) {
@@ -3534,6 +3549,24 @@ if (tabName !== "search") {
         openEditor();
       });
 
+      document.addEventListener("visibilitychange", async () => {
+  if (document.visibilityState === "visible") {
+    try {
+      await refreshSongsIfStale(true);
+    } catch (error) {
+      console.error("VISIBILITY REFRESH ERROR:", error);
+    }
+  }
+});
+
+      window.addEventListener("focus", async () => {
+  try {
+    await refreshSongsIfStale();
+  } catch (error) {
+    console.error("FOCUS REFRESH ERROR:", error);
+  }
+});
+      
             document.getElementById("songLyrics").addEventListener("input", () => {
   markTextareaAutofilled(document.getElementById("songLyrics"), false);
 });
