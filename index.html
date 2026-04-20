@@ -1153,7 +1153,6 @@ let openSongId = null;
 let lastQuery = "";
 let activeRecognition = null;
 let expandedGroups = new Set();
-let isBootstrapping = false;
 let favoriteSongIds = new Set();
 let favoriteSongsCache = [];
 let searchInputTimer = null;
@@ -1162,7 +1161,8 @@ let liveSongChannel = null;
 let lastLiveEventId = null;
 let pendingLiveSongId = null;
 let pendingLiveEventByMe = false;
-    let currentLiveSongId = null;
+let currentLiveSongId = null;
+let lastHiddenAt = 0;
 
     function escapeHtml(text) {
       return String(text || "")
@@ -1569,15 +1569,19 @@ function getStrongQueryVariants(query) {
   const titleRomanObj = transliterateIndicWithMap(title);
   const movieRomanObj = transliterateIndicWithMap(movie);
   const singerRomanObj = transliterateIndicWithMap(singer);
-  const lyricsRomanObj = transliterateIndicWithMap(lyrics);
   const lyricsTokens = tokenizeRomanMappedLyrics(lyrics);
 
   const titleSearch = normalizeText([title, addTypoFriendlyRomanVariants(titleRomanObj.roman)].join(" "));
   const movieSearch = normalizeText([movie, addTypoFriendlyRomanVariants(movieRomanObj.roman)].join(" "));
   const singerSearch = normalizeText([singer, addTypoFriendlyRomanVariants(singerRomanObj.roman)].join(" "));
-  const lyricsSearch = normalizeText([lyrics, addTypoFriendlyRomanVariants(lyricsRomanObj.roman)].join(" "));
+  const lyricsSearch = normalizeText(lyrics);
 
-  const searchText = normalizeText([titleSearch, movieSearch, singerSearch, lyricsSearch].join(" "));
+  const movieNorm = normalizeText(movie);
+  const singerNorm = normalizeText(singer);
+  const movieParts = splitMetaParts(movie);
+  const singerParts = splitMetaParts(singer);
+
+  const searchText = normalizeText([titleSearch, movieSearch, singerSearch].join(" "));
 
   return {
     ...song,
@@ -1586,8 +1590,10 @@ function getStrongQueryVariants(query) {
     _singerSearch: singerSearch,
     _lyricsSearch: lyricsSearch,
     _searchText: searchText,
-    _lyricsRoman: lyricsRomanObj.roman,
-    _lyricsRomanMap: lyricsRomanObj.map,
+    _movieNorm: movieNorm,
+    _singerNorm: singerNorm,
+    _movieParts: movieParts,
+    _singerParts: singerParts,
     _lyricsRomanTokens: lyricsTokens
   };
 }
@@ -1626,6 +1632,20 @@ function getStrongQueryVariants(query) {
     .map(v => normalizeText(v))
     .filter(Boolean);
 }
+    function preparedFieldMatch(fullNorm, parts, query) {
+  const q = normalizeText(query);
+  if (!q) return { exact: false, starts: false, contains: false, partsContains: false };
+
+  const safeFull = String(fullNorm || "");
+  const safeParts = Array.isArray(parts) ? parts : [];
+
+  return {
+    exact: safeFull === q || safeParts.includes(q),
+    starts: safeFull.startsWith(q) || safeParts.some(p => p.startsWith(q)),
+    contains: safeFull.includes(q) || safeParts.some(p => p.includes(q)),
+    partsContains: safeParts.some(p => p.includes(q))
+  };
+}
 
 function fieldMatchesIntent(fieldValue, query) {
   const q = normalizeText(query);
@@ -1650,8 +1670,8 @@ function detectSearchIntent(query) {
   let movieHits = 0;
 
   for (const song of preparedSongs) {
-    const singerMatch = fieldMatchesIntent(song.singer, q);
-    const movieMatch = fieldMatchesIntent(song.movie, q);
+    const singerMatch = preparedFieldMatch(song._singerNorm, song._singerParts, q);
+const movieMatch = preparedFieldMatch(song._movieNorm, song._movieParts, q);
 
     if (singerMatch.exact || singerMatch.starts || singerMatch.contains) singerHits++;
     if (movieMatch.exact || movieMatch.starts || movieMatch.contains) movieHits++;
@@ -1692,8 +1712,8 @@ function detectSearchIntent(query) {
       const titleStarts = song._titleSearch.startsWith(q);
       const titleContains = anyIncludes(song._titleSearch, variants);
 
-      const singerIntentMatch = fieldMatchesIntent(song.singer, query);
-      const movieIntentMatch = fieldMatchesIntent(song.movie, query);
+      const singerIntentMatch = preparedFieldMatch(song._singerNorm, song._singerParts, query);
+const movieIntentMatch = preparedFieldMatch(song._movieNorm, song._movieParts, query);
 
       const singerContains = singerIntentMatch.contains;
       const movieContains = movieIntentMatch.contains;
@@ -2317,9 +2337,11 @@ if (replacedLyrics) {
         return;
       }
 
-      if (data?.session?.user) {
-        await ensureProfile(data.session.user, name);
-      }
+      const signupUser = data?.user || data?.session?.user || null;
+
+if (signupUser) {
+  await ensureProfile(signupUser, name);
+}
 
       showStatus(
         "authStatus",
@@ -2376,11 +2398,16 @@ if (replacedLyrics) {
 
     async function logoutUser() {
       stopActiveRecognition();
-      unsubscribeFromSongsRealtime();
-      unsubscribeFromLiveSongChannel();
+     unsubscribeFromSongsRealtime();
+unsubscribeFromLiveSongChannel();
 showLiveNowBar("");
 lastLiveEventId = null;
-      if (searchInputTimer) {
+pendingLiveSongId = null;
+pendingLiveEventByMe = false;
+currentLiveSongId = null;
+updateLiveMiniButton();
+
+if (searchInputTimer) {
   clearTimeout(searchInputTimer);
   searchInputTimer = null;
 }
@@ -2658,7 +2685,7 @@ function subscribeToSongsRealtime() {
       }
     )
     .subscribe((status) => {
-      console.log("Songs realtime status:", status);
+      //console.log("Songs realtime status:", status);
     });
 }
 
@@ -2854,7 +2881,7 @@ function subscribeToLiveSongChannel() {
       },
       (payload) => {
   try {
-    console.log("LIVE SONG EVENT RECEIVED:", payload);
+    //console.log("LIVE SONG EVENT RECEIVED:", payload);
     handleIncomingLiveSongEvent(payload);
   } catch (error) {
     console.error("LIVE SONG EVENT ERROR:", error);
@@ -2862,7 +2889,7 @@ function subscribeToLiveSongChannel() {
 }
     )
     .subscribe((status) => {
-      console.log("Live song channel status:", status);
+      //console.log("Live song channel status:", status);
     });
 }
 
@@ -3550,18 +3577,25 @@ if (tabName !== "search") {
       });
 
       document.addEventListener("visibilitychange", async () => {
-  if (document.visibilityState === "visible") {
-    try {
-      await refreshSongsIfStale(true);
-    } catch (error) {
-      console.error("VISIBILITY REFRESH ERROR:", error);
-    }
+  if (document.visibilityState === "hidden") {
+    lastHiddenAt = Date.now();
+    return;
+  }
+
+  const hiddenLongEnough = Date.now() - lastHiddenAt > 15000;
+
+  try {
+    await refreshSongsIfStale(hiddenLongEnough);
+  } catch (error) {
+    console.error("VISIBILITY REFRESH ERROR:", error);
   }
 });
 
-      window.addEventListener("focus", async () => {
+window.addEventListener("focus", async () => {
+  const hiddenLongEnough = Date.now() - lastHiddenAt > 15000;
+
   try {
-    await refreshSongsIfStale();
+    await refreshSongsIfStale(hiddenLongEnough);
   } catch (error) {
     console.error("FOCUS REFRESH ERROR:", error);
   }
