@@ -1162,6 +1162,11 @@ let lastLiveEventId = null;
 let pendingLiveSongId = null;
 let pendingLiveEventByMe = false;
 let currentLiveSongId = null;
+
+let lyricWordIndex = new Map();
+let lyricPhoneticIndex = new Map();
+let lyricCompactIndex = new Map();
+let preparedSongsById = new Map();
 let lastHiddenAt = 0;
 
     function escapeHtml(text) {
@@ -1395,15 +1400,43 @@ function buildRomanWordVariants(word) {
   const base = normalizeText(word);
   const variants = new Set([base]);
 
+  if (!base) return [];
+
   addTypoFriendlyRomanVariants(base)
     .split(/\s+/)
     .map(normalizeText)
     .filter(Boolean)
     .forEach(v => variants.add(v));
 
-  if (base.length >= 4) {
-    if (base.endsWith("e")) variants.add(base.slice(0, -1) + "i");
-    if (base.endsWith("i")) variants.add(base.slice(0, -1) + "e");
+  if (base.length >= 3) {
+    if (base.endsWith("e")) {
+      variants.add(base + "y");
+      variants.add(base.slice(0, -1) + "i");
+    }
+
+    if (base.endsWith("i")) {
+      variants.add(base.slice(0, -1) + "e");
+      variants.add(base + "y");
+    }
+
+    if (base.endsWith("o")) {
+      variants.add(base + "h");
+      variants.add(base + "on");
+    }
+
+    if (base.endsWith("a")) {
+      variants.add(base.slice(0, -1));
+    }
+
+    variants.add(base.replace(/chh/g, "cch"));
+    variants.add(base.replace(/cch/g, "chh"));
+    variants.add(base.replace(/sh/g, "ch"));
+    variants.add(base.replace(/ch/g, "sh"));
+
+    variants.add(base.replace(/tt/g, "t"));
+    variants.add(base.replace(/dd/g, "d"));
+    variants.add(base.replace(/kk/g, "k"));
+    variants.add(base.replace(/pp/g, "p"));
 
     variants.add(base.replace(/ne\b/g, "ane"));
     variants.add(base.replace(/na\b/g, "ana"));
@@ -1510,6 +1543,98 @@ function tokenizeRomanMappedLyrics(text) {
 
   return tokens;
 }
+
+function addSongIdToIndex(map, key, songId) {
+  const normalizedKey = String(key || "").trim();
+  if (!normalizedKey) return;
+
+  if (!map.has(normalizedKey)) {
+    map.set(normalizedKey, new Set());
+  }
+
+  map.get(normalizedKey).add(Number(songId));
+}
+
+function buildLyricIndexes() {
+  lyricWordIndex = new Map();
+  lyricPhoneticIndex = new Map();
+  lyricCompactIndex = new Map();
+  preparedSongsById = new Map();
+
+  for (const song of preparedSongs) {
+    const songId = Number(song.id);
+    preparedSongsById.set(songId, song);
+
+    const wordForms = new Set(song._lyricsWordForms || []);
+    const phoneticForms = new Set(song._lyricsPhoneticForms || []);
+    const compactForms = new Set(song._lyricsCompactForms || []);
+
+    wordForms.forEach(form => addSongIdToIndex(lyricWordIndex, form, songId));
+    phoneticForms.forEach(form => addSongIdToIndex(lyricPhoneticIndex, form, songId));
+    compactForms.forEach(form => addSongIdToIndex(lyricCompactIndex, form, songId));
+  }
+}
+
+function collectIndexedSongIdsForGroup(queryGroup) {
+  const hits = new Set();
+
+  queryGroup.variants.forEach(v => {
+    const key = normalizeText(v);
+    if (!key) return;
+
+    const direct = lyricWordIndex.get(key);
+    if (direct) direct.forEach(id => hits.add(id));
+  });
+
+  queryGroup.phoneticVariants.forEach(v => {
+    const key = String(v || "").trim();
+    if (!key) return;
+
+    const phonetic = lyricPhoneticIndex.get(key);
+    if (phonetic) phonetic.forEach(id => hits.add(id));
+  });
+
+  queryGroup.compactPhoneticVariants.forEach(v => {
+    const key = String(v || "").trim();
+    if (!key || key.length < 2) return;
+
+    const compact = lyricCompactIndex.get(key);
+    if (compact) compact.forEach(id => hits.add(id));
+  });
+
+  return hits;
+}
+
+function getLyricCandidateSongIds(query) {
+  const groups = buildQueryWordGroups(query).filter(g => g.raw.length >= 2);
+  if (!groups.length) return new Set();
+
+  const scoreMap = new Map();
+  const strongGroups = groups.filter(g => !g.weak);
+
+  for (const group of groups) {
+    const groupHits = collectIndexedSongIdsForGroup(group);
+    const increment = group.weak ? 1 : 2;
+
+    groupHits.forEach(songId => {
+      scoreMap.set(songId, (scoreMap.get(songId) || 0) + increment);
+    });
+  }
+
+  const requiredScore =
+    strongGroups.length <= 1 ? 2 :
+    strongGroups.length === 2 ? 3 :
+    4;
+
+  return new Set(
+    Array.from(scoreMap.entries())
+      .filter(([, score]) => score >= requiredScore)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 120)
+      .map(([songId]) => Number(songId))
+  );
+}
+    
 function bestWordScore(token, queryGroup) {
   let best = 0;
 
@@ -1581,6 +1706,24 @@ function getStrongQueryVariants(query) {
   const movieParts = splitMetaParts(movie);
   const singerParts = splitMetaParts(singer);
 
+  const lyricsWordForms = [...new Set(
+    lyricsTokens
+      .map(t => normalizeText(t.norm))
+      .filter(v => v && v.length >= 2)
+  )];
+
+  const lyricsPhoneticForms = [...new Set(
+    lyricsTokens
+      .map(t => String(t.phonetic || "").trim())
+      .filter(v => v && v.length >= 2)
+  )];
+
+  const lyricsCompactForms = [...new Set(
+    lyricsTokens
+      .map(t => String(t.compactPhonetic || "").trim())
+      .filter(v => v && v.length >= 2)
+  )];
+
   const searchText = normalizeText([titleSearch, movieSearch, singerSearch].join(" "));
 
   return {
@@ -1594,26 +1737,30 @@ function getStrongQueryVariants(query) {
     _singerNorm: singerNorm,
     _movieParts: movieParts,
     _singerParts: singerParts,
-    _lyricsRomanTokens: lyricsTokens
+    _lyricsRomanTokens: lyricsTokens,
+    _lyricsWordForms: lyricsWordForms,
+    _lyricsPhoneticForms: lyricsPhoneticForms,
+    _lyricsCompactForms: lyricsCompactForms
   };
 }
 
-    function rebuildFuse() {
-      preparedSongs = songs.map(buildPreparedSong);
-      fuse = new Fuse(preparedSongs, {
-        includeScore: true,
-        threshold: 0.36,
-        ignoreLocation: true,
-        minMatchCharLength: 2,
-        keys: [
-          { name: "_searchText", weight: 0.80 },
-          { name: "_titleSearch", weight: 0.10 },
-          { name: "_movieSearch", weight: 0.05 },
-          { name: "_singerSearch", weight: 0.05 }
-        ]
-      });
-    }
+   function rebuildFuse() {
+  preparedSongs = songs.map(buildPreparedSong);
+  buildLyricIndexes();
 
+  fuse = new Fuse(preparedSongs, {
+    includeScore: true,
+    threshold: 0.34,
+    ignoreLocation: true,
+    minMatchCharLength: 2,
+    keys: [
+      { name: "_searchText", weight: 0.82 },
+      { name: "_titleSearch", weight: 0.10 },
+      { name: "_movieSearch", weight: 0.04 },
+      { name: "_singerSearch", weight: 0.04 }
+    ]
+  });
+}
     function getQueryVariants(query) {
       const raw = String(query || "");
       const n = normalizeText(raw);
@@ -1632,6 +1779,7 @@ function getStrongQueryVariants(query) {
     .map(v => normalizeText(v))
     .filter(Boolean);
 }
+        
     function preparedFieldMatch(fullNorm, parts, query) {
   const q = normalizeText(query);
   if (!q) return { exact: false, starts: false, contains: false, partsContains: false };
@@ -1695,7 +1843,7 @@ const movieMatch = preparedFieldMatch(song._movieNorm, song._movieParts, q);
   const variants = getQueryVariants(query);
   const strongLyricVariants = getStrongQueryVariants(query);
   const intent = detectSearchIntent(query);
-  const heavyLyricAllowed = intent.type === "lyrics" && q.length >= 3;
+  const heavyLyricAllowed = intent.type === "lyrics" && q.length >= 2;
 
   const fuseResults = fuse ? fuse.search(q).slice(0, 120) : [];
   const fuseScoreMap = new Map();
@@ -1706,6 +1854,8 @@ const movieMatch = preparedFieldMatch(song._movieNorm, song._movieParts, q);
     fuseCandidateIds.add(r.item.id);
   });
 
+  const lyricIndexCandidateIds = heavyLyricAllowed ? getLyricCandidateSongIds(query) : new Set();
+
   const prelim = preparedSongs
     .map(song => {
       const titleExact = song._titleSearch === q;
@@ -1713,7 +1863,7 @@ const movieMatch = preparedFieldMatch(song._movieNorm, song._movieParts, q);
       const titleContains = anyIncludes(song._titleSearch, variants);
 
       const singerIntentMatch = preparedFieldMatch(song._singerNorm, song._singerParts, query);
-const movieIntentMatch = preparedFieldMatch(song._movieNorm, song._movieParts, query);
+      const movieIntentMatch = preparedFieldMatch(song._movieNorm, song._movieParts, query);
 
       const singerContains = singerIntentMatch.contains;
       const movieContains = movieIntentMatch.contains;
@@ -1758,9 +1908,17 @@ const movieIntentMatch = preparedFieldMatch(song._movieNorm, song._movieParts, q
 
   if (heavyLyricAllowed) {
     prelim
-      .filter(song => song._baseScore > 0 || fuseCandidateIds.has(song.id))
-      .sort((a, b) => b._baseScore - a._baseScore)
-      .slice(0, 80)
+      .filter(song =>
+        song._baseScore > 0 ||
+        fuseCandidateIds.has(song.id) ||
+        lyricIndexCandidateIds.has(song.id)
+      )
+      .sort((a, b) => {
+        const aBoost = lyricIndexCandidateIds.has(a.id) ? 1 : 0;
+        const bBoost = lyricIndexCandidateIds.has(b.id) ? 1 : 0;
+        return (b._baseScore + bBoost) - (a._baseScore + aBoost);
+      })
+      .slice(0, 120)
       .forEach(song => lyricCandidateIds.add(song.id));
   }
 
@@ -1777,14 +1935,15 @@ const movieIntentMatch = preparedFieldMatch(song._movieNorm, song._movieParts, q
           ? strongLyricVariants.some(v => song._lyricsSearch.includes(v))
           : false;
 
+        if (lyricIndexCandidateIds.has(song.id)) score += 28;
         if (strongLyricsContains) score += 14;
-        if (lyricPhraseScore > 0) score += Math.round(lyricPhraseScore * 120);
+        if (lyricPhraseScore > 0) score += Math.round(lyricPhraseScore * 130);
 
         if (!song._titleContains && !song._movieContains && !song._singerContains && lyricPhraseScore >= 0.82) {
-          score += 24;
+          score += 32;
         }
 
-        lyricsMatched = strongLyricsContains || lyricPhraseScore > 0;
+        lyricsMatched = lyricIndexCandidateIds.has(song.id) || strongLyricsContains || lyricPhraseScore > 0;
       }
 
       if (intent.type === "lyrics" && score <= 0) return null;
