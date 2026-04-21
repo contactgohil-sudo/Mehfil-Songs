@@ -2070,7 +2070,7 @@ const movieMatch = preparedFieldMatch(song._movieNorm, song._movieParts, q);
   const intent = detectSearchIntent(query);
   const heavyLyricAllowed = intent.type === "lyrics" && q.length >= 4;
 
-  const fuseResults = fuse ? fuse.search(q).slice(0, 120) : [];
+  const fuseResults = fuse ? fuse.search(q).slice(0, 40) : [];
   const fuseScoreMap = new Map();
   const fuseCandidateIds = new Set();
 
@@ -2203,7 +2203,7 @@ const movieMatch = preparedFieldMatch(song._movieNorm, song._movieParts, q);
     })
     .filter(Boolean)
     .sort((a, b) => b._score - a._score || String(a.title || "").localeCompare(String(b.title || "")))
-    .slice(0, 50);
+    .slice(0, 25);
 
   return ranked;
 }
