@@ -2028,10 +2028,47 @@ const movieMatch = preparedFieldMatch(song._movieNorm, song._movieParts, q);
   const q = normalizeText(query);
   if (!q) return [];
 
+     if (q.length < 3) {
+  const fastResults = fuse ? fuse.search(q).slice(0, 20) : [];
+
+  return fastResults
+    .map(r => {
+      const song = r.item;
+      const singerIntentMatch = fieldMatchesIntent(song.singer, query);
+      const movieIntentMatch = fieldMatchesIntent(song.movie, query);
+      const titleContains = song._titleSearch.includes(q);
+
+      let score = 0;
+      if (song._titleSearch === q) score += 120;
+      if (song._titleSearch.startsWith(q)) score += 70;
+      if (titleContains) score += 35;
+      if (singerIntentMatch.exact) score += 80;
+      else if (singerIntentMatch.starts) score += 45;
+      else if (singerIntentMatch.contains) score += 20;
+
+      if (movieIntentMatch.exact) score += 80;
+      else if (movieIntentMatch.starts) score += 45;
+      else if (movieIntentMatch.contains) score += 20;
+
+      return {
+        ...song,
+        _lyricMatchInfo: { ranges: [], score: 0 },
+        _matchType: {
+          title: titleContains,
+          movie: movieIntentMatch.contains,
+          singer: singerIntentMatch.contains,
+          lyrics: false
+        },
+        _score: score
+      };
+    })
+    .sort((a, b) => b._score - a._score || String(a.title || "").localeCompare(String(b.title || "")))
+    .slice(0, 20);
+}
   const variants = getQueryVariants(query);
   const strongLyricVariants = getStrongQueryVariants(query);
   const intent = detectSearchIntent(query);
-  const heavyLyricAllowed = intent.type === "lyrics" && q.length >= 2;
+  const heavyLyricAllowed = intent.type === "lyrics" && q.length >= 4;
 
   const fuseResults = fuse ? fuse.search(q).slice(0, 120) : [];
   const fuseScoreMap = new Map();
@@ -2350,11 +2387,9 @@ function highlightText(song, query) {
   const original = String(song.lyrics || "");
   if (!original || !query || !query.trim()) return "";
   if (!song._matchType?.lyrics) return "";
+  if (!song._lyricMatchInfo?.ranges?.length) return "";
 
-  const matchInfo = song._lyricMatchInfo || getLyricMatchInfo(song, query);
-  const ranges = matchInfo.ranges || [];
-  if (!ranges.length) return "";
-
+  const ranges = song._lyricMatchInfo.ranges;
   const [start, end] = ranges[0];
   const isMobile = window.innerWidth <= 640;
   const snippetStart = Math.max(0, start - (isMobile ? 18 : 35));
@@ -4014,7 +4049,7 @@ document.getElementById("liveNowDismissBtn").addEventListener("click", dismissPe
         renderSongGroups();
       });
 
-      document.getElementById("searchInput").addEventListener("input", (e) => {
+     document.getElementById("searchInput").addEventListener("input", (e) => {
   const nextValue = e.target.value;
   lastQuery = nextValue;
 
@@ -4024,8 +4059,9 @@ document.getElementById("liveNowDismissBtn").addEventListener("click", dismissPe
   }
 
   searchInputTimer = setTimeout(() => {
-  renderResults(searchSongs(nextValue), nextValue);
-}, 90);
+    const results = searchSongs(nextValue);
+    renderResults(results, nextValue);
+  }, 180);
 });
 
      document.getElementById("clearBtn").addEventListener("click", () => {
