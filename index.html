@@ -1191,6 +1191,109 @@ let lastHiddenAt = 0;
       return normalizeText(text);
     }
 
+    function normalizeRomanWordLoose(word) {
+  let w = normalizeText(word);
+  if (!w) return "";
+
+  w = w
+    .replace(/aa/g, "a")
+    .replace(/ii/g, "i")
+    .replace(/uu/g, "u")
+    .replace(/ee/g, "e")
+    .replace(/oo/g, "o")
+    .replace(/ai/g, "e")
+    .replace(/au/g, "o")
+    .replace(/bh/g, "b")
+    .replace(/ph/g, "f")
+    .replace(/kh/g, "k")
+    .replace(/gh/g, "g")
+    .replace(/jh/g, "j")
+    .replace(/dh/g, "d")
+    .replace(/th/g, "t")
+    .replace(/sh/g, "s")
+    .replace(/chh/g, "ch")
+    .replace(/zh/g, "j")
+    .replace(/w/g, "v")
+    .replace(/q/g, "k")
+    .replace(/x/g, "ks");
+
+  if (w.length >= 4) {
+    w = w
+      .replace(/a\b/g, "")
+      .replace(/e\b/g, "")
+      .replace(/h\b/g, "");
+  }
+
+  return w.trim();
+}
+
+function normalizeRomanPhraseLoose(text) {
+  return normalizeText(text)
+    .split(/\s+/)
+    .map(normalizeRomanWordLoose)
+    .filter(Boolean)
+    .join(" ")
+    .trim();
+}
+
+function compactRomanWord(word) {
+  return normalizeRomanWordLoose(word)
+    .replace(/[aeiou]/g, "")
+    .replace(/(.)\1+/g, "$1")
+    .trim();
+}
+
+function compactRomanPhrase(text) {
+  return normalizeText(text)
+    .split(/\s+/)
+    .map(compactRomanWord)
+    .filter(Boolean)
+    .join(" ")
+    .trim();
+}
+
+function getFastLyricCandidateScore(song, query) {
+  const queryLoose = normalizeRomanPhraseLoose(query);
+  const queryCompact = compactRomanPhrase(query);
+
+  if (!queryLoose) return 0;
+
+  let score = 0;
+
+  if (song._lyricsRomanLoose && song._lyricsRomanLoose.includes(queryLoose)) {
+    score += 260;
+  }
+
+  if (queryCompact && song._lyricsRomanCompact && song._lyricsRomanCompact.includes(queryCompact)) {
+    score += 190;
+  }
+
+  const strongWords = queryLoose
+    .split(/\s+/)
+    .filter(w => w && w.length >= 2 && !WEAK_QUERY_WORDS.has(w));
+
+  let wordHits = 0;
+
+  for (const word of strongWords) {
+    const compactWord = compactRomanWord(word);
+
+    const looseHit = song._lyricsRomanLoose && song._lyricsRomanLoose.includes(word);
+    const compactHit = compactWord && song._lyricsRomanCompact && song._lyricsRomanCompact.includes(compactWord);
+
+    if (looseHit || compactHit) {
+      wordHits++;
+    }
+  }
+
+  score += wordHits * 30;
+
+  if (strongWords.length >= 2 && wordHits >= Math.max(2, strongWords.length - 1)) {
+    score += 60;
+  }
+
+  return score;
+}
+
     function joinMeta(parts) {
       return parts.filter(Boolean).join(" • ");
     }
@@ -1801,6 +1904,7 @@ function getStrongQueryVariants(query) {
   const titleRomanObj = transliterateIndicWithMap(title);
   const movieRomanObj = transliterateIndicWithMap(movie);
   const singerRomanObj = transliterateIndicWithMap(singer);
+  const lyricsRomanObj = transliterateIndicWithMap(lyrics);
   const lyricsTokens = tokenizeRomanMappedLyrics(lyrics);
 
   const titleSearch = normalizeText([title, addTypoFriendlyRomanVariants(titleRomanObj.roman)].join(" "));
@@ -1808,31 +1912,8 @@ function getStrongQueryVariants(query) {
   const singerSearch = normalizeText([singer, addTypoFriendlyRomanVariants(singerRomanObj.roman)].join(" "));
   const lyricsSearch = normalizeText(lyrics);
 
-  const movieNorm = normalizeText(movie);
-  const singerNorm = normalizeText(singer);
-  const movieParts = splitMetaParts(movie);
-  const singerParts = splitMetaParts(singer);
-
-  const lyricsWordForms = [...new Set(
-  lyricsTokens
-    .flatMap(t => Array.isArray(t.variants) ? t.variants : [t.norm])
-    .map(normalizeText)
-    .filter(v => v && v.length >= 2)
-)];
-
-const lyricsPhoneticForms = [...new Set(
-  lyricsTokens
-    .flatMap(t => Array.isArray(t.phoneticVariants) ? t.phoneticVariants : [t.phonetic])
-    .map(v => String(v || "").trim())
-    .filter(v => v && v.length >= 2)
-)];
-
-const lyricsCompactForms = [...new Set(
-  lyricsTokens
-    .flatMap(t => Array.isArray(t.compactVariants) ? t.compactVariants : [t.compactPhonetic])
-    .map(v => String(v || "").trim())
-    .filter(v => v && v.length >= 2)
-)];
+  const lyricsRomanLoose = normalizeRomanPhraseLoose(lyricsRomanObj.roman || lyrics);
+  const lyricsRomanCompact = compactRomanPhrase(lyricsRomanObj.roman || lyrics);
 
   const searchText = normalizeText([titleSearch, movieSearch, singerSearch].join(" "));
 
@@ -1843,14 +1924,11 @@ const lyricsCompactForms = [...new Set(
     _singerSearch: singerSearch,
     _lyricsSearch: lyricsSearch,
     _searchText: searchText,
-    _movieNorm: movieNorm,
-    _singerNorm: singerNorm,
-    _movieParts: movieParts,
-    _singerParts: singerParts,
+    _lyricsRoman: lyricsRomanObj.roman,
+    _lyricsRomanMap: lyricsRomanObj.map,
     _lyricsRomanTokens: lyricsTokens,
-    _lyricsWordForms: lyricsWordForms,
-    _lyricsPhoneticForms: lyricsPhoneticForms,
-    _lyricsCompactForms: lyricsCompactForms
+    _lyricsRomanLoose: lyricsRomanLoose,
+    _lyricsRomanCompact: lyricsRomanCompact
   };
 }
 
@@ -1964,16 +2042,14 @@ const movieMatch = preparedFieldMatch(song._movieNorm, song._movieParts, q);
     fuseCandidateIds.add(r.item.id);
   });
 
-  const lyricIndexCandidateIds = heavyLyricAllowed ? getLyricCandidateSongIds(query) : new Set();
-
   const prelim = preparedSongs
     .map(song => {
       const titleExact = song._titleSearch === q;
       const titleStarts = song._titleSearch.startsWith(q);
       const titleContains = anyIncludes(song._titleSearch, variants);
 
-      const singerIntentMatch = preparedFieldMatch(song._singerNorm, song._singerParts, query);
-      const movieIntentMatch = preparedFieldMatch(song._movieNorm, song._movieParts, query);
+      const singerIntentMatch = fieldMatchesIntent(song.singer, query);
+      const movieIntentMatch = fieldMatchesIntent(song.movie, query);
 
       const singerContains = singerIntentMatch.contains;
       const movieContains = movieIntentMatch.contains;
@@ -2002,11 +2078,14 @@ const movieMatch = preparedFieldMatch(song._movieNorm, song._movieParts, q);
         score += 120;
       }
 
+      const fastLyricScore = heavyLyricAllowed ? getFastLyricCandidateScore(song, query) : 0;
+
       score += fuseScoreMap.get(song.id) || 0;
 
       return {
         ...song,
         _baseScore: score,
+        _fastLyricScore: fastLyricScore,
         _titleContains: titleContains,
         _movieContains: movieContains,
         _singerContains: singerContains
@@ -2020,14 +2099,10 @@ const movieMatch = preparedFieldMatch(song._movieNorm, song._movieParts, q);
     prelim
       .filter(song =>
         song._baseScore > 0 ||
-        fuseCandidateIds.has(song.id) ||
-        lyricIndexCandidateIds.has(song.id)
+        song._fastLyricScore > 0 ||
+        fuseCandidateIds.has(song.id)
       )
-      .sort((a, b) => {
-        const aBoost = lyricIndexCandidateIds.has(a.id) ? 1 : 0;
-        const bBoost = lyricIndexCandidateIds.has(b.id) ? 1 : 0;
-        return (b._baseScore + bBoost) - (a._baseScore + aBoost);
-      })
+      .sort((a, b) => (b._baseScore + b._fastLyricScore) - (a._baseScore + a._fastLyricScore))
       .slice(0, 120)
       .forEach(song => lyricCandidateIds.add(song.id));
   }
@@ -2045,19 +2120,35 @@ const movieMatch = preparedFieldMatch(song._movieNorm, song._movieParts, q);
           ? strongLyricVariants.some(v => song._lyricsSearch.includes(v))
           : false;
 
-        if (lyricIndexCandidateIds.has(song.id)) score += 28;
-        if (strongLyricsContains) score += 14;
-        if (lyricPhraseScore > 0) score += Math.round(lyricPhraseScore * 130);
+        score += song._fastLyricScore || 0;
 
-        if (!song._titleContains && !song._movieContains && !song._singerContains && lyricPhraseScore >= 0.82) {
-          score += 32;
+        if (strongLyricsContains) score += 14;
+        if (lyricPhraseScore > 0) score += Math.round(lyricPhraseScore * 135);
+
+        if (
+          !song._titleContains &&
+          !song._movieContains &&
+          !song._singerContains &&
+          (song._fastLyricScore >= 190 || lyricPhraseScore >= 0.82)
+        ) {
+          score += 40;
         }
 
-        lyricsMatched = lyricIndexCandidateIds.has(song.id) || strongLyricsContains || lyricPhraseScore > 0;
+        lyricsMatched =
+          (song._fastLyricScore > 0) ||
+          strongLyricsContains ||
+          lyricPhraseScore > 0;
       }
 
       if (intent.type === "lyrics" && score <= 0) return null;
-      if (intent.type === "lyrics" && !song._titleContains && !song._movieContains && !song._singerContains && !lyricsMatched) {
+
+      if (
+        intent.type === "lyrics" &&
+        !song._titleContains &&
+        !song._movieContains &&
+        !song._singerContains &&
+        !lyricsMatched
+      ) {
         return null;
       }
 
@@ -2820,17 +2911,23 @@ if (searchInputTimer) {
         return;
       }
 
-      songs = data || [];
-      rebuildFuse();
-      await loadBookmarks();
-      refreshSuggestionLists();
-      checkEditorDuplicateState();
-      renderResults([], "");
-      renderSongGroups();
-      renderFavorites();
-      document.getElementById("libraryCountText").textContent = `${songs.length} songs`;
-      lastSongsRefreshAt = Date.now();
-     showStatus("appStatus", "", "info");
+     songs = data || [];
+rebuildFuse();
+await loadBookmarks();
+refreshSuggestionLists();
+checkEditorDuplicateState();
+
+if (lastQuery.trim()) {
+  renderResults(searchSongs(lastQuery), lastQuery);
+} else {
+  renderResults([], "");
+}
+
+renderSongGroups();
+renderFavorites();
+document.getElementById("libraryCountText").textContent = `${songs.length} songs`;
+lastSongsRefreshAt = Date.now();
+showStatus("appStatus", "", "info");
 subscribeToSongsRealtime();
 subscribeToLiveSongChannel();
 await restoreCurrentLiveSong();
@@ -2954,7 +3051,7 @@ function subscribeToSongsRealtime() {
       }
     )
     .subscribe((status) => {
-      //console.log("Songs realtime status:", status);
+     
     });
 }
 
@@ -3150,15 +3247,14 @@ function subscribeToLiveSongChannel() {
       },
       (payload) => {
   try {
-    //console.log("LIVE SONG EVENT RECEIVED:", payload);
-    handleIncomingLiveSongEvent(payload);
+       handleIncomingLiveSongEvent(payload);
   } catch (error) {
     console.error("LIVE SONG EVENT ERROR:", error);
   }
 }
     )
     .subscribe((status) => {
-      //console.log("Live song channel status:", status);
+      
     });
 }
 
@@ -3920,8 +4016,8 @@ document.getElementById("liveNowDismissBtn").addEventListener("click", dismissPe
   }
 
   searchInputTimer = setTimeout(() => {
-    renderResults(searchSongs(nextValue), nextValue);
-  }, 120);
+  renderResults(searchSongs(nextValue), nextValue);
+}, 90);
 });
 
      document.getElementById("clearBtn").addEventListener("click", () => {
