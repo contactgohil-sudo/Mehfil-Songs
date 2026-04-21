@@ -1168,6 +1168,9 @@ let lyricPhoneticIndex = new Map();
 let lyricCompactIndex = new Map();
 let preparedSongsById = new Map();
 let lastHiddenAt = 0;
+let lastResumeHandledAt = 0;
+
+const BACKGROUND_REFRESH_MIN_MS = 5 * 60 * 1000;
 
     function escapeHtml(text) {
       return String(text || "")
@@ -1907,6 +1910,14 @@ function getStrongQueryVariants(query) {
   const lyricsRomanObj = transliterateIndicWithMap(lyrics);
   const lyricsTokens = tokenizeRomanMappedLyrics(lyrics);
 
+  const titleNorm = normalizeText(title);
+  const movieNorm = normalizeText(movie);
+  const singerNorm = normalizeText(singer);
+
+  const titleParts = splitMetaParts(title);
+  const movieParts = splitMetaParts(movie);
+  const singerParts = splitMetaParts(singer);
+
   const titleSearch = normalizeText([title, addTypoFriendlyRomanVariants(titleRomanObj.roman)].join(" "));
   const movieSearch = normalizeText([movie, addTypoFriendlyRomanVariants(movieRomanObj.roman)].join(" "));
   const singerSearch = normalizeText([singer, addTypoFriendlyRomanVariants(singerRomanObj.roman)].join(" "));
@@ -1915,10 +1926,51 @@ function getStrongQueryVariants(query) {
   const lyricsRomanLoose = normalizeRomanPhraseLoose(lyricsRomanObj.roman || lyrics);
   const lyricsRomanCompact = compactRomanPhrase(lyricsRomanObj.roman || lyrics);
 
+  const lyricWordForms = new Set();
+  const lyricPhoneticForms = new Set();
+  const lyricCompactForms = new Set();
+
+  for (const token of lyricsTokens) {
+    if (token.norm) {
+      lyricWordForms.add(token.norm);
+    }
+
+    for (const form of (token.variants || [])) {
+      const normalized = normalizeText(form);
+      if (normalized) lyricWordForms.add(normalized);
+    }
+
+    if (token.phonetic) {
+      const normalized = String(token.phonetic).trim();
+      if (normalized) lyricPhoneticForms.add(normalized);
+    }
+
+    for (const form of (token.phoneticVariants || [])) {
+      const normalized = String(form || "").trim();
+      if (normalized) lyricPhoneticForms.add(normalized);
+    }
+
+    if (token.compactPhonetic) {
+      const normalized = String(token.compactPhonetic).trim();
+      if (normalized) lyricCompactForms.add(normalized);
+    }
+
+    for (const form of (token.compactVariants || [])) {
+      const normalized = String(form || "").trim();
+      if (normalized) lyricCompactForms.add(normalized);
+    }
+  }
+
   const searchText = normalizeText([titleSearch, movieSearch, singerSearch].join(" "));
 
   return {
     ...song,
+    _titleNorm: titleNorm,
+    _movieNorm: movieNorm,
+    _singerNorm: singerNorm,
+    _titleParts: titleParts,
+    _movieParts: movieParts,
+    _singerParts: singerParts,
     _titleSearch: titleSearch,
     _movieSearch: movieSearch,
     _singerSearch: singerSearch,
@@ -1928,7 +1980,10 @@ function getStrongQueryVariants(query) {
     _lyricsRomanMap: lyricsRomanObj.map,
     _lyricsRomanTokens: lyricsTokens,
     _lyricsRomanLoose: lyricsRomanLoose,
-    _lyricsRomanCompact: lyricsRomanCompact
+    _lyricsRomanCompact: lyricsRomanCompact,
+    _lyricsWordForms: Array.from(lyricWordForms),
+    _lyricsPhoneticForms: Array.from(lyricPhoneticForms),
+    _lyricsCompactForms: Array.from(lyricCompactForms)
   };
 }
 
@@ -2002,15 +2057,22 @@ function detectSearchIntent(query) {
   const q = normalizeText(query);
   if (!q) return { type: "none" };
 
+  let titleHits = 0;
   let singerHits = 0;
   let movieHits = 0;
 
   for (const song of preparedSongs) {
+    const titleMatch = preparedFieldMatch(song._titleNorm, song._titleParts, q);
     const singerMatch = preparedFieldMatch(song._singerNorm, song._singerParts, q);
-const movieMatch = preparedFieldMatch(song._movieNorm, song._movieParts, q);
+    const movieMatch = preparedFieldMatch(song._movieNorm, song._movieParts, q);
 
+    if (titleMatch.exact || titleMatch.starts || titleMatch.contains) titleHits++;
     if (singerMatch.exact || singerMatch.starts || singerMatch.contains) singerHits++;
     if (movieMatch.exact || movieMatch.starts || movieMatch.contains) movieHits++;
+  }
+
+  if (titleHits > 0 && titleHits >= singerHits && titleHits >= movieHits) {
+    return { type: "title", hits: titleHits };
   }
 
   if (singerHits > 0 && singerHits >= movieHits) {
@@ -2028,74 +2090,81 @@ const movieMatch = preparedFieldMatch(song._movieNorm, song._movieParts, q);
   const q = normalizeText(query);
   if (!q) return [];
 
-     if (q.length < 3) {
-  const fastResults = fuse ? fuse.search(q).slice(0, 20) : [];
+  const intent = detectSearchIntent(query);
 
-  return fastResults
-    .map(r => {
-      const song = r.item;
-      const singerIntentMatch = fieldMatchesIntent(song.singer, query);
-      const movieIntentMatch = fieldMatchesIntent(song.movie, query);
-      const titleContains = song._titleSearch.includes(q);
+  if (q.length < 3) {
+    const fastResults = fuse ? fuse.search(q).slice(0, 20) : [];
 
-      let score = 0;
-      if (song._titleSearch === q) score += 120;
-      if (song._titleSearch.startsWith(q)) score += 70;
-      if (titleContains) score += 35;
-      if (singerIntentMatch.exact) score += 80;
-      else if (singerIntentMatch.starts) score += 45;
-      else if (singerIntentMatch.contains) score += 20;
+    return fastResults
+      .map(r => {
+        const song = r.item;
 
-      if (movieIntentMatch.exact) score += 80;
-      else if (movieIntentMatch.starts) score += 45;
-      else if (movieIntentMatch.contains) score += 20;
+        const titleIntentMatch = preparedFieldMatch(song._titleNorm, song._titleParts, q);
+        const singerIntentMatch = preparedFieldMatch(song._singerNorm, song._singerParts, q);
+        const movieIntentMatch = preparedFieldMatch(song._movieNorm, song._movieParts, q);
 
-      return {
-        ...song,
-        _lyricMatchInfo: { ranges: [], score: 0 },
-        _matchType: {
-          title: titleContains,
-          movie: movieIntentMatch.contains,
-          singer: singerIntentMatch.contains,
-          lyrics: false
-        },
-        _score: score
-      };
-    })
-    .sort((a, b) => b._score - a._score || String(a.title || "").localeCompare(String(b.title || "")))
-    .slice(0, 20);
-}
+        const titleContains = titleIntentMatch.contains || song._titleSearch.includes(q);
+
+        let score = 0;
+
+        if (titleIntentMatch.exact) score += 120;
+        else if (titleIntentMatch.starts) score += 70;
+        else if (titleContains) score += 35;
+
+        if (singerIntentMatch.exact) score += 80;
+        else if (singerIntentMatch.starts) score += 45;
+        else if (singerIntentMatch.contains) score += 20;
+
+        if (movieIntentMatch.exact) score += 80;
+        else if (movieIntentMatch.starts) score += 45;
+        else if (movieIntentMatch.contains) score += 20;
+
+        return {
+          ...song,
+          _lyricMatchInfo: { ranges: [], score: 0 },
+          _matchType: {
+            title: titleContains,
+            movie: movieIntentMatch.contains,
+            singer: singerIntentMatch.contains,
+            lyrics: false
+          },
+          _score: score
+        };
+      })
+      .sort((a, b) => b._score - a._score || String(a.title || "").localeCompare(String(b.title || "")))
+      .slice(0, 20);
+  }
+
   const variants = getQueryVariants(query);
   const strongLyricVariants = getStrongQueryVariants(query);
-  const intent = detectSearchIntent(query);
   const heavyLyricAllowed = intent.type === "lyrics" && q.length >= 4;
 
   const fuseResults = fuse ? fuse.search(q).slice(0, 40) : [];
   const fuseScoreMap = new Map();
   const fuseCandidateIds = new Set();
 
-  fuseResults.forEach(r => {
-    fuseScoreMap.set(r.item.id, Math.max(0, Math.round((1 - (r.score || 1)) * 18)));
-    fuseCandidateIds.add(r.item.id);
-  });
+  for (const result of fuseResults) {
+    fuseScoreMap.set(result.item.id, Math.max(0, Math.round((1 - (result.score || 1)) * 18)));
+    fuseCandidateIds.add(Number(result.item.id));
+  }
+
+  const indexedLyricCandidateIds = heavyLyricAllowed ? getLyricCandidateSongIds(query) : new Set();
 
   const prelim = preparedSongs
     .map(song => {
-      const titleExact = song._titleSearch === q;
-      const titleStarts = song._titleSearch.startsWith(q);
-      const titleContains = anyIncludes(song._titleSearch, variants);
+      const titleIntentMatch = preparedFieldMatch(song._titleNorm, song._titleParts, q);
+      const singerIntentMatch = preparedFieldMatch(song._singerNorm, song._singerParts, q);
+      const movieIntentMatch = preparedFieldMatch(song._movieNorm, song._movieParts, q);
 
-      const singerIntentMatch = fieldMatchesIntent(song.singer, query);
-      const movieIntentMatch = fieldMatchesIntent(song.movie, query);
-
+      const titleContains = titleIntentMatch.contains || anyIncludes(song._titleSearch, variants);
       const singerContains = singerIntentMatch.contains;
       const movieContains = movieIntentMatch.contains;
 
       let score = 0;
 
-      if (titleExact) score += 120;
-      if (titleStarts) score += 70;
-      if (titleContains) score += 35;
+      if (titleIntentMatch.exact) score += 120;
+      else if (titleIntentMatch.starts) score += 70;
+      else if (titleContains) score += 35;
 
       if (movieIntentMatch.exact) score += 140;
       else if (movieIntentMatch.starts) score += 90;
@@ -2105,19 +2174,34 @@ const movieMatch = preparedFieldMatch(song._movieNorm, song._movieParts, q);
       else if (singerIntentMatch.starts) score += 90;
       else if (singerIntentMatch.contains) score += 45;
 
+      if (intent.type === "title") {
+        if (!titleContains) return null;
+        score += 120;
+      }
+
       if (intent.type === "movie") {
-        if (!movieIntentMatch.contains && !titleContains) return null;
+        if (!movieContains && !titleContains) return null;
         score += 120;
       }
 
       if (intent.type === "singer") {
-        if (!singerIntentMatch.contains && !titleContains) return null;
+        if (!singerContains && !titleContains) return null;
         score += 120;
       }
 
       const fastLyricScore = heavyLyricAllowed ? getFastLyricCandidateScore(song, query) : 0;
 
       score += fuseScoreMap.get(song.id) || 0;
+
+      if (
+        intent.type === "lyrics" &&
+        score <= 0 &&
+        !indexedLyricCandidateIds.has(Number(song.id)) &&
+        fastLyricScore <= 0 &&
+        !fuseCandidateIds.has(Number(song.id))
+      ) {
+        return null;
+      }
 
       return {
         ...song,
@@ -2130,18 +2214,23 @@ const movieMatch = preparedFieldMatch(song._movieNorm, song._movieParts, q);
     })
     .filter(Boolean);
 
-  const lyricCandidateIds = new Set();
+  const deepLyricMatchIds = new Set();
 
   if (heavyLyricAllowed) {
+    Array.from(indexedLyricCandidateIds)
+      .slice(0, 80)
+      .forEach(songId => deepLyricMatchIds.add(Number(songId)));
+
     prelim
       .filter(song =>
         song._baseScore > 0 ||
         song._fastLyricScore > 0 ||
-        fuseCandidateIds.has(song.id)
+        fuseCandidateIds.has(Number(song.id)) ||
+        indexedLyricCandidateIds.has(Number(song.id))
       )
       .sort((a, b) => (b._baseScore + b._fastLyricScore) - (a._baseScore + a._fastLyricScore))
-      .slice(0, 120)
-      .forEach(song => lyricCandidateIds.add(song.id));
+      .slice(0, 60)
+      .forEach(song => deepLyricMatchIds.add(Number(song.id)));
   }
 
   const ranked = prelim
@@ -2150,7 +2239,7 @@ const movieMatch = preparedFieldMatch(song._movieNorm, song._movieParts, q);
       let lyricInfo = { ranges: [], score: 0 };
       let lyricsMatched = false;
 
-      if (heavyLyricAllowed && lyricCandidateIds.has(song.id)) {
+      if (heavyLyricAllowed && deepLyricMatchIds.has(Number(song.id))) {
         lyricInfo = getLyricMatchInfo(song, query);
         const lyricPhraseScore = lyricInfo.score || 0;
         const strongLyricsContains = strongLyricVariants.length
@@ -2159,6 +2248,7 @@ const movieMatch = preparedFieldMatch(song._movieNorm, song._movieParts, q);
 
         score += song._fastLyricScore || 0;
 
+        if (indexedLyricCandidateIds.has(Number(song.id))) score += 24;
         if (strongLyricsContains) score += 14;
         if (lyricPhraseScore > 0) score += Math.round(lyricPhraseScore * 135);
 
@@ -2173,6 +2263,7 @@ const movieMatch = preparedFieldMatch(song._movieNorm, song._movieParts, q);
 
         lyricsMatched =
           (song._fastLyricScore > 0) ||
+          indexedLyricCandidateIds.has(Number(song.id)) ||
           strongLyricsContains ||
           lyricPhraseScore > 0;
       }
@@ -3021,6 +3112,26 @@ async function refreshSongsIfStale(force = false) {
   lastSongsRefreshAt = now;
   await loadSongs({ silent: true });
 }
+
+   async function handleResumeFromBackground() {
+  if (!session?.user || !isApproved()) return;
+
+  const now = Date.now();
+
+  if (now - lastResumeHandledAt < 2000) {
+    return;
+  }
+
+  lastResumeHandledAt = now;
+
+  await restoreCurrentLiveSong();
+
+  const hiddenForMs = lastHiddenAt ? (now - lastHiddenAt) : 0;
+
+  if (hiddenForMs >= BACKGROUND_REFRESH_MIN_MS) {
+    await refreshSongsIfStale(true);
+  }
+} 
 
 function applySongRealtimeChange(eventType, row) {
   if (!row) return;
@@ -3990,22 +4101,20 @@ if (tabName !== "search") {
     return;
   }
 
-  const hiddenLongEnough = Date.now() - lastHiddenAt > 45000;
-
   try {
-    await refreshSongsIfStale(hiddenLongEnough);
+    await handleResumeFromBackground();
   } catch (error) {
-    console.error("VISIBILITY REFRESH ERROR:", error);
+    console.error("VISIBILITY RESUME ERROR:", error);
   }
 });
 
 window.addEventListener("focus", async () => {
-  const hiddenLongEnough = Date.now() - lastHiddenAt > 15000;
+  if (document.visibilityState !== "visible") return;
 
   try {
-    await refreshSongsIfStale(hiddenLongEnough);
+    await handleResumeFromBackground();
   } catch (error) {
-    console.error("FOCUS REFRESH ERROR:", error);
+    console.error("FOCUS RESUME ERROR:", error);
   }
 });
       
