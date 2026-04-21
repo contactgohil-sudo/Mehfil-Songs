@@ -2895,43 +2895,51 @@ if (searchInputTimer) {
       }
     }
 
-    async function loadSongs() {
-      if (!isApproved()) return;
+   async function loadSongs(options = {}) {
+  const { silent = false } = options;
 
-      showStatus("appStatus", "Loading songs...", "info");
+  if (!isApproved()) return;
 
-      const { data, error } = await supabaseClient
-        .from("songs")
-        .select("*")
-        .order("title", { ascending: true });
+  if (!silent) {
+    showStatus("appStatus", "Loading songs...", "info");
+  }
 
-      if (error) {
-        console.error("LOAD SONGS ERROR:", error);
-        showStatus("appStatus", error.message, "error");
-        return;
-      }
+  const { data, error } = await supabaseClient
+    .from("songs")
+    .select("*")
+    .order("title", { ascending: true });
 
-     songs = data || [];
-rebuildFuse();
-await loadBookmarks();
-refreshSuggestionLists();
-checkEditorDuplicateState();
+  if (error) {
+    console.error("LOAD SONGS ERROR:", error);
+    showStatus("appStatus", error.message, "error");
+    return;
+  }
 
-if (lastQuery.trim()) {
-  renderResults(searchSongs(lastQuery), lastQuery);
-} else {
-  renderResults([], "");
+  songs = data || [];
+  rebuildFuse();
+  await loadBookmarks();
+  refreshSuggestionLists();
+  checkEditorDuplicateState();
+
+  if (lastQuery.trim()) {
+    renderResults(searchSongs(lastQuery), lastQuery);
+  } else {
+    renderResults([], "");
+  }
+
+  renderSongGroups();
+  renderFavorites();
+  document.getElementById("libraryCountText").textContent = `${songs.length} songs`;
+  lastSongsRefreshAt = Date.now();
+
+  if (!silent) {
+    showStatus("appStatus", "", "info");
+  }
+
+  subscribeToSongsRealtime();
+  subscribeToLiveSongChannel();
+  await restoreCurrentLiveSong();
 }
-
-renderSongGroups();
-renderFavorites();
-document.getElementById("libraryCountText").textContent = `${songs.length} songs`;
-lastSongsRefreshAt = Date.now();
-showStatus("appStatus", "", "info");
-subscribeToSongsRealtime();
-subscribeToLiveSongChannel();
-await restoreCurrentLiveSong();
-    }
 
     function sortSongsInMemory() {
   songs.sort((a, b) => String(a.title || "").localeCompare(String(b.title || "")));
@@ -2971,12 +2979,12 @@ async function refreshSongsIfStale(force = false) {
   if (!session?.user || !isApproved()) return;
 
   const now = Date.now();
-  const recentlyRefreshed = now - lastSongsRefreshAt < 4000;
+  const recentlyRefreshed = now - lastSongsRefreshAt < 15000;
 
   if (!force && recentlyRefreshed) return;
 
   lastSongsRefreshAt = now;
-  await loadSongs();
+  await loadSongs({ silent: true });
 }
 
 function applySongRealtimeChange(eventType, row) {
@@ -3947,7 +3955,7 @@ if (tabName !== "search") {
     return;
   }
 
-  const hiddenLongEnough = Date.now() - lastHiddenAt > 15000;
+  const hiddenLongEnough = Date.now() - lastHiddenAt > 45000;
 
   try {
     await refreshSongsIfStale(hiddenLongEnough);
