@@ -1452,6 +1452,63 @@ function buildRomanWordVariants(word) {
   return Array.from(variants).filter(Boolean);
 }
 
+    function buildIndexedLyricRomanVariants(word) {
+  const base = normalizeText(word);
+  const variants = new Set();
+
+  if (!base) return [];
+
+  variants.add(base);
+
+  const typoVariants = addTypoFriendlyRomanVariants(base)
+    .split(/\s+/)
+    .map(normalizeText)
+    .filter(Boolean);
+
+  typoVariants.forEach(v => variants.add(v));
+
+  // common vowel simplifications
+  variants.add(base.replace(/aa/g, "a"));
+  variants.add(base.replace(/ii/g, "i"));
+  variants.add(base.replace(/uu/g, "u"));
+  variants.add(base.replace(/ee/g, "e"));
+  variants.add(base.replace(/oo/g, "o"));
+
+  // common Roman alternates
+  variants.add(base.replace(/sh/g, "s"));
+  variants.add(base.replace(/chh/g, "ch"));
+  variants.add(base.replace(/bh/g, "b"));
+  variants.add(base.replace(/ph/g, "f"));
+  variants.add(base.replace(/v/g, "w"));
+  variants.add(base.replace(/w/g, "v"));
+
+  // nasal simplifications
+  variants.add(base.replace(/an/g, "n"));
+  variants.add(base.replace(/am/g, "m"));
+  variants.add(base.replace(/aan/g, "an"));
+  variants.add(base.replace(/aam/g, "am"));
+
+  // common Hindi schwa-drop style endings
+  variants.add(base.replace(/a\b/g, ""));
+  variants.add(base.replace(/aa\b/g, "a"));
+  variants.add(base.replace(/iya\b/g, "ia"));
+  variants.add(base.replace(/iya\b/g, "ya"));
+  variants.add(base.replace(/ta\b/g, "te"));
+  variants.add(base.replace(/da\b/g, "d"));
+  variants.add(base.replace(/ra\b/g, "r"));
+  variants.add(base.replace(/ha\b/g, "h"));
+
+  // extra practical alternates
+  variants.add(base.replace(/eh/g, "e"));
+  variants.add(base.replace(/eh/g, "ai"));
+  variants.add(base.replace(/ai/g, "e"));
+  variants.add(base.replace(/au/g, "o"));
+
+  return Array.from(variants)
+    .map(normalizeText)
+    .filter(Boolean);
+}
+
 function editDistance(a, b) {
   const m = a.length;
   const n = b.length;
@@ -1489,14 +1546,35 @@ function buildQueryWordGroups(query) {
   const words = normalizeText(query).split(/\s+/).filter(Boolean);
 
   return words.map(word => {
-    const finalVariants = buildRomanWordVariants(word);
+    const finalVariants = new Set(buildRomanWordVariants(word));
+
+    if (word.length >= 3) {
+      finalVariants.add(word.replace(/aa/g, "a"));
+      finalVariants.add(word.replace(/a/g, "aa"));
+      finalVariants.add(word.replace(/e/g, "eh"));
+      finalVariants.add(word.replace(/eh/g, "e"));
+      finalVariants.add(word.replace(/ai/g, "e"));
+      finalVariants.add(word.replace(/e/g, "ai"));
+      finalVariants.add(word.replace(/oo/g, "u"));
+      finalVariants.add(word.replace(/u/g, "oo"));
+      finalVariants.add(word.replace(/d/g, "dh"));
+      finalVariants.add(word.replace(/dh/g, "d"));
+      finalVariants.add(word.replace(/t/g, "th"));
+      finalVariants.add(word.replace(/th/g, "t"));
+      finalVariants.add(word.replace(/ra/g, "re"));
+      finalVariants.add(word.replace(/re/g, "ra"));
+    }
+
+    const variants = Array.from(finalVariants)
+      .map(normalizeText)
+      .filter(Boolean);
 
     return {
       raw: word,
       weak: WEAK_QUERY_WORDS.has(word),
-      variants: finalVariants,
-      phoneticVariants: finalVariants.map(toPhoneticKey),
-      compactPhoneticVariants: finalVariants.map(toCompactPhoneticKey)
+      variants,
+      phoneticVariants: variants.map(toPhoneticKey),
+      compactPhoneticVariants: variants.map(toCompactPhoneticKey)
     };
   });
 }
@@ -1527,10 +1605,17 @@ function tokenizeRomanMappedLyrics(text) {
         const endMap = romanMap[wordEnd - 1];
 
         if (startMap && endMap) {
+          const variants = buildIndexedLyricRomanVariants(normWord);
+          const phoneticVariants = [...new Set(variants.map(toPhoneticKey).filter(Boolean))];
+          const compactVariants = [...new Set(variants.map(toCompactPhoneticKey).filter(Boolean))];
+
           tokens.push({
             norm: normWord,
             phonetic: toPhoneticKey(normWord),
             compactPhonetic: toCompactPhoneticKey(normWord),
+            variants,
+            phoneticVariants,
+            compactVariants,
             start: startMap.start,
             end: endMap.end
           });
@@ -1624,7 +1709,7 @@ function getLyricCandidateSongIds(query) {
   const requiredScore =
     strongGroups.length <= 1 ? 2 :
     strongGroups.length === 2 ? 3 :
-    4;
+    3;
 
   return new Set(
     Array.from(scoreMap.entries())
@@ -1638,21 +1723,43 @@ function getLyricCandidateSongIds(query) {
 function bestWordScore(token, queryGroup) {
   let best = 0;
 
+  const tokenVariants = Array.isArray(token.variants) && token.variants.length
+    ? token.variants
+    : [token.norm];
+
+  const tokenPhonetics = Array.isArray(token.phoneticVariants) && token.phoneticVariants.length
+    ? token.phoneticVariants
+    : [token.phonetic];
+
+  const tokenCompacts = Array.isArray(token.compactVariants) && token.compactVariants.length
+    ? token.compactVariants
+    : [token.compactPhonetic];
+
   for (let i = 0; i < queryGroup.variants.length; i++) {
-    const rawScore = similarityScore(token.norm, queryGroup.variants[i]);
-    const phoneticScore = similarityScore(token.phonetic, queryGroup.phoneticVariants[i]);
-    const compactScore = similarityScore(
-      token.compactPhonetic || "",
-      queryGroup.compactPhoneticVariants[i] || ""
-    );
+    const queryVariant = queryGroup.variants[i];
+    const queryPhonetic = queryGroup.phoneticVariants[i] || "";
+    const queryCompact = queryGroup.compactPhoneticVariants[i] || "";
 
-    let score = Math.max(rawScore, phoneticScore, compactScore);
-
-    if (compactScore >= 0.9 && rawScore < 0.72) {
-      score = Math.max(score, 0.86);
+    for (const tokenVariant of tokenVariants) {
+      const rawScore = similarityScore(tokenVariant, queryVariant);
+      if (rawScore > best) best = rawScore;
     }
 
-    if (score > best) best = score;
+    for (const tokenPhonetic of tokenPhonetics) {
+      const phoneticScore = similarityScore(tokenPhonetic || "", queryPhonetic);
+      if (phoneticScore > best) best = phoneticScore;
+    }
+
+    for (const tokenCompact of tokenCompacts) {
+      const compactScore = similarityScore(tokenCompact || "", queryCompact);
+      let score = compactScore;
+
+      if (compactScore >= 0.9) {
+        score = Math.max(score, 0.86);
+      }
+
+      if (score > best) best = score;
+    }
   }
 
   return best;
@@ -1707,22 +1814,25 @@ function getStrongQueryVariants(query) {
   const singerParts = splitMetaParts(singer);
 
   const lyricsWordForms = [...new Set(
-    lyricsTokens
-      .map(t => normalizeText(t.norm))
-      .filter(v => v && v.length >= 2)
-  )];
+  lyricsTokens
+    .flatMap(t => Array.isArray(t.variants) ? t.variants : [t.norm])
+    .map(normalizeText)
+    .filter(v => v && v.length >= 2)
+)];
 
-  const lyricsPhoneticForms = [...new Set(
-    lyricsTokens
-      .map(t => String(t.phonetic || "").trim())
-      .filter(v => v && v.length >= 2)
-  )];
+const lyricsPhoneticForms = [...new Set(
+  lyricsTokens
+    .flatMap(t => Array.isArray(t.phoneticVariants) ? t.phoneticVariants : [t.phonetic])
+    .map(v => String(v || "").trim())
+    .filter(v => v && v.length >= 2)
+)];
 
-  const lyricsCompactForms = [...new Set(
-    lyricsTokens
-      .map(t => String(t.compactPhonetic || "").trim())
-      .filter(v => v && v.length >= 2)
-  )];
+const lyricsCompactForms = [...new Set(
+  lyricsTokens
+    .flatMap(t => Array.isArray(t.compactVariants) ? t.compactVariants : [t.compactPhonetic])
+    .map(v => String(v || "").trim())
+    .filter(v => v && v.length >= 2)
+)];
 
   const searchText = normalizeText([titleSearch, movieSearch, singerSearch].join(" "));
 
