@@ -1158,6 +1158,9 @@ let favoriteSongsCache = [];
 let searchInputTimer = null;
 let deepSearchTimer = null;
 let searchRunId = 0;
+let searchWorker = null;
+let searchWorkerUrl = "";
+const pendingWorkerSearches = new Map();
 let songsRealtimeChannel = null;
 let liveSongChannel = null;
 let lastLiveEventId = null;
@@ -2006,6 +2009,358 @@ function getStrongQueryVariants(query) {
     ]
   });
 }
+
+    function buildWorkerSongIndex() {
+  return preparedSongs.map(song => ({
+    id: Number(song.id),
+    titleNorm: song._titleNorm || normalizeText(song.title || ""),
+    titleParts: song._titleParts || splitMetaParts(song.title || ""),
+    titleSearch: song._titleSearch || normalizeText(song.title || ""),
+    movieNorm: song._movieNorm || normalizeText(song.movie || ""),
+    movieParts: song._movieParts || splitMetaParts(song.movie || ""),
+    movieSearch: song._movieSearch || normalizeText(song.movie || ""),
+    singerNorm: song._singerNorm || normalizeText(song.singer || ""),
+    singerParts: song._singerParts || splitMetaParts(song.singer || ""),
+    singerSearch: song._singerSearch || normalizeText(song.singer || ""),
+    lyricsSearch: song._lyricsSearch || normalizeText(song.lyrics || ""),
+    lyricsLoose: song._lyricsRomanLoose || "",
+    lyricsCompact: song._lyricsRomanCompact || ""
+  }));
+}
+
+function disposeSearchWorker() {
+  if (searchWorker) {
+    try {
+      searchWorker.terminate();
+    } catch (_) {}
+    searchWorker = null;
+  }
+
+  if (searchWorkerUrl) {
+    try {
+      URL.revokeObjectURL(searchWorkerUrl);
+    } catch (_) {}
+    searchWorkerUrl = "";
+  }
+
+  pendingWorkerSearches.clear();
+}
+
+function ensureSearchWorker() {
+  if (searchWorker) return searchWorker;
+
+  const workerSource = `
+    let workerSongs = [];
+
+    function normalizeText(text) {
+      return String(text || "")
+        .toLowerCase()
+        .normalize("NFC")
+        .replace(/[.,\\/#!$%\\^&\\*;:{}=\\-_\\\`~()?"'!|[\\]\\\\]/g, " ")
+        .replace(/\\s+/g, " ")
+        .trim();
+    }
+
+    function splitMetaParts(value) {
+      return String(value || "")
+        .split(/&|,|\\/|\\+|;|\\bfeat\\.?\\b|\\bft\\.?\\b|\\band\\b/gi)
+        .map(v => normalizeText(v))
+        .filter(Boolean);
+    }
+
+    function preparedFieldMatch(fullNorm, parts, query) {
+      const q = normalizeText(query);
+      if (!q) return { exact: false, starts: false, contains: false };
+
+      const safeFull = String(fullNorm || "");
+      const safeParts = Array.isArray(parts) ? parts : [];
+
+      return {
+        exact: safeFull === q || safeParts.includes(q),
+        starts: safeFull.startsWith(q) || safeParts.some(p => p.startsWith(q)),
+        contains: safeFull.includes(q) || safeParts.some(p => p.includes(q))
+      };
+    }
+
+    function normalizeRomanWordLoose(word) {
+      let w = normalizeText(word);
+      if (!w) return "";
+
+      w = w
+        .replace(/aa/g, "a")
+        .replace(/ii/g, "i")
+        .replace(/uu/g, "u")
+        .replace(/ee/g, "e")
+        .replace(/oo/g, "o")
+        .replace(/ai/g, "e")
+        .replace(/au/g, "o")
+        .replace(/bh/g, "b")
+        .replace(/ph/g, "f")
+        .replace(/kh/g, "k")
+        .replace(/gh/g, "g")
+        .replace(/jh/g, "j")
+        .replace(/dh/g, "d")
+        .replace(/th/g, "t")
+        .replace(/sh/g, "s")
+        .replace(/chh/g, "ch")
+        .replace(/zh/g, "j")
+        .replace(/w/g, "v")
+        .replace(/q/g, "k")
+        .replace(/x/g, "ks");
+
+      if (w.length >= 4) {
+        w = w
+          .replace(/a\\b/g, "")
+          .replace(/e\\b/g, "")
+          .replace(/h\\b/g, "");
+      }
+
+      return w.trim();
+    }
+
+    function normalizeRomanPhraseLoose(text) {
+      return normalizeText(text)
+        .split(/\\s+/)
+        .map(normalizeRomanWordLoose)
+        .filter(Boolean)
+        .join(" ")
+        .trim();
+    }
+
+    function compactRomanWord(word) {
+      return normalizeRomanWordLoose(word)
+        .replace(/[aeiou]/g, "")
+        .replace(/(.)\\1+/g, "$1")
+        .trim();
+    }
+
+    function compactRomanPhrase(text) {
+      return normalizeText(text)
+        .split(/\\s+/)
+        .map(compactRomanWord)
+        .filter(Boolean)
+        .join(" ")
+        .trim();
+    }
+
+    const WEAK_QUERY_WORDS = new Set([
+      "ke", "ne", "ki", "ka", "ko", "to", "ye", "wo", "si", "se",
+      "hai", "hain", "hum", "ho", "kya", "mein", "me", "na", "aa", "ya"
+    ]);
+
+    function countWordHits(text, words) {
+      if (!text || !words.length) return 0;
+      let hits = 0;
+
+      for (const word of words) {
+        if (word && text.includes(word)) hits++;
+      }
+
+      return hits;
+    }
+
+    function scoreLyrics(song, q, qLoose, qCompact, strongWords, mode) {
+      let score = 0;
+      let matched = false;
+
+      if (!q) {
+        return { score: 0, matched: false };
+      }
+
+      if (song.lyricsSearch && song.lyricsSearch.includes(q)) {
+        score += mode === "fast" ? 120 : 165;
+        matched = true;
+      }
+
+      if (qLoose && song.lyricsLoose && song.lyricsLoose.includes(qLoose)) {
+        score += mode === "fast" ? 85 : 125;
+        matched = true;
+      }
+
+      if (qCompact && qCompact.length >= 3 && song.lyricsCompact && song.lyricsCompact.includes(qCompact)) {
+        score += mode === "fast" ? 65 : 95;
+        matched = true;
+      }
+
+      const wordHitsNorm = countWordHits(song.lyricsSearch, strongWords);
+      const wordHitsLoose = countWordHits(song.lyricsLoose, strongWords);
+      const wordHits = Math.max(wordHitsNorm, wordHitsLoose);
+
+      if (wordHits > 0) {
+        score += wordHits * (mode === "fast" ? 14 : 20);
+        matched = true;
+      }
+
+      if (strongWords.length >= 2 && wordHits >= Math.max(2, strongWords.length - 1)) {
+        score += mode === "fast" ? 18 : 30;
+      }
+
+      return { score, matched };
+    }
+
+    function searchSongsInWorker(query, mode) {
+      const q = normalizeText(query);
+      if (!q) return [];
+
+      const qLoose = normalizeRomanPhraseLoose(query);
+      const qCompact = compactRomanPhrase(query);
+      const strongWords = q
+        .split(/\\s+/)
+        .filter(w => w && w.length >= 2 && !WEAK_QUERY_WORDS.has(w));
+
+      const results = [];
+
+      for (const song of workerSongs) {
+        const titleMatch = preparedFieldMatch(song.titleNorm, song.titleParts, q);
+        const movieMatch = preparedFieldMatch(song.movieNorm, song.movieParts, q);
+        const singerMatch = preparedFieldMatch(song.singerNorm, song.singerParts, q);
+
+        const titleContains = titleMatch.contains || (song.titleSearch && song.titleSearch.includes(q));
+        const movieContains = movieMatch.contains || (song.movieSearch && song.movieSearch.includes(q));
+        const singerContains = singerMatch.contains || (song.singerSearch && song.singerSearch.includes(q));
+
+        let score = 0;
+
+        if (titleMatch.exact) score += 220;
+        else if (titleMatch.starts) score += 140;
+        else if (titleContains) score += 70;
+
+        if (movieMatch.exact) score += 170;
+        else if (movieMatch.starts) score += 110;
+        else if (movieContains) score += 50;
+
+        if (singerMatch.exact) score += 170;
+        else if (singerMatch.starts) score += 110;
+        else if (singerContains) score += 50;
+
+        const lyricScore = scoreLyrics(song, q, qLoose, qCompact, strongWords, mode);
+
+        if (!titleContains && !movieContains && !singerContains) {
+          score += lyricScore.score;
+        } else {
+          score += Math.round(lyricScore.score * 0.55);
+        }
+
+        if (score <= 0) continue;
+
+        results.push({
+          id: song.id,
+          score,
+          lyricCandidate: lyricScore.matched,
+          matchType: {
+            title: !!titleContains,
+            movie: !!movieContains,
+            singer: !!singerContains,
+            lyrics: !!lyricScore.matched
+          }
+        });
+      }
+
+      results.sort((a, b) => b.score - a.score || a.id - b.id);
+
+      return results.slice(0, mode === "fast" ? 12 : 25);
+    }
+
+    self.onmessage = function(event) {
+      const data = event.data || {};
+
+      if (data.type === "init") {
+        workerSongs = Array.isArray(data.songs) ? data.songs : [];
+        return;
+      }
+
+      if (data.type === "search") {
+        const results = searchSongsInWorker(data.query || "", data.mode || "deep");
+        self.postMessage({
+          type: "results",
+          runId: data.runId,
+          results
+        });
+      }
+    };
+  `;
+
+  const blob = new Blob([workerSource], { type: "application/javascript" });
+  searchWorkerUrl = URL.createObjectURL(blob);
+  searchWorker = new Worker(searchWorkerUrl);
+
+  searchWorker.onmessage = (event) => {
+    const data = event.data || {};
+    if (data.type !== "results") return;
+
+    const pending = pendingWorkerSearches.get(data.runId);
+    if (!pending) return;
+
+    pendingWorkerSearches.delete(data.runId);
+    pending.resolve(Array.isArray(data.results) ? data.results : []);
+  };
+
+  searchWorker.onerror = (error) => {
+    console.error("SEARCH WORKER ERROR:", error);
+
+    for (const [runId, pending] of pendingWorkerSearches.entries()) {
+      pending.reject(error);
+      pendingWorkerSearches.delete(runId);
+    }
+  };
+
+  return searchWorker;
+}
+
+function syncSearchWorkerIndex() {
+  const worker = ensureSearchWorker();
+  worker.postMessage({
+    type: "init",
+    songs: buildWorkerSongIndex()
+  });
+}
+
+function requestWorkerSearch(query, mode, runId) {
+  return new Promise((resolve, reject) => {
+    const worker = ensureSearchWorker();
+
+    pendingWorkerSearches.set(runId, { resolve, reject });
+
+    worker.postMessage({
+      type: "search",
+      query,
+      mode,
+      runId
+    });
+  });
+}
+
+function enrichWorkerResults(workerResults, query, options = {}) {
+  const { mode = "deep" } = options;
+  let deepLyricBudget = mode === "deep" ? 6 : 0;
+
+  return workerResults
+    .map(row => {
+      const song = preparedSongsById.get(Number(row.id));
+      if (!song) return null;
+
+      let lyricInfo = { ranges: [], score: 0 };
+
+      if (deepLyricBudget > 0 && row.lyricCandidate) {
+        lyricInfo = getLyricMatchInfo(song, query);
+        deepLyricBudget--;
+      }
+
+      return {
+        ...song,
+        _score: row.score || 0,
+        _matchType: row.matchType || {
+          title: false,
+          movie: false,
+          singer: false,
+          lyrics: false
+        },
+        _lyricMatchInfo: lyricInfo
+      };
+    })
+    .filter(Boolean);
+}
+    
     function getQueryVariants(query) {
       const raw = String(query || "");
       const n = normalizeText(raw);
@@ -2405,23 +2760,45 @@ function searchSongs(query, options = {}) {
   return mode === "fast" ? searchSongsFast(query) : searchSongsDeep(query);
 }
 
-function scheduleSearchRender(query, options = {}) {
+async function scheduleSearchRender(query, options = {}) {
   const {
     mode = "deep",
     showSnippets = true
   } = options;
 
   const runId = ++searchRunId;
+  const safeQuery = String(query || "");
 
-  requestAnimationFrame(() => {
+  if (!safeQuery.trim()) {
+    renderResults([], "");
+    return;
+  }
+
+  try {
+    const workerResults = await requestWorkerSearch(safeQuery, mode, runId);
+
     if (runId !== searchRunId) return;
 
-    const results = searchSongs(query, { mode });
+    const enriched = enrichWorkerResults(workerResults, safeQuery, { mode });
 
     if (runId !== searchRunId) return;
 
-    renderResults(results, query, { showSnippets });
-  });
+    requestAnimationFrame(() => {
+      if (runId !== searchRunId) return;
+      renderResults(enriched, safeQuery, { showSnippets });
+    });
+  } catch (error) {
+    console.error("SCHEDULE SEARCH RENDER ERROR:", error);
+
+    if (runId !== searchRunId) return;
+
+    const fallbackResults = searchSongs(safeQuery, { mode });
+
+    requestAnimationFrame(() => {
+      if (runId !== searchRunId) return;
+      renderResults(fallbackResults, safeQuery, { showSnippets });
+    });
+  }
 }
     
     function mergeRanges(ranges) {
@@ -3030,6 +3407,7 @@ if (deepSearchTimer) {
 }
 
 searchRunId++;
+disposeSearchWorker();
       
       await supabaseClient.auth.signOut();
       session = null;
@@ -3140,11 +3518,12 @@ searchRunId++;
 
       favoriteSongsCache = preparedSongs.filter(song => favoriteSongIds.has(Number(song.id)));
 
-      if (lastQuery.trim()) {
-        renderResults(searchSongs(lastQuery), lastQuery);
-      } else {
-        renderResults([], "");
-      }
+     if (lastQuery.trim()) {
+  scheduleSearchRender(lastQuery, { mode: "deep", showSnippets: true });
+} else {
+  searchRunId++;
+  renderResults([], "");
+}
 
       renderSongGroups();
       renderFavorites();
@@ -3175,16 +3554,18 @@ searchRunId++;
   }
 
   songs = data || [];
-  rebuildFuse();
-  await loadBookmarks();
-  refreshSuggestionLists();
-  checkEditorDuplicateState();
+rebuildFuse();
+syncSearchWorkerIndex();
+await loadBookmarks();
+refreshSuggestionLists();
+checkEditorDuplicateState();
 
-  if (lastQuery.trim()) {
-    renderResults(searchSongs(lastQuery), lastQuery);
-  } else {
-    renderResults([], "");
-  }
+if (lastQuery.trim()) {
+  scheduleSearchRender(lastQuery, { mode: "deep", showSnippets: true });
+} else {
+  searchRunId++;
+  renderResults([], "");
+}
 
   renderSongGroups();
   renderFavorites();
@@ -3207,17 +3588,19 @@ searchRunId++;
 function refreshUiFromSongsState(options = {}) {
   const { preserveOpenModal = true } = options;
 
-  rebuildFuse();
-  refreshSuggestionLists();
-  checkEditorDuplicateState();
-  favoriteSongsCache = preparedSongs.filter(song => favoriteSongIds.has(Number(song.id)));
-  document.getElementById("libraryCountText").textContent = `${songs.length} songs`;
+ rebuildFuse();
+syncSearchWorkerIndex();
+refreshSuggestionLists();
+checkEditorDuplicateState();
+favoriteSongsCache = preparedSongs.filter(song => favoriteSongIds.has(Number(song.id)));
+document.getElementById("libraryCountText").textContent = `${songs.length} songs`;
 
-  if (lastQuery.trim()) {
-    renderResults(searchSongs(lastQuery), lastQuery);
-  } else {
-    renderResults([], "");
-  }
+if (lastQuery.trim()) {
+  scheduleSearchRender(lastQuery, { mode: "deep", showSnippets: true });
+} else {
+  searchRunId++;
+  renderResults([], "");
+}
 
   renderSongGroups();
   renderFavorites();
@@ -4094,7 +4477,11 @@ if (tabName !== "search") {
           const combined = (finalTranscript + liveText).trim();
           input.value = combined;
           lastQuery = combined;
-          renderResults(searchSongs(combined), combined);
+
+          scheduleSearchRender(combined, {
+          mode: "fast",
+          showSnippets: false
+        });
         };
 
         recognition.onerror = (event) => {
@@ -4116,15 +4503,19 @@ if (tabName !== "search") {
         };
 
         recognition.onend = () => {
-          setMicUiState(false);
-          activeRecognition = null;
+  setMicUiState(false);
+  activeRecognition = null;
 
-          if (!input.value.trim()) {
-            showStatus("appStatus", "Mic stopped. Tap again and speak immediately.", "warn");
-          } else {
-            showStatus("appStatus", "", "info");
-          }
-        };
+  if (!input.value.trim()) {
+    showStatus("appStatus", "Mic stopped. Tap again and speak immediately.", "warn");
+  } else {
+    scheduleSearchRender(input.value, {
+      mode: "deep",
+      showSnippets: true
+    });
+    showStatus("appStatus", "", "info");
+  }
+};
 
         recognition.start();
       } catch (error) {
@@ -4316,17 +4707,17 @@ document.getElementById("liveNowDismissBtn").addEventListener("click", dismissPe
       mode: "fast",
       showSnippets: false
     });
-  }, 60);
+  }, 25);
 
   deepSearchTimer = setTimeout(() => {
     scheduleSearchRender(nextValue, {
       mode: "deep",
       showSnippets: true
     });
-  }, 340);
+  }, 220);
 });
 
-     document.getElementById("clearBtn").addEventListener("click", () => {
+    document.getElementById("clearBtn").addEventListener("click", () => {
   if (searchInputTimer) {
     clearTimeout(searchInputTimer);
     searchInputTimer = null;
