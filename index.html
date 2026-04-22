@@ -1156,6 +1156,8 @@ let expandedGroups = new Set();
 let favoriteSongIds = new Set();
 let favoriteSongsCache = [];
 let searchInputTimer = null;
+let deepSearchTimer = null;
+let searchRunId = 0;
 let songsRealtimeChannel = null;
 let liveSongChannel = null;
 let lastLiveEventId = null;
@@ -2086,7 +2088,7 @@ function detectSearchIntent(query) {
   return { type: "lyrics" };
 }
     
-   function searchSongs(query) {
+   function searchSongsDeep(query) {
   const q = normalizeText(query);
   if (!q) return [];
 
@@ -2298,6 +2300,130 @@ function detectSearchIntent(query) {
 
   return ranked;
 }
+
+    function searchSongsFast(query) {
+  const q = normalizeText(query);
+  if (!q) return [];
+
+  const intent = detectSearchIntent(query);
+  const fuseResults = fuse ? fuse.search(q).slice(0, 30) : [];
+  const fuseScoreMap = new Map();
+
+  fuseResults.forEach(result => {
+    fuseScoreMap.set(
+      Number(result.item.id),
+      Math.max(0, Math.round((1 - (result.score || 1)) * 16))
+    );
+  });
+
+  const indexedLyricCandidateIds =
+    intent.type === "lyrics" && q.length >= 3
+      ? getLyricCandidateSongIds(query)
+      : new Set();
+
+  return preparedSongs
+    .map(song => {
+      const songId = Number(song.id);
+
+      const titleIntentMatch = preparedFieldMatch(song._titleNorm, song._titleParts, q);
+      const singerIntentMatch = preparedFieldMatch(song._singerNorm, song._singerParts, q);
+      const movieIntentMatch = preparedFieldMatch(song._movieNorm, song._movieParts, q);
+
+      const titleContains = titleIntentMatch.contains || song._titleSearch.includes(q);
+      const singerContains = singerIntentMatch.contains;
+      const movieContains = movieIntentMatch.contains;
+
+      let score = 0;
+
+      if (titleIntentMatch.exact) score += 120;
+      else if (titleIntentMatch.starts) score += 75;
+      else if (titleContains) score += 38;
+
+      if (movieIntentMatch.exact) score += 110;
+      else if (movieIntentMatch.starts) score += 70;
+      else if (movieIntentMatch.contains) score += 32;
+
+      if (singerIntentMatch.exact) score += 110;
+      else if (singerIntentMatch.starts) score += 70;
+      else if (singerIntentMatch.contains) score += 32;
+
+      score += fuseScoreMap.get(songId) || 0;
+
+      let fastLyricScore = 0;
+      if (indexedLyricCandidateIds.has(songId)) {
+        fastLyricScore = getFastLyricCandidateScore(song, query) + 18;
+        score += fastLyricScore;
+      }
+
+      if (intent.type === "title") {
+        if (!titleContains) return null;
+        score += 80;
+      }
+
+      if (intent.type === "movie") {
+        if (!movieContains && !titleContains) return null;
+        score += 80;
+      }
+
+      if (intent.type === "singer") {
+        if (!singerContains && !titleContains) return null;
+        score += 80;
+      }
+
+      if (
+        intent.type === "lyrics" &&
+        !titleContains &&
+        !movieContains &&
+        !singerContains &&
+        !indexedLyricCandidateIds.has(songId) &&
+        !fuseScoreMap.has(songId)
+      ) {
+        return null;
+      }
+
+      if (score <= 0) return null;
+
+      return {
+        ...song,
+        _lyricMatchInfo: { ranges: [], score: 0 },
+        _matchType: {
+          title: titleContains,
+          movie: movieContains,
+          singer: singerContains,
+          lyrics: fastLyricScore > 0
+        },
+        _score: score
+      };
+    })
+    .filter(Boolean)
+    .sort((a, b) => b._score - a._score || String(a.title || "").localeCompare(String(b.title || "")))
+    .slice(0, 20);
+}
+
+function searchSongs(query, options = {}) {
+  const { mode = "deep" } = options;
+  return mode === "fast" ? searchSongsFast(query) : searchSongsDeep(query);
+}
+
+function scheduleSearchRender(query, options = {}) {
+  const {
+    mode = "deep",
+    showSnippets = true
+  } = options;
+
+  const runId = ++searchRunId;
+
+  requestAnimationFrame(() => {
+    if (runId !== searchRunId) return;
+
+    const results = searchSongs(query, { mode });
+
+    if (runId !== searchRunId) return;
+
+    renderResults(results, query, { showSnippets });
+  });
+}
+    
     function mergeRanges(ranges) {
       if (!ranges.length) return [];
       ranges.sort((a, b) => a[0] - b[0]);
@@ -2897,6 +3023,13 @@ if (searchInputTimer) {
   clearTimeout(searchInputTimer);
   searchInputTimer = null;
 }
+
+if (deepSearchTimer) {
+  clearTimeout(deepSearchTimer);
+  deepSearchTimer = null;
+}
+
+searchRunId++;
       
       await supabaseClient.auth.signOut();
       session = null;
@@ -3609,7 +3742,7 @@ showStatus("appStatus", "Song deleted.", "success");
       await loadPendingUsers();
     }
 
-    function renderResults(results, query = "") {
+    function renderResults(results, query = "", options = {}) {
       const root = document.getElementById("searchResults");
 
       if (!query.trim()) {
@@ -3623,7 +3756,7 @@ showStatus("appStatus", "Song deleted.", "success");
       }
 
       root.innerHTML = results.map(song => {
-        const snippet = buildSnippet(song, query);
+     const snippet = options.showSnippets === false ? "" : buildSnippet(song, query);
         const isFav = favoriteSongIds.has(Number(song.id));
         const editButton = isApproved()
           ? `<button class="edit-btn" type="button" data-edit-id="${song.id}" title="Edit">✎</button>`
@@ -4158,7 +4291,7 @@ document.getElementById("liveNowDismissBtn").addEventListener("click", dismissPe
         renderSongGroups();
       });
 
-     document.getElementById("searchInput").addEventListener("input", (e) => {
+    document.getElementById("searchInput").addEventListener("input", (e) => {
   const nextValue = e.target.value;
   lastQuery = nextValue;
 
@@ -4167,10 +4300,30 @@ document.getElementById("liveNowDismissBtn").addEventListener("click", dismissPe
     searchInputTimer = null;
   }
 
+  if (deepSearchTimer) {
+    clearTimeout(deepSearchTimer);
+    deepSearchTimer = null;
+  }
+
+  if (!nextValue.trim()) {
+    searchRunId++;
+    renderResults([], "");
+    return;
+  }
+
   searchInputTimer = setTimeout(() => {
-    const results = searchSongs(nextValue);
-    renderResults(results, nextValue);
-  }, 180);
+    scheduleSearchRender(nextValue, {
+      mode: "fast",
+      showSnippets: false
+    });
+  }, 60);
+
+  deepSearchTimer = setTimeout(() => {
+    scheduleSearchRender(nextValue, {
+      mode: "deep",
+      showSnippets: true
+    });
+  }, 340);
 });
 
      document.getElementById("clearBtn").addEventListener("click", () => {
@@ -4178,6 +4331,13 @@ document.getElementById("liveNowDismissBtn").addEventListener("click", dismissPe
     clearTimeout(searchInputTimer);
     searchInputTimer = null;
   }
+
+  if (deepSearchTimer) {
+    clearTimeout(deepSearchTimer);
+    deepSearchTimer = null;
+  }
+
+  searchRunId++;
 
   document.getElementById("searchInput").value = "";
   lastQuery = "";
