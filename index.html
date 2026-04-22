@@ -1161,6 +1161,7 @@ let searchRunId = 0;
 let searchWorker = null;
 let searchWorkerUrl = "";
 const pendingWorkerSearches = new Map();
+let searchWorkerSyncTimer = null;
 let songsRealtimeChannel = null;
 let liveSongChannel = null;
 let lastLiveEventId = null;
@@ -1176,6 +1177,9 @@ let lastHiddenAt = 0;
 let lastResumeHandledAt = 0;
 
 const BACKGROUND_REFRESH_MIN_MS = 5 * 60 * 1000;
+const MAX_TITLE_LENGTH = 120;
+const MAX_META_LENGTH = 180;
+const MAX_LYRICS_LENGTH = 20000;    
 
     function escapeHtml(text) {
       return String(text || "")
@@ -2022,9 +2026,9 @@ function getStrongQueryVariants(query) {
     singerNorm: song._singerNorm || normalizeText(song.singer || ""),
     singerParts: song._singerParts || splitMetaParts(song.singer || ""),
     singerSearch: song._singerSearch || normalizeText(song.singer || ""),
-    lyricsSearch: song._lyricsSearch || normalizeText(song.lyrics || ""),
-    lyricsLoose: song._lyricsRomanLoose || "",
-    lyricsCompact: song._lyricsRomanCompact || ""
+    lyricsSearch: String(song._lyricsSearch || normalizeText(song.lyrics || "")).slice(0, 12000),
+lyricsLoose: String(song._lyricsRomanLoose || "").slice(0, 12000),
+lyricsCompact: String(song._lyricsRomanCompact || "").slice(0, 12000)
   }));
 }
 
@@ -2315,6 +2319,18 @@ function syncSearchWorkerIndex() {
   });
 }
 
+    function scheduleWorkerIndexSync(delay = 80) {
+  if (searchWorkerSyncTimer) {
+    clearTimeout(searchWorkerSyncTimer);
+    searchWorkerSyncTimer = null;
+  }
+
+  searchWorkerSyncTimer = setTimeout(() => {
+    searchWorkerSyncTimer = null;
+    syncSearchWorkerIndex();
+  }, delay);
+}
+
 function requestWorkerSearch(query, mode, runId) {
   return new Promise((resolve, reject) => {
     const worker = ensureSearchWorker();
@@ -2328,6 +2344,16 @@ function requestWorkerSearch(query, mode, runId) {
       runId
     });
   });
+}
+    function rejectStaleWorkerSearches(currentRunId) {
+  for (const [runId, pending] of pendingWorkerSearches.entries()) {
+    if (runId < currentRunId) {
+      try {
+        pending.reject(new Error("Search superseded"));
+      } catch (_) {}
+      pendingWorkerSearches.delete(runId);
+    }
+  }
 }
 
 function enrichWorkerResults(workerResults, query, options = {}) {
@@ -2767,6 +2793,7 @@ async function scheduleSearchRender(query, options = {}) {
   } = options;
 
   const runId = ++searchRunId;
+rejectStaleWorkerSearches(runId);
   const safeQuery = String(query || "");
 
   if (!safeQuery.trim()) {
@@ -2788,7 +2815,11 @@ async function scheduleSearchRender(query, options = {}) {
       renderResults(enriched, safeQuery, { showSnippets });
     });
   } catch (error) {
-    console.error("SCHEDULE SEARCH RENDER ERROR:", error);
+    if (String(error?.message || "") === "Search superseded") {
+  return;
+}
+
+console.error("SCHEDULE SEARCH RENDER ERROR:", error);
 
     if (runId !== searchRunId) return;
 
@@ -3057,6 +3088,14 @@ function highlightText(song, query) {
     .replace(/[ \t]+\n/g, "\n")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
+}
+
+    function cleanAndLimitText(value, maxLength) {
+  return String(value || "")
+    .replace(/\r\n/g, "\n")
+    .replace(/\r/g, "\n")
+    .trim()
+    .slice(0, maxLength);
 }
 
 function decodeHtmlEntities(text) {
@@ -3406,6 +3445,11 @@ if (deepSearchTimer) {
   deepSearchTimer = null;
 }
 
+      if (searchWorkerSyncTimer) {
+  clearTimeout(searchWorkerSyncTimer);
+  searchWorkerSyncTimer = null;
+}
+
 searchRunId++;
 disposeSearchWorker();
       
@@ -3555,7 +3599,7 @@ disposeSearchWorker();
 
   songs = data || [];
 rebuildFuse();
-syncSearchWorkerIndex();
+scheduleWorkerIndexSync();
 await loadBookmarks();
 refreshSuggestionLists();
 checkEditorDuplicateState();
@@ -3968,19 +4012,23 @@ function subscribeToLiveSongChannel() {
     async function saveSong(event) {
       event.preventDefault();
 
-      const title = document.getElementById("songTitle").value.trim();
-const movie = document.getElementById("songMovie").value.trim();
-const singer = document.getElementById("songSinger").value.trim();
-const originalKey = document.getElementById("songOriginalKey").value.trim();
-const chord = document.getElementById("songChord").value.trim();
-const lyrics = document.getElementById("songLyrics").value.trim();
-      const editorStatus = document.getElementById("editorStatus");
+      const title = cleanAndLimitText(document.getElementById("songTitle").value, MAX_TITLE_LENGTH);
+const movie = cleanAndLimitText(document.getElementById("songMovie").value, MAX_META_LENGTH);
+const singer = cleanAndLimitText(document.getElementById("songSinger").value, MAX_META_LENGTH);
+const originalKey = cleanAndLimitText(document.getElementById("songOriginalKey").value, 40);
+const chord = cleanAndLimitText(document.getElementById("songChord").value, 120);
+const lyrics = cleanAndLimitText(document.getElementById("songLyrics").value, MAX_LYRICS_LENGTH);
+const editorStatus = document.getElementById("editorStatus");
 
       if (!title || !lyrics) {
         editorStatus.textContent = "Title and lyrics are required.";
         return;
       }
-
+      if (lyrics.length < 8) {
+  editorStatus.textContent = "Lyrics are too short.";
+  return;
+}
+      
       const duplicate = duplicateSongExists(title, editingSongId);
       if (duplicate) {
         editorStatus.textContent = "Duplicate blocked. A song with this title already exists.";
