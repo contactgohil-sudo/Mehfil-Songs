@@ -419,6 +419,37 @@
       text-align: center;
     }
 
+    .search-online-state {
+  display: none;
+  margin-bottom: 12px;
+  border-radius: 14px;
+  padding: 12px 14px;
+  border: 1px solid #fecaca;
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.search-online-state.show {
+  display: block;
+}
+
+.search-online-state-title {
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.search-online-state-helper {
+  margin-top: 4px;
+  font-size: 13px;
+  line-height: 1.4;
+  color: #991b1b;
+}
+
+.search-online-candidates:empty {
+  display: none;
+}
+
     .toolbar {
       display: flex;
       gap: 10px;
@@ -1020,23 +1051,25 @@
       </section>
 
       <section id="searchTab">
-        <div class="card">
-          <div class="search-bar">
-            <button id="micBtn" class="icon-btn" type="button" title="Speak">🎤</button>
-            <input
-              id="searchInput"
-              class="search-input"
-              type="text"
-              placeholder="Search songs, lyrics, singer, movie..."
-              autocomplete="off"
-              autocapitalize="none"
-              spellcheck="false"
-              enterkeyhint="search"
-            />
-            <button id="clearBtn" class="icon-btn" type="button" title="Clear">✕</button>
-          </div>
+       <div class="card">
+  <div class="search-bar">
+    <button id="micBtn" class="icon-btn" type="button" title="Speak">🎤</button>
+    <input
+      id="searchInput"
+      class="search-input"
+      type="text"
+      placeholder="Search songs, lyrics, singer, movie..."
+      autocomplete="off"
+      autocapitalize="none"
+      spellcheck="false"
+      enterkeyhint="search"
+    />
+    <button id="clearBtn" class="icon-btn" type="button" title="Clear">✕</button>
+  </div>
 
-          <div id="searchResults"></div>
+  <div id="searchOnlineState" class="search-online-state"></div>
+  <div id="searchResults"></div>
+  <div id="searchOnlineCandidates" class="search-online-candidates"></div>
 
 <div
   id="searchOnlineState"
@@ -1346,36 +1379,36 @@ function getFastLyricCandidateScore(song, query) {
       el.textContent = message;
     }
 
-    function clearSearchOnlineUi() {
-  onlineLookupRunId++;
-  searchOnlineCandidatesState = [];
-
-  const stateEl = document.getElementById("searchOnlineState");
-  const listEl = document.getElementById("searchOnlineCandidates");
-
-  if (stateEl) {
-    stateEl.textContent = "";
-    stateEl.classList.add("hidden");
-  }
-
-  if (listEl) {
-    listEl.innerHTML = "";
-    listEl.classList.add("hidden");
-  }
+  function clearSearchOnlineUi() {
+  setSearchOnlineState("");
+  renderSearchOnlineCandidates([]);
 }
 
-function setSearchOnlineState(message) {
-  const stateEl = document.getElementById("searchOnlineState");
-  if (!stateEl) return;
+function setSearchOnlineState(message = "", type = "info") {
+  const el = document.getElementById("searchOnlineState");
+  if (!el) return;
 
   if (!message) {
-    stateEl.textContent = "";
-    stateEl.classList.add("hidden");
+    el.className = "search-online-state";
+    el.innerHTML = "";
     return;
   }
 
-  stateEl.textContent = message;
-  stateEl.classList.remove("hidden");
+  let helper = "";
+
+  if (type === "pending") {
+    helper = "Please wait while the app checks outside your local database.";
+  } else if (type === "success") {
+    helper = "Choose a result below to open it. You can then save it to your library.";
+  } else if (type === "error") {
+    helper = "Try another title, or type a slightly longer search phrase.";
+  }
+
+  el.className = "search-online-state show";
+  el.innerHTML = `
+    <div class="search-online-state-title">${escapeHtml(message)}</div>
+    ${helper ? `<div class="search-online-state-helper">${escapeHtml(helper)}</div>` : ""}
+  `;
 }
 
 function clearEditorLookupUi() {
@@ -1628,12 +1661,8 @@ async function runOnlineLookupForSearch(query) {
 
   const runId = ++onlineLookupRunId;
 
-  renderResults([], safeQuery, {
-    emptyStateMessage: "Not in library — checking online...",
-    onlinePending: true
-  });
-
-  setSearchOnlineState("");
+  renderResults([], safeQuery, { suppressEmptyState: true });
+  setSearchOnlineState("Not in library. Checking online...", "pending");
   renderSearchOnlineCandidates([]);
 
   try {
@@ -1645,34 +1674,22 @@ async function runOnlineLookupForSearch(query) {
     if (runId !== onlineLookupRunId) return;
 
     if (!candidates.length) {
-      renderResults([], safeQuery, {
-        emptyStateMessage: "Not in library — nothing reliable found online.",
-        onlinePending: true
-      });
-
-      setSearchOnlineState("");
+      renderResults([], safeQuery, { suppressEmptyState: true });
+      setSearchOnlineState("Not in library. Nothing reliable was found online.", "error");
       renderSearchOnlineCandidates([]);
       return;
     }
 
-    renderResults([], safeQuery, {
-      emptyStateMessage: "Not in library — online matches found below.",
-      onlinePending: true
-    });
-
-    setSearchOnlineState("");
+    renderResults([], safeQuery, { suppressEmptyState: true });
+    setSearchOnlineState("Not in library. Online matches found.", "success");
     renderSearchOnlineCandidates(candidates);
   } catch (error) {
     if (runId !== onlineLookupRunId) return;
 
     console.error("ONLINE LOOKUP ERROR:", error);
 
-    renderResults([], safeQuery, {
-      emptyStateMessage: "Not in library — online lookup failed.",
-      onlinePending: true
-    });
-
-    setSearchOnlineState("");
+    renderResults([], safeQuery, { suppressEmptyState: true });
+    setSearchOnlineState("Not in library. Online lookup failed.", "error");
     renderSearchOnlineCandidates([]);
   }
 }
@@ -3317,16 +3334,16 @@ rejectStaleWorkerSearches(runId);
 
   const displayResults = filterStrongLocalResults(enriched, safeQuery);
 
-  renderResults(displayResults, safeQuery, { showSnippets });
-
-  if (mode === "deep") {
-    if (displayResults.length === 0 && safeQuery.trim().length >= 3) {
-      runOnlineLookupForSearch(safeQuery);
-    } else {
-      clearSearchOnlineUi();
-    }
+  if (mode === "deep" && displayResults.length === 0 && safeQuery.trim().length >= 3) {
+    renderResults([], safeQuery, { showSnippets, suppressEmptyState: true });
+    runOnlineLookupForSearch(safeQuery);
+    return;
   }
+
+  clearSearchOnlineUi();
+  renderResults(displayResults, safeQuery, { showSnippets });
 });
+    
   } catch (error) {
     if (String(error?.message || "") === "Search superseded") {
   return;
@@ -3338,20 +3355,19 @@ console.error("SCHEDULE SEARCH RENDER ERROR:", error);
 
     const fallbackResults = searchSongs(safeQuery, { mode });
 
-    requestAnimationFrame(() => {
+   requestAnimationFrame(() => {
   if (runId !== searchRunId) return;
 
- const displayResults = filterStrongLocalResults(fallbackResults, safeQuery);
+  const displayResults = filterStrongLocalResults(fallbackResults, safeQuery);
 
-  renderResults(displayResults, safeQuery, { showSnippets });
-
-  if (mode === "deep") {
-    if (displayResults.length === 0 && safeQuery.trim().length >= 3) {
-      runOnlineLookupForSearch(safeQuery);
-    } else {
-      clearSearchOnlineUi();
-    }
+  if (mode === "deep" && displayResults.length === 0 && safeQuery.trim().length >= 3) {
+    renderResults([], safeQuery, { showSnippets, suppressEmptyState: true });
+    runOnlineLookupForSearch(safeQuery);
+    return;
   }
+
+  clearSearchOnlineUi();
+  renderResults(displayResults, safeQuery, { showSnippets });
 });
   }
 }
@@ -4607,54 +4623,50 @@ showStatus("appStatus", "Song deleted.", "success");
     }
 
     function renderResults(results, query = "", options = {}) {
-      const root = document.getElementById("searchResults");
+  const root = document.getElementById("searchResults");
+  const suppressEmptyState = !!options.suppressEmptyState;
 
-      if (!query.trim()) {
-        root.innerHTML = `<div class="empty">Search by song, lyric, singer, or movie. Tap a result to open full lyrics.</div>`;
-        return;
-      }
+  if (!query.trim()) {
+    root.innerHTML = `<div class="empty">Search by song, lyric, singer, or movie. Tap a result to open full lyrics.</div>`;
+    return;
+  }
 
-      if (!results.length) {
-  const emptyMessage = options.emptyStateMessage || "No matching song found.";
-  const isOnlinePending = !!options.onlinePending;
-
-  root.innerHTML = `
-    <div
-      class="empty"
-      ${isOnlinePending ? 'style="border-color:#fecaca;background:#fef2f2;color:#b91c1c;font-weight:700;"' : ""}
-    >
-      ${escapeHtml(emptyMessage)}
-    </div>
-  `;
-  return;
-}
-
-      root.innerHTML = results.map(song => {
-     const snippet = options.showSnippets === false ? "" : buildSnippet(song, query);
-        const isFav = favoriteSongIds.has(Number(song.id));
-        const editButton = isApproved()
-          ? `<button class="edit-btn" type="button" data-edit-id="${song.id}" title="Edit">✎</button>`
-          : "";
-
-        const starButton = isApproved()
-          ? `<button class="star-btn ${isFav ? "active" : ""}" type="button" data-bookmark-id="${song.id}" title="${isFav ? "Remove from favourites" : "Add to favourites"}">${isFav ? "★" : "☆"}</button>`
-          : "";
-
-        return `
-          <div class="result-card" data-song-id="${song.id}">
-            <div class="result-main">
-              <div class="song-title">${escapeHtml(song.title || "")}</div>
-              <div class="song-meta">${escapeHtml(joinMeta([song.movie, song.singer]))}</div>
-              ${snippet ? `<div class="song-snippet">${snippet}</div>` : ""}
-            </div>
-            <div class="stack-actions">
-              ${starButton}
-              ${editButton}
-            </div>
-          </div>
-        `;
-      }).join("");
+  if (!results.length) {
+    if (suppressEmptyState) {
+      root.innerHTML = "";
+      return;
     }
+
+    root.innerHTML = `<div class="empty">No matching song found.</div>`;
+    return;
+  }
+
+  root.innerHTML = results.map(song => {
+    const snippet = buildSnippet(song, query);
+    const isFav = favoriteSongIds.has(Number(song.id));
+    const editButton = isApproved()
+      ? `<button class="edit-btn" type="button" data-edit-id="${song.id}" title="Edit">✎</button>`
+      : "";
+
+    const starButton = isApproved()
+      ? `<button class="star-btn ${isFav ? "active" : ""}" type="button" data-bookmark-id="${song.id}" title="${isFav ? "Remove from favourites" : "Add to favourites"}">${isFav ? "★" : "☆"}</button>`
+      : "";
+
+    return `
+      <div class="result-card" data-song-id="${song.id}">
+        <div class="result-main">
+          <div class="song-title">${escapeHtml(song.title || "")}</div>
+          <div class="song-meta">${escapeHtml(joinMeta([song.movie, song.singer]))}</div>
+          ${snippet ? `<div class="song-snippet">${snippet}</div>` : ""}
+        </div>
+        <div class="stack-actions">
+          ${starButton}
+          ${editButton}
+        </div>
+      </div>
+    `;
+  }).join("");
+}
 
     function getGroupKey(song, mode) {
       const raw = mode === "singer" ? (song.singer || "") : (song.movie || "");
@@ -5262,7 +5274,7 @@ document.getElementById("liveNowDismissBtn").addEventListener("click", dismissPe
 
   document.getElementById("searchInput").value = "";
   lastQuery = "";
-      clearSearchOnlineUi();
+  clearSearchOnlineUi();
   renderResults([], "");
   document.getElementById("searchInput").focus();
 });
