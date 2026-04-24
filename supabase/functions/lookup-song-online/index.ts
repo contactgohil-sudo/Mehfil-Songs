@@ -408,7 +408,8 @@ Deno.serve(async (req) => {
 
     return json({ candidates });
   } catch (error) {
-    console.error("lookup-song-online error", error);
-    return json({ error: String(error?.message || error || "Unknown error") }, 500);
-  }
+  const message = String(error?.message || error || "Unknown error");
+  console.error("lookup-song-online error", message);
+  return json({ error: message }, 500);
+}
 });
