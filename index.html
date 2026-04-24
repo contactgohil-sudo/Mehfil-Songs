@@ -1008,6 +1008,11 @@
   <span id="editorStatus" class="tiny"></span>
 </div>
 
+<div id="editorLookupBox" class="hidden" style="margin-top:12px;">
+  <div class="tiny" style="margin-bottom:8px;">Online matches</div>
+  <div id="editorLookupCandidates"></div>
+</div>
+
           <div class="tiny" style="margin-top:10px;">
             Duplicate songs are blocked using song title only. Movie and singer fields support autosuggest.
           </div>
@@ -1032,6 +1037,18 @@
           </div>
 
           <div id="searchResults"></div>
+
+<div
+  id="searchOnlineState"
+  class="tiny hidden"
+  style="margin-top:10px; color:#b91c1c; font-weight:700;"
+></div>
+
+<div
+  id="searchOnlineCandidates"
+  class="hidden"
+  style="margin-top:10px;"
+></div>
         </div>
       </section>
 
@@ -1098,8 +1115,9 @@
 
   <div class="modal-side">
     <div class="modal-actions">
-      <button id="modalBookmarkBtn" class="modal-btn modal-star-btn hidden" type="button" title="Toggle favourite" aria-label="Toggle favourite">☆</button>
-      <button id="modalShareNowBtn" class="modal-btn hidden" type="button">Share Now</button>
+     <button id="modalSaveBtn" class="modal-btn hidden" type="button">Save</button>
+<button id="modalBookmarkBtn" class="modal-btn modal-star-btn hidden" type="button" title="Toggle favourite" aria-label="Toggle favourite">☆</button>
+<button id="modalShareNowBtn" class="modal-btn hidden" type="button">Share Now</button>
       <button id="modalEditBtn" class="modal-btn hidden" type="button">Edit</button>
       <button id="modalDeleteBtn" class="modal-btn hidden btn-danger" type="button">Delete</button>
       <button id="modalCloseBtn" class="modal-btn" type="button">Close</button>
@@ -1168,6 +1186,12 @@ let lastLiveEventId = null;
 let pendingLiveSongId = null;
 let pendingLiveEventByMe = false;
 let currentLiveSongId = null;
+    let openModalKind = "local";
+let openOnlineCandidateData = null;
+
+let onlineLookupRunId = 0;
+let searchOnlineCandidatesState = [];
+let editorLookupCandidatesState = [];
 
 let lyricWordIndex = new Map();
 let lyricPhoneticIndex = new Map();
@@ -1321,6 +1345,319 @@ function getFastLyricCandidateScore(song, query) {
       el.className = `status-box show status-${type}`;
       el.textContent = message;
     }
+
+    function clearSearchOnlineUi() {
+  onlineLookupRunId++;
+  searchOnlineCandidatesState = [];
+
+  const stateEl = document.getElementById("searchOnlineState");
+  const listEl = document.getElementById("searchOnlineCandidates");
+
+  if (stateEl) {
+    stateEl.textContent = "";
+    stateEl.classList.add("hidden");
+  }
+
+  if (listEl) {
+    listEl.innerHTML = "";
+    listEl.classList.add("hidden");
+  }
+}
+
+function setSearchOnlineState(message) {
+  const stateEl = document.getElementById("searchOnlineState");
+  if (!stateEl) return;
+
+  if (!message) {
+    stateEl.textContent = "";
+    stateEl.classList.add("hidden");
+    return;
+  }
+
+  stateEl.textContent = message;
+  stateEl.classList.remove("hidden");
+}
+
+function clearEditorLookupUi() {
+  editorLookupCandidatesState = [];
+
+  const box = document.getElementById("editorLookupBox");
+  const root = document.getElementById("editorLookupCandidates");
+
+  if (root) root.innerHTML = "";
+  if (box) box.classList.add("hidden");
+}
+
+function getScriptLabel(script) {
+  if (script === "gujarati") return "Gujarati";
+  if (script === "devanagari") return "Hindi";
+  if (script === "romanized") return "Romanized";
+  if (script === "english") return "English";
+  if (script === "mixed") return "Mixed";
+  return "Unknown";
+}
+
+function formatConfidence(value) {
+  const n = Number(value || 0);
+  if (!Number.isFinite(n)) return "0%";
+  return `${Math.max(0, Math.min(Math.round(n), 100))}%`;
+}
+
+function buildOnlineCandidateCardHtml(candidate, index, type) {
+  return `
+    <div class="result-card" data-online-index="${index}" data-online-type="${type}">
+      <div class="result-main">
+        <div class="song-title">${escapeHtml(candidate.title || "")}</div>
+        <div class="song-meta">
+          ${escapeHtml(joinMeta([
+            candidate.movie || "",
+            candidate.singer || "",
+            `Source: ${candidate.source_name || "Online"}`,
+            formatConfidence(candidate.confidence),
+            getScriptLabel(candidate.script)
+          ]))}
+        </div>
+        <div class="song-snippet">
+          ${escapeHtml(String(candidate.lyrics || "").slice(0, 220))}${String(candidate.lyrics || "").length > 220 ? "..." : ""}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderSearchOnlineCandidates(candidates) {
+  const root = document.getElementById("searchOnlineCandidates");
+  if (!root) return;
+
+  searchOnlineCandidatesState = Array.isArray(candidates) ? candidates.slice() : [];
+
+  if (!searchOnlineCandidatesState.length) {
+    root.innerHTML = "";
+    root.classList.add("hidden");
+    return;
+  }
+
+  root.innerHTML = searchOnlineCandidatesState
+    .map((candidate, index) => buildOnlineCandidateCardHtml(candidate, index, "search"))
+    .join("");
+
+  root.classList.remove("hidden");
+}
+
+function renderEditorLookupCandidates(candidates) {
+  const box = document.getElementById("editorLookupBox");
+  const root = document.getElementById("editorLookupCandidates");
+  if (!box || !root) return;
+
+  editorLookupCandidatesState = Array.isArray(candidates) ? candidates.slice() : [];
+
+  if (!editorLookupCandidatesState.length) {
+    clearEditorLookupUi();
+    return;
+  }
+
+  root.innerHTML = editorLookupCandidatesState
+    .map((candidate, index) => buildOnlineCandidateCardHtml(candidate, index, "editor"))
+    .join("");
+
+  box.classList.remove("hidden");
+}
+
+async function lookupSongOnline(payload = {}) {
+  const { data, error } = await supabaseClient.functions.invoke("lookup-song-online", {
+    body: {
+      preferredScripts: ["gujarati", "devanagari", "romanized", "english"],
+      limit: 8,
+      ...payload
+    }
+  });
+
+  if (error) {
+    throw error;
+  }
+
+  return Array.isArray(data?.candidates) ? data.candidates : [];
+}
+
+async function runOnlineLookupForSearch(query) {
+  const safeQuery = String(query || "").trim();
+  if (!safeQuery || safeQuery.length < 3) {
+    clearSearchOnlineUi();
+    return;
+  }
+
+  const runId = ++onlineLookupRunId;
+  setSearchOnlineState("Not in library — finding online...");
+  renderSearchOnlineCandidates([]);
+
+  try {
+    const candidates = await lookupSongOnline({ query: safeQuery });
+
+    if (runId !== onlineLookupRunId) return;
+
+    if (!candidates.length) {
+      setSearchOnlineState("Not in library — nothing reliable found online.");
+      renderSearchOnlineCandidates([]);
+      return;
+    }
+
+    setSearchOnlineState("Not in library — online matches found below.");
+    renderSearchOnlineCandidates(candidates);
+  } catch (error) {
+    if (runId !== onlineLookupRunId) return;
+
+    console.error("ONLINE LOOKUP ERROR:", error);
+    setSearchOnlineState("Not in library — online lookup failed.");
+    renderSearchOnlineCandidates([]);
+  }
+}
+
+function applyEditorCandidate(candidate) {
+  const titleInput = document.getElementById("songTitle");
+  const movieInput = document.getElementById("songMovie");
+  const singerInput = document.getElementById("songSinger");
+  const lyricsBox = document.getElementById("songLyrics");
+  const status = document.getElementById("editorStatus");
+
+  if (!candidate) return;
+
+  titleInput.value = candidate.title || "";
+  movieInput.value = candidate.movie || "";
+  singerInput.value = candidate.singer || "";
+  lyricsBox.value = cleanLyricsText(candidate.lyrics || "");
+
+  markInputAutofilled(titleInput, true);
+  markInputAutofilled(movieInput, !!candidate.movie);
+  markInputAutofilled(singerInput, !!candidate.singer);
+  markTextareaAutofilled(lyricsBox, true);
+
+  clearEditorLookupUi();
+  checkEditorDuplicateState();
+
+  status.style.color = "#b91c1c";
+  status.textContent = `Online match loaded from ${candidate.source_name || "online"} (${formatConfidence(candidate.confidence)}). Review before saving.`;
+}
+
+async function saveOnlineCandidateToLibrary(candidate, options = {}) {
+  const {
+    addBookmark = false,
+    shareNowAfterSave = false,
+    openAfterSave = true
+  } = options;
+
+  if (!candidate || !isApproved()) return null;
+
+  const title = String(candidate.title || "").trim();
+  const movie = String(candidate.movie || "").trim();
+  const singer = String(candidate.singer || "").trim();
+  const lyrics = cleanLyricsText(candidate.lyrics || "");
+
+  if (!title || !lyrics) {
+    showStatus("appStatus", "Online result is missing title or lyrics.", "error");
+    return null;
+  }
+
+  const existing = duplicateSongExists(title, null);
+  if (existing) {
+    showStatus("appStatus", `Already in library: ${existing.title}`, "warn");
+
+    if (addBookmark) {
+      await toggleBookmark(existing.id);
+    }
+
+    if (shareNowAfterSave) {
+      await shareSongNow(existing.id);
+    }
+
+    if (openAfterSave) {
+      openSong(existing.id);
+    }
+
+    return existing;
+  }
+
+  const payload = {
+    title,
+    movie,
+    singer,
+    original_key: "",
+    chord: "",
+    lyrics,
+    title_norm: normalizeKey(title),
+    movie_norm: normalizeKey(movie),
+    singer_norm: normalizeKey(singer)
+  };
+
+  const response = await supabaseClient
+    .from("songs")
+    .insert([payload])
+    .select()
+    .single();
+
+  if (response.error) {
+    console.error("SAVE ONLINE SONG ERROR:", response.error);
+    showStatus("appStatus", response.error.message || "Could not save online song.", "error");
+    return null;
+  }
+
+  if (response.data) {
+    applySongRealtimeChange("INSERT", response.data);
+
+    if (addBookmark) {
+      await toggleBookmark(response.data.id);
+    }
+
+    if (shareNowAfterSave) {
+      await shareSongNow(response.data.id);
+    }
+
+    showStatus("appStatus", `Saved: ${title}`, "success");
+
+    if (openAfterSave) {
+      openSong(response.data.id);
+    }
+
+    return response.data;
+  }
+
+  return null;
+}
+
+function openOnlineCandidate(candidate) {
+  if (!candidate) return;
+
+  openModalKind = "online";
+  openOnlineCandidateData = candidate;
+  openSongId = null;
+
+  document.getElementById("modalTitle").textContent = candidate.title || "";
+  document.getElementById("modalMeta").textContent = joinMeta([candidate.movie, candidate.singer]);
+
+  const modalExtraMeta = document.getElementById("modalExtraMeta");
+  modalExtraMeta.innerHTML = `
+    <div><strong>Source:</strong> ${escapeHtml(candidate.source_name || "Online")}</div>
+    <div><strong>Confidence:</strong> ${escapeHtml(formatConfidence(candidate.confidence))}</div>
+    <div><strong>Language:</strong> ${escapeHtml(getScriptLabel(candidate.script))}</div>
+  `;
+  modalExtraMeta.classList.remove("hidden");
+
+  document.getElementById("modalLyrics").innerHTML = escapeHtml(candidate.lyrics || "");
+
+  document.getElementById("modalSaveBtn").classList.toggle("hidden", !isApproved());
+  document.getElementById("modalBookmarkBtn").classList.toggle("hidden", !isApproved());
+  document.getElementById("modalShareNowBtn").classList.toggle("hidden", !isApproved());
+  document.getElementById("modalEditBtn").classList.toggle("hidden", !isApproved());
+  document.getElementById("modalDeleteBtn").classList.add("hidden");
+
+  const bookmarkBtn = document.getElementById("modalBookmarkBtn");
+  bookmarkBtn.textContent = "☆";
+  bookmarkBtn.title = "Save and add to favourites";
+  bookmarkBtn.setAttribute("aria-label", "Save and add to favourites");
+  bookmarkBtn.dataset.songId = "";
+
+  document.getElementById("songModal").classList.add("show");
+  document.body.style.overflow = "hidden";
+}
 
     function isApproved() {
       return !!profile?.approved;
@@ -2811,9 +3148,18 @@ rejectStaleWorkerSearches(runId);
     if (runId !== searchRunId) return;
 
     requestAnimationFrame(() => {
-      if (runId !== searchRunId) return;
-      renderResults(enriched, safeQuery, { showSnippets });
-    });
+  if (runId !== searchRunId) return;
+
+  renderResults(enriched, safeQuery, { showSnippets });
+
+  if (mode === "deep") {
+    if (enriched.length === 0 && safeQuery.trim().length >= 3) {
+      runOnlineLookupForSearch(safeQuery);
+    } else {
+      clearSearchOnlineUi();
+    }
+  }
+});
   } catch (error) {
     if (String(error?.message || "") === "Search superseded") {
   return;
@@ -2826,9 +3172,18 @@ console.error("SCHEDULE SEARCH RENDER ERROR:", error);
     const fallbackResults = searchSongs(safeQuery, { mode });
 
     requestAnimationFrame(() => {
-      if (runId !== searchRunId) return;
-      renderResults(fallbackResults, safeQuery, { showSnippets });
-    });
+  if (runId !== searchRunId) return;
+
+  renderResults(fallbackResults, safeQuery, { showSnippets });
+
+  if (mode === "deep") {
+    if (fallbackResults.length === 0 && safeQuery.trim().length >= 3) {
+      runOnlineLookupForSearch(safeQuery);
+    } else {
+      clearSearchOnlineUi();
+    }
+  }
+});
   }
 }
     
@@ -3104,87 +3459,7 @@ function decodeHtmlEntities(text) {
   return el.value;
 }
 
-function buildSearchCandidates(title, movie, singer) {
-  const candidates = [];
-  const singerParts = splitMetaParts(singer);
-
-  if (title && singerParts.length) {
-    singerParts.forEach(name => {
-      candidates.push({ title, artist: name });
-    });
-  }
-
-  if (title && singer) {
-    candidates.push({ title, artist: singer });
-  }
-
-  if (title) {
-    candidates.push({ title, artist: "" });
-  }
-
-  if (movie && title) {
-    candidates.push({ title: `${title} ${movie}`, artist: "" });
-  }
-
-  return candidates;
-}
-
-async function fetchLyricsFromLRCLIB(title, singer) {
-  const candidates = buildSearchCandidates(title, "", singer);
-
-  for (const candidate of candidates) {
-    const params = new URLSearchParams();
-    if (candidate.title) params.set("track_name", candidate.title);
-    if (candidate.artist) params.set("artist_name", candidate.artist);
-
-    const response = await fetch(`https://lrclib.net/api/search?${params.toString()}`);
-    if (!response.ok) continue;
-
-    const results = await response.json();
-    if (!Array.isArray(results) || !results.length) continue;
-
-    const best = results.find(item => item.plainLyrics) || results[0];
-    const lyrics = cleanLyricsText(best?.plainLyrics || best?.syncedLyrics || "");
-    if (lyrics) {
-      return {
-        lyrics,
-        source: "LRCLIB",
-        matchedTitle: best.trackName || candidate.title,
-        matchedArtist: best.artistName || candidate.artist,
-        matchedAlbum: best.albumName || ""
-      };
-    }
-  }
-
-  return null;
-}
-
-async function fetchLyricsFromLyricsOvh(title, singer) {
-  const singerParts = splitMetaParts(singer);
-  const artistCandidates = singerParts.length ? singerParts : [singer].filter(Boolean);
-
-  for (const artist of artistCandidates) {
-    const url = `https://api.lyrics.ovh/v1/${encodeURIComponent(artist)}/${encodeURIComponent(title)}`;
-    const response = await fetch(url);
-    if (!response.ok) continue;
-
-    const data = await response.json();
-    const lyrics = cleanLyricsText(decodeHtmlEntities(data?.lyrics || ""));
-    if (lyrics) {
-      return {
-        lyrics,
-        source: "lyrics.ovh",
-        matchedTitle: title,
-        matchedArtist: artist,
-        matchedAlbum: ""
-      };
-    }
-  }
-
-  return null;
-}
-
-   
+  
 async function fetchLyricsForEditor() {
   const titleInput = document.getElementById("songTitle");
   const singerInput = document.getElementById("songSinger");
@@ -3195,6 +3470,10 @@ async function fetchLyricsForEditor() {
 
   const title = titleInput.value.trim();
   const singer = singerInput.value.trim();
+  const movie = movieInput.value.trim();
+  const query = [title, singer, movie].filter(Boolean).join(" ").trim();
+
+  clearEditorLookupUi();
 
   if (!title) {
     status.style.color = "#b91c1c";
@@ -3205,70 +3484,47 @@ async function fetchLyricsForEditor() {
   fetchBtn.disabled = true;
   fetchBtn.style.opacity = "0.6";
   status.style.color = "#6b7280";
-  status.textContent = "Trying LRCLIB...";
+  status.textContent = "Finding online matches...";
 
   try {
-    let result = await fetchLyricsFromLRCLIB(title, singer);
+    const candidates = await lookupSongOnline({
+      query,
+      title,
+      singer,
+      movie,
+      limit: 6
+    });
 
-    if (!result) {
-      status.style.color = "#6b7280";
-      status.textContent = "Trying lyrics.ovh...";
-      result = await fetchLyricsFromLyricsOvh(title, singer);
-    }
-
-    if (!result) {
+    if (!candidates.length) {
       status.style.color = "#b91c1c";
-      status.textContent = "No lyrics found. Please add manually.";
+      status.textContent = "No reliable online result found. Please add manually.";
       return;
     }
 
-    let replacedLyrics = false;
+    const best = candidates[0] || null;
 
-    if (!lyricsBox.value.trim()) {
-  lyricsBox.value = result.lyrics;
-  replacedLyrics = true;
-} else {
-  const shouldReplace = confirm(`Lyrics found from ${result.source}. Replace current lyrics box content?`);
-  if (shouldReplace) {
-    lyricsBox.value = result.lyrics;
-    replacedLyrics = true;
-  }
-}
+    if (best && (best.confidence >= 86 || candidates.length === 1)) {
+      if (lyricsBox.value.trim()) {
+        const shouldReplace = confirm(`Online lyrics found from ${best.source_name}. Replace current lyrics box content?`);
+        if (!shouldReplace) {
+          status.style.color = "#b91c1c";
+          status.textContent = "Online match found. Review the options below.";
+          renderEditorLookupCandidates(candidates);
+          return;
+        }
+      }
 
-if (replacedLyrics) {
-  markTextareaAutofilled(lyricsBox, true);
-}
-
-    let autofilledSomething = false;
-
-    if (result.matchedArtist && !singerInput.value.trim()) {
-      singerInput.value = result.matchedArtist;
-      markInputAutofilled(singerInput, true);
-      autofilledSomething = true;
-    }
-
-    if (result.matchedAlbum && !movieInput.value.trim()) {
-      movieInput.value = result.matchedAlbum;
-      markInputAutofilled(movieInput, true);
-      autofilledSomething = true;
-    }
-
-       if (!autofilledSomething) {
-      markInputAutofilled(titleInput, false);
-      markInputAutofilled(movieInput, false);
-      markInputAutofilled(singerInput, false);
+      applyEditorCandidate(best);
+      return;
     }
 
     status.style.color = "#b91c1c";
-    status.textContent = "Fetched data found. Review orange fields and lyrics carefully before saving.";
-
-    if (replacedLyrics) {
-      lyricsBox.focus();
-    }
+    status.textContent = "Multiple online matches found. Choose the best one below.";
+    renderEditorLookupCandidates(candidates);
   } catch (error) {
-    console.error("FETCH LYRICS ERROR:", error);
+    console.error("EDITOR ONLINE LOOKUP ERROR:", error);
     status.style.color = "#b91c1c";
-    status.textContent = "Lyrics fetch failed.";
+    status.textContent = "Online lookup failed.";
   } finally {
     fetchBtn.disabled = false;
     fetchBtn.style.opacity = "1";
@@ -3434,6 +3690,8 @@ pendingLiveSongId = null;
 pendingLiveEventByMe = false;
 currentLiveSongId = null;
 updateLiveMiniButton();
+      clearSearchOnlineUi();
+clearEditorLookupUi();
 
 if (searchInputTimer) {
   clearTimeout(searchInputTimer);
@@ -3599,7 +3857,7 @@ disposeSearchWorker();
 
   songs = data || [];
 rebuildFuse();
-scheduleWorkerIndexSync();
+syncSearchWorkerIndex();
 await loadBookmarks();
 refreshSuggestionLists();
 checkEditorDuplicateState();
@@ -3636,6 +3894,7 @@ function refreshUiFromSongsState(options = {}) {
 syncSearchWorkerIndex();
 refreshSuggestionLists();
 checkEditorDuplicateState();
+ clearSearchOnlineUi();
 favoriteSongsCache = preparedSongs.filter(song => favoriteSongIds.has(Number(song.id)));
 document.getElementById("libraryCountText").textContent = `${songs.length} songs`;
 
@@ -4017,7 +4276,10 @@ const movie = cleanAndLimitText(document.getElementById("songMovie").value, MAX_
 const singer = cleanAndLimitText(document.getElementById("songSinger").value, MAX_META_LENGTH);
 const originalKey = cleanAndLimitText(document.getElementById("songOriginalKey").value, 40);
 const chord = cleanAndLimitText(document.getElementById("songChord").value, 120);
-const lyrics = cleanAndLimitText(document.getElementById("songLyrics").value, MAX_LYRICS_LENGTH);
+const lyrics = cleanAndLimitText(
+  cleanLyricsText(document.getElementById("songLyrics").value),
+  MAX_LYRICS_LENGTH
+);
 const editorStatus = document.getElementById("editorStatus");
 
       if (!title || !lyrics) {
@@ -4321,6 +4583,10 @@ showStatus("appStatus", "Song deleted.", "success");
     }
 
     function openSong(songId) {
+      openModalKind = "local";
+openOnlineCandidateData = null;
+document.getElementById("modalSaveBtn").classList.add("hidden");
+      
       const song = preparedSongs.find(s => Number(s.id) === Number(songId));
       if (!song) return;
 
@@ -4372,10 +4638,12 @@ modalBookmarkBtn.dataset.songId = String(songId);
     }
 
     function closeSongModal() {
-      openSongId = null;
-      document.getElementById("songModal").classList.remove("show");
-      document.body.style.overflow = "";
-    }
+  openSongId = null;
+  openModalKind = "local";
+  openOnlineCandidateData = null;
+  document.getElementById("songModal").classList.remove("show");
+  document.body.style.overflow = "";
+}
 
     function resetSongForm() {
       editingSongId = null;
@@ -4393,6 +4661,7 @@ modalBookmarkBtn.dataset.songId = String(songId);
       const saveBtn = document.getElementById("saveSongBtn");
       saveBtn.disabled = false;
       saveBtn.style.opacity = "1";
+      clearEditorLookupUi();
       markInputAutofilled(document.getElementById("songTitle"), false);
 markInputAutofilled(document.getElementById("songMovie"), false);
 markInputAutofilled(document.getElementById("songSinger"), false);
@@ -4667,6 +4936,37 @@ if (tabName !== "search") {
         openEditor();
       });
 
+    document.getElementById("searchOnlineCandidates").addEventListener("click", (e) => {
+  const card = e.target.closest("[data-online-index][data-online-type='search']");
+  if (!card) return;
+
+  const index = Number(card.dataset.onlineIndex);
+  const candidate = searchOnlineCandidatesState[index];
+  if (candidate) {
+    openOnlineCandidate(candidate);
+  }
+});
+
+document.getElementById("editorLookupCandidates").addEventListener("click", (e) => {
+  const card = e.target.closest("[data-online-index][data-online-type='editor']");
+  if (!card) return;
+
+  const index = Number(card.dataset.onlineIndex);
+  const candidate = editorLookupCandidatesState[index];
+  if (candidate) {
+    applyEditorCandidate(candidate);
+  }
+});
+      document.getElementById("modalSaveBtn").addEventListener("click", async () => {
+  if (openModalKind === "online" && openOnlineCandidateData) {
+    await saveOnlineCandidateToLibrary(openOnlineCandidateData, {
+      addBookmark: false,
+      shareNowAfterSave: false,
+      openAfterSave: true
+    });
+  }
+});
+      
       document.addEventListener("visibilitychange", async () => {
   if (document.visibilityState === "hidden") {
     lastHiddenAt = Date.now();
@@ -4733,6 +5033,7 @@ document.getElementById("liveNowDismissBtn").addEventListener("click", dismissPe
     document.getElementById("searchInput").addEventListener("input", (e) => {
   const nextValue = e.target.value;
   lastQuery = nextValue;
+      clearSearchOnlineUi();
 
   if (searchInputTimer) {
     clearTimeout(searchInputTimer);
@@ -4780,6 +5081,7 @@ document.getElementById("liveNowDismissBtn").addEventListener("click", dismissPe
 
   document.getElementById("searchInput").value = "";
   lastQuery = "";
+      clearSearchOnlineUi();
   renderResults([], "");
   document.getElementById("searchInput").focus();
 });
@@ -4857,15 +5159,47 @@ document.getElementById("liveNowDismissBtn").addEventListener("click", dismissPe
       document.getElementById("modalCloseBtn").addEventListener("click", closeSongModal);
 
       document.getElementById("modalBookmarkBtn").addEventListener("click", async () => {
-        if (openSongId) await toggleBookmark(openSongId);
-      });
-      document.getElementById("modalShareNowBtn").addEventListener("click", () => {
-  if (openSongId) shareSongNow(openSongId);
+  if (openModalKind === "online" && openOnlineCandidateData) {
+    await saveOnlineCandidateToLibrary(openOnlineCandidateData, {
+      addBookmark: true,
+      shareNowAfterSave: false,
+      openAfterSave: true
+    });
+    return;
+  }
+
+  if (openSongId) {
+    await toggleBookmark(openSongId);
+  }
+});
+      document.getElementById("modalShareNowBtn").addEventListener("click", async () => {
+  if (openModalKind === "online" && openOnlineCandidateData) {
+    await saveOnlineCandidateToLibrary(openOnlineCandidateData, {
+      addBookmark: false,
+      shareNowAfterSave: true,
+      openAfterSave: true
+    });
+    return;
+  }
+
+  if (openSongId) {
+    await shareSongNow(openSongId);
+  }
 });
       
-      document.getElementById("modalEditBtn").addEventListener("click", () => {
-        if (openSongId) startEdit(openSongId);
-      });
+     document.getElementById("modalEditBtn").addEventListener("click", () => {
+  if (openModalKind === "online" && openOnlineCandidateData) {
+    closeSongModal();
+    resetSongForm();
+    openEditor();
+    applyEditorCandidate(openOnlineCandidateData);
+    return;
+  }
+
+  if (openSongId) {
+    startEdit(openSongId);
+  }
+});
 
       document.getElementById("modalDeleteBtn").addEventListener("click", () => {
         if (openSongId) deleteSong(openSongId);
