@@ -433,6 +433,52 @@
   display: block;
 }
 
+    .search-online-state-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.search-online-spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(185, 28, 28, 0.18);
+  border-top-color: #b91c1c;
+  border-radius: 999px;
+  animation: searchSpin 0.8s linear infinite;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+@keyframes searchSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.search-online-state-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.search-online-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(185, 28, 28, 0.18);
+  border-top-color: #b91c1c;
+  border-radius: 999px;
+  animation: searchSpin 0.8s linear infinite;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+@keyframes searchSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .search-online-state-title {
   font-size: 14px;
   font-weight: 700;
@@ -446,8 +492,38 @@
   color: #991b1b;
 }
 
+.search-online-candidates {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
 .search-online-candidates:empty {
   display: none;
+}
+
+.search-online-candidates .result-card {
+  margin-bottom: 0;
+}
+
+.online-pill-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.online-pill {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid #fecaca;
+  background: #fff1f2;
+  color: #991b1b;
+  border-radius: 999px;
+  padding: 4px 8px;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
 }
 
     .toolbar {
@@ -1226,6 +1302,9 @@ let onlineLookupRunId = 0;
 let searchOnlineCandidatesState = [];
 let editorLookupCandidatesState = [];
 
+const ONLINE_LOOKUP_CACHE_TTL_MS = 3 * 60 * 1000;
+let onlineLookupCache = new Map();
+
 let lyricWordIndex = new Map();
 let lyricPhoneticIndex = new Map();
 let lyricCompactIndex = new Map();
@@ -1379,7 +1458,49 @@ function getFastLyricCandidateScore(song, query) {
       el.textContent = message;
     }
 
-  function clearSearchOnlineUi() {
+    function getOnlineLookupCacheKey(payload = {}) {
+  return JSON.stringify({
+    query: normalizeText(payload.query || ""),
+    title: normalizeText(payload.title || ""),
+    singer: normalizeText(payload.singer || ""),
+    movie: normalizeText(payload.movie || ""),
+    limit: Number(payload.limit || 5),
+    preferredScripts: Array.isArray(payload.preferredScripts)
+      ? payload.preferredScripts.map(String)
+      : ["gujarati", "devanagari", "romanized", "english"]
+  });
+}
+
+function getCachedOnlineLookup(payload = {}) {
+  const key = getOnlineLookupCacheKey(payload);
+  const cached = onlineLookupCache.get(key);
+
+  if (!cached) return null;
+
+  if (Date.now() - cached.at > ONLINE_LOOKUP_CACHE_TTL_MS) {
+    onlineLookupCache.delete(key);
+    return null;
+  }
+
+  return Array.isArray(cached.candidates) ? cached.candidates.slice() : [];
+}
+
+function setCachedOnlineLookup(payload = {}, candidates = []) {
+  const key = getOnlineLookupCacheKey(payload);
+
+  onlineLookupCache.set(key, {
+    at: Date.now(),
+    candidates: Array.isArray(candidates) ? candidates.slice() : []
+  });
+}
+
+function hideSearchOnlineBanner() {
+  setSearchOnlineState("");
+}
+
+function clearSearchOnlineUi() {
+  onlineLookupRunId++;
+  searchOnlineCandidatesState = [];
   setSearchOnlineState("");
   renderSearchOnlineCandidates([]);
 }
@@ -1395,9 +1516,11 @@ function setSearchOnlineState(message = "", type = "info") {
   }
 
   let helper = "";
+  let leading = "";
 
   if (type === "pending") {
     helper = "Please wait while the app checks outside your local database.";
+    leading = `<span class="search-online-spinner" aria-hidden="true"></span>`;
   } else if (type === "success") {
     helper = "Choose a result below to open it. You can then save it to your library.";
   } else if (type === "error") {
@@ -1406,8 +1529,13 @@ function setSearchOnlineState(message = "", type = "info") {
 
   el.className = "search-online-state show";
   el.innerHTML = `
-    <div class="search-online-state-title">${escapeHtml(message)}</div>
-    ${helper ? `<div class="search-online-state-helper">${escapeHtml(helper)}</div>` : ""}
+    <div class="search-online-state-row">
+      ${leading}
+      <div>
+        <div class="search-online-state-title">${escapeHtml(message)}</div>
+        ${helper ? `<div class="search-online-state-helper">${escapeHtml(helper)}</div>` : ""}
+      </div>
+    </div>
   `;
 }
 
@@ -1564,16 +1692,21 @@ function buildOnlineCandidateCardHtml(candidate, index, type) {
   return `
     <div class="result-card" data-online-index="${index}" data-online-type="${type}">
       <div class="result-main">
+        <div class="online-pill-row">
+          <span class="online-pill">Online result</span>
+          <span class="online-pill">${escapeHtml(candidate.source_name || "Online")}</span>
+          <span class="online-pill">${escapeHtml(formatConfidence(candidate.confidence))}</span>
+          <span class="online-pill">${escapeHtml(getScriptLabel(candidate.script))}</span>
+        </div>
+
         <div class="song-title">${escapeHtml(candidate.title || "")}</div>
         <div class="song-meta">
           ${escapeHtml(joinMeta([
             candidate.movie || "",
-            candidate.singer || "",
-            `Source: ${candidate.source_name || "Online"}`,
-            formatConfidence(candidate.confidence),
-            getScriptLabel(candidate.script)
+            candidate.singer || ""
           ]))}
         </div>
+
         <div class="song-snippet">
           ${escapeHtml(String(candidate.lyrics || "").slice(0, 220))}${String(candidate.lyrics || "").length > 220 ? "..." : ""}
         </div>
@@ -1627,6 +1760,11 @@ async function lookupSongOnline(payload = {}) {
     ...payload
   };
 
+  const cached = getCachedOnlineLookup(requestBody);
+  if (cached) {
+    return cached;
+  }
+
   const { data, error } = await supabaseClient.functions.invoke("lookup-song-online", {
     body: requestBody
   });
@@ -1649,6 +1787,7 @@ async function lookupSongOnline(payload = {}) {
     throw new Error("Edge Function returned invalid response shape.");
   }
 
+  setCachedOnlineLookup(requestBody, data.candidates);
   return data.candidates;
 }
 
@@ -1783,31 +1922,32 @@ async function saveOnlineCandidateToLibrary(candidate, options = {}) {
   }
 
   if (response.data) {
-    applySongRealtimeChange("INSERT", response.data);
+  applySongRealtimeChange("INSERT", response.data);
 
-    if (addBookmark) {
-      await toggleBookmark(response.data.id);
-    }
-
-    if (shareNowAfterSave) {
-      await shareSongNow(response.data.id);
-    }
-
-    showStatus("appStatus", `Saved: ${title}`, "success");
-
-    if (openAfterSave) {
-      openSong(response.data.id);
-    }
-
-    return response.data;
+  if (addBookmark) {
+    await toggleBookmark(response.data.id);
   }
+
+  if (shareNowAfterSave) {
+    await shareSongNow(response.data.id);
+  }
+
+  clearSearchOnlineUi();
+  showStatus("appStatus", `Saved: ${title}`, "success");
+
+  if (openAfterSave) {
+    openSong(response.data.id);
+  }
+
+  return response.data;
+}
 
   return null;
 }
 
 function openOnlineCandidate(candidate) {
   if (!candidate) return;
-
+  hideSearchOnlineBanner();
   openModalKind = "online";
   openOnlineCandidateData = candidate;
   openSongId = null;
@@ -5259,7 +5399,7 @@ document.getElementById("liveNowDismissBtn").addEventListener("click", dismissPe
   }, 220);
 });
 
-    document.getElementById("clearBtn").addEventListener("click", () => {
+   document.getElementById("clearBtn").addEventListener("click", () => {
   if (searchInputTimer) {
     clearTimeout(searchInputTimer);
     searchInputTimer = null;
@@ -5380,12 +5520,17 @@ document.getElementById("liveNowDismissBtn").addEventListener("click", dismissPe
   }
 });
       
-     document.getElementById("modalEditBtn").addEventListener("click", () => {
+    document.getElementById("modalEditBtn").addEventListener("click", () => {
   if (openModalKind === "online" && openOnlineCandidateData) {
+    const candidate = {
+      ...openOnlineCandidateData
+    };
+
+    hideSearchOnlineBanner();
     closeSongModal();
     resetSongForm();
     openEditor();
-    applyEditorCandidate(openOnlineCandidateData);
+    applyEditorCandidate(candidate);
     return;
   }
 
