@@ -1304,7 +1304,6 @@ let editorLookupCandidatesState = [];
 
 const ONLINE_LOOKUP_CACHE_TTL_MS = 3 * 60 * 1000;
 let onlineLookupCache = new Map();
-let onlineDetailCache = new Map();
 
 let lyricWordIndex = new Map();
 let lyricPhoneticIndex = new Map();
@@ -1492,24 +1491,6 @@ function setCachedOnlineLookup(payload = {}, candidates = []) {
   onlineLookupCache.set(key, {
     at: Date.now(),
     candidates: Array.isArray(candidates) ? candidates.slice() : []
-  });
-}
-    function getCachedOnlineDetail(lookupKey) {
-  const cached = onlineDetailCache.get(String(lookupKey || ""));
-  if (!cached) return null;
-
-  if (Date.now() - cached.at > ONLINE_LOOKUP_CACHE_TTL_MS) {
-    onlineDetailCache.delete(String(lookupKey || ""));
-    return null;
-  }
-
-  return cached.song ? { ...cached.song } : null;
-}
-
-function setCachedOnlineDetail(lookupKey, song) {
-  onlineDetailCache.set(String(lookupKey || ""), {
-    at: Date.now(),
-    song: song ? { ...song } : null
   });
 }
 
@@ -1708,8 +1689,6 @@ function formatConfidence(value) {
 }
 
 function buildOnlineCandidateCardHtml(candidate, index, type) {
-  const preview = String(candidate.preview || "").trim();
-
   return `
     <div class="result-card" data-online-index="${index}" data-online-type="${type}">
       <div class="result-main">
@@ -1729,15 +1708,13 @@ function buildOnlineCandidateCardHtml(candidate, index, type) {
         </div>
 
         <div class="song-snippet">
-          ${preview
-            ? `${escapeHtml(preview)}${preview.length >= 220 ? "..." : ""}`
-            : `<span style="color:#6b7280;">No preview available yet. Tap to load lyrics.</span>`}
+          ${escapeHtml(String(candidate.lyrics || "").slice(0, 220))}${String(candidate.lyrics || "").length > 220 ? "..." : ""}
         </div>
       </div>
     </div>
   `;
 }
-    
+
 function renderSearchOnlineCandidates(candidates) {
   const root = document.getElementById("searchOnlineCandidates");
   if (!root) return;
@@ -1779,7 +1756,7 @@ function renderEditorLookupCandidates(candidates) {
 async function lookupSongOnline(payload = {}) {
   const requestBody = {
     preferredScripts: ["gujarati", "devanagari", "romanized", "english"],
-    limit: 8,
+    limit: 5,
     ...payload
   };
 
@@ -1788,7 +1765,7 @@ async function lookupSongOnline(payload = {}) {
     return cached;
   }
 
-  const { data, error } = await supabaseClient.functions.invoke("lookup-song-online-fast", {
+  const { data, error } = await supabaseClient.functions.invoke("lookup-song-online", {
     body: requestBody
   });
 
@@ -1813,51 +1790,6 @@ async function lookupSongOnline(payload = {}) {
   setCachedOnlineLookup(requestBody, data.candidates);
   return data.candidates;
 }
-
-   async function fetchOnlineSongDetail(candidate) {
-  if (!candidate?.lookup_key) {
-    throw new Error("Missing lookup key.");
-  }
-
-  const cached = getCachedOnlineDetail(candidate.lookup_key);
-  if (cached) {
-    return {
-      ...candidate,
-      ...cached
-    };
-  }
-
-  const { data, error } = await supabaseClient.functions.invoke("fetch-online-song-detail", {
-    body: {
-      lookup_key: candidate.lookup_key
-    }
-  });
-
-  if (error) {
-    const message =
-      error?.message ||
-      error?.context?.message ||
-      error?.context?.error ||
-      "Unknown function invoke error";
-
-    throw new Error(`Detail fetch failed: ${message}`);
-  }
-
-  if (data?.error) {
-    throw new Error(`Detail fetch failed: ${data.error}`);
-  }
-
-  if (!data?.song || !data.song.lyrics) {
-    throw new Error("Detail fetch returned invalid data.");
-  }
-
-  setCachedOnlineDetail(candidate.lookup_key, data.song);
-
-  return {
-    ...candidate,
-    ...data.song
-  };
-} 
 
 async function runOnlineLookupForSearch(query) {
   const safeQuery = String(query || "").trim();
@@ -2013,15 +1945,11 @@ async function saveOnlineCandidateToLibrary(candidate, options = {}) {
   return null;
 }
 
-async function openOnlineCandidate(candidate) {
+function openOnlineCandidate(candidate) {
   if (!candidate) return;
-
   hideSearchOnlineBanner();
-
   openModalKind = "online";
-  openOnlineCandidateData = {
-    ...candidate
-  };
+  openOnlineCandidateData = candidate;
   openSongId = null;
 
   document.getElementById("modalTitle").textContent = candidate.title || "";
@@ -2035,69 +1963,22 @@ async function openOnlineCandidate(candidate) {
   `;
   modalExtraMeta.classList.remove("hidden");
 
-  const preview = String(candidate.preview || "").trim();
+  document.getElementById("modalLyrics").innerHTML = escapeHtml(candidate.lyrics || "");
 
-  document.getElementById("modalLyrics").innerHTML = `
-    ${preview ? `<div style="white-space:pre-wrap; line-height:1.8; margin-bottom:14px;">${escapeHtml(preview)}</div>` : ""}
-    <div style="display:flex; align-items:center; gap:10px;">
-      <span class="search-online-spinner" aria-hidden="true"></span>
-      <span>Loading full lyrics...</span>
-    </div>
-  `;
-
-  document.getElementById("modalSaveBtn").classList.add("hidden");
-  document.getElementById("modalBookmarkBtn").classList.add("hidden");
-  document.getElementById("modalShareNowBtn").classList.add("hidden");
-  document.getElementById("modalEditBtn").classList.add("hidden");
+  document.getElementById("modalSaveBtn").classList.toggle("hidden", !isApproved());
+  document.getElementById("modalBookmarkBtn").classList.toggle("hidden", !isApproved());
+  document.getElementById("modalShareNowBtn").classList.toggle("hidden", !isApproved());
+  document.getElementById("modalEditBtn").classList.toggle("hidden", !isApproved());
   document.getElementById("modalDeleteBtn").classList.add("hidden");
+
+  const bookmarkBtn = document.getElementById("modalBookmarkBtn");
+  bookmarkBtn.textContent = "☆";
+  bookmarkBtn.title = "Save and add to favourites";
+  bookmarkBtn.setAttribute("aria-label", "Save and add to favourites");
+  bookmarkBtn.dataset.songId = "";
 
   document.getElementById("songModal").classList.add("show");
   document.body.style.overflow = "hidden";
-
-  try {
-    const fullSong = await fetchOnlineSongDetail(candidate);
-
-    openOnlineCandidateData = {
-      ...fullSong
-    };
-
-    document.getElementById("modalTitle").textContent = fullSong.title || "";
-    document.getElementById("modalMeta").textContent = joinMeta([fullSong.movie, fullSong.singer]);
-
-    modalExtraMeta.innerHTML = `
-      <div><strong>Source:</strong> ${escapeHtml(fullSong.source_name || "Online")}</div>
-      <div><strong>Confidence:</strong> ${escapeHtml(formatConfidence(fullSong.confidence))}</div>
-      <div><strong>Language:</strong> ${escapeHtml(getScriptLabel(fullSong.script))}</div>
-      ${fullSong.is_partial ? `<div><strong>Status:</strong> Partial preview only</div>` : ""}
-    `;
-    modalExtraMeta.classList.remove("hidden");
-
-    document.getElementById("modalLyrics").innerHTML = escapeHtml(fullSong.lyrics || "");
-
-    document.getElementById("modalSaveBtn").classList.toggle("hidden", !isApproved());
-    document.getElementById("modalBookmarkBtn").classList.toggle("hidden", !isApproved());
-    document.getElementById("modalShareNowBtn").classList.toggle("hidden", !isApproved());
-    document.getElementById("modalEditBtn").classList.toggle("hidden", !isApproved());
-  } catch (error) {
-    console.error("OPEN ONLINE CANDIDATE ERROR:", error);
-
-    document.getElementById("modalLyrics").innerHTML = `
-      ${preview ? `<div style="white-space:pre-wrap; line-height:1.8; margin-bottom:14px;">${escapeHtml(preview)}</div>` : ""}
-      <div class="status-box show status-warn">
-        Full lyrics could not be loaded. Only preview is available.
-      </div>
-    `;
-
-    modalExtraMeta.innerHTML = `
-      <div><strong>Source:</strong> ${escapeHtml(candidate.source_name || "Online")}</div>
-      <div><strong>Confidence:</strong> ${escapeHtml(formatConfidence(candidate.confidence))}</div>
-      <div><strong>Language:</strong> ${escapeHtml(getScriptLabel(candidate.script))}</div>
-      <div><strong>Status:</strong> Preview only</div>
-    `;
-    modalExtraMeta.classList.remove("hidden");
-
-    document.getElementById("modalEditBtn").classList.toggle("hidden", !isApproved());
-  }
 }
 
     function isApproved() {
@@ -5639,7 +5520,7 @@ document.getElementById("liveNowDismissBtn").addEventListener("click", dismissPe
   }
 });
       
-  document.getElementById("modalEditBtn").addEventListener("click", () => {
+    document.getElementById("modalEditBtn").addEventListener("click", () => {
   if (openModalKind === "online" && openOnlineCandidateData) {
     const candidate = {
       ...openOnlineCandidateData
