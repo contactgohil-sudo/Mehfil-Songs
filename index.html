@@ -1728,7 +1728,11 @@ function buildOnlineCandidateCardHtml(candidate, index, type) {
           ]))}
         </div>
 
-        ${preview ? `<div class="song-snippet">${escapeHtml(preview)}${preview.length >= 220 ? "..." : ""}</div>` : ""}
+        <div class="song-snippet">
+          ${preview
+            ? `${escapeHtml(preview)}${preview.length >= 220 ? "..." : ""}`
+            : `<span style="color:#6b7280;">No preview available yet. Tap to load lyrics.</span>`}
+        </div>
       </div>
     </div>
   `;
@@ -1775,7 +1779,7 @@ function renderEditorLookupCandidates(candidates) {
 async function lookupSongOnline(payload = {}) {
   const requestBody = {
     preferredScripts: ["gujarati", "devanagari", "romanized", "english"],
-    limit: 6,
+    limit: 8,
     ...payload
   };
 
