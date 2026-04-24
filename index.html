@@ -1708,7 +1708,7 @@ function formatConfidence(value) {
 }
 
 function buildOnlineCandidateCardHtml(candidate, index, type) {
-  const preview = String(candidate.preview || candidate.lyrics || "").trim();
+  const preview = String(candidate.preview || "").trim();
 
   return `
     <div class="result-card" data-online-index="${index}" data-online-type="${type}">
@@ -1728,7 +1728,7 @@ function buildOnlineCandidateCardHtml(candidate, index, type) {
           ]))}
         </div>
 
-        ${preview ? `<div class="song-snippet">${escapeHtml(preview)}${preview.length >= 180 ? "..." : ""}</div>` : ""}
+        ${preview ? `<div class="song-snippet">${escapeHtml(preview)}${preview.length >= 220 ? "..." : ""}</div>` : ""}
       </div>
     </div>
   `;
@@ -1775,7 +1775,7 @@ function renderEditorLookupCandidates(candidates) {
 async function lookupSongOnline(payload = {}) {
   const requestBody = {
     preferredScripts: ["gujarati", "devanagari", "romanized", "english"],
-    limit: 5,
+    limit: 6,
     ...payload
   };
 
@@ -2031,7 +2031,10 @@ async function openOnlineCandidate(candidate) {
   `;
   modalExtraMeta.classList.remove("hidden");
 
+  const preview = String(candidate.preview || "").trim();
+
   document.getElementById("modalLyrics").innerHTML = `
+    ${preview ? `<div style="white-space:pre-wrap; line-height:1.8; margin-bottom:14px;">${escapeHtml(preview)}</div>` : ""}
     <div style="display:flex; align-items:center; gap:10px;">
       <span class="search-online-spinner" aria-hidden="true"></span>
       <span>Loading full lyrics...</span>
@@ -2061,6 +2064,7 @@ async function openOnlineCandidate(candidate) {
       <div><strong>Source:</strong> ${escapeHtml(fullSong.source_name || "Online")}</div>
       <div><strong>Confidence:</strong> ${escapeHtml(formatConfidence(fullSong.confidence))}</div>
       <div><strong>Language:</strong> ${escapeHtml(getScriptLabel(fullSong.script))}</div>
+      ${fullSong.is_partial ? `<div><strong>Status:</strong> Partial preview only</div>` : ""}
     `;
     modalExtraMeta.classList.remove("hidden");
 
@@ -2072,11 +2076,23 @@ async function openOnlineCandidate(candidate) {
     document.getElementById("modalEditBtn").classList.toggle("hidden", !isApproved());
   } catch (error) {
     console.error("OPEN ONLINE CANDIDATE ERROR:", error);
+
     document.getElementById("modalLyrics").innerHTML = `
-      <div class="status-box show status-error">
-        Could not load full lyrics for this result.
+      ${preview ? `<div style="white-space:pre-wrap; line-height:1.8; margin-bottom:14px;">${escapeHtml(preview)}</div>` : ""}
+      <div class="status-box show status-warn">
+        Full lyrics could not be loaded. Only preview is available.
       </div>
     `;
+
+    modalExtraMeta.innerHTML = `
+      <div><strong>Source:</strong> ${escapeHtml(candidate.source_name || "Online")}</div>
+      <div><strong>Confidence:</strong> ${escapeHtml(formatConfidence(candidate.confidence))}</div>
+      <div><strong>Language:</strong> ${escapeHtml(getScriptLabel(candidate.script))}</div>
+      <div><strong>Status:</strong> Preview only</div>
+    `;
+    modalExtraMeta.classList.remove("hidden");
+
+    document.getElementById("modalEditBtn").classList.toggle("hidden", !isApproved());
   }
 }
 
@@ -5619,7 +5635,7 @@ document.getElementById("liveNowDismissBtn").addEventListener("click", dismissPe
   }
 });
       
-   document.getElementById("modalEditBtn").addEventListener("click", () => {
+  document.getElementById("modalEditBtn").addEventListener("click", () => {
   if (openModalKind === "online" && openOnlineCandidateData) {
     const candidate = {
       ...openOnlineCandidateData
