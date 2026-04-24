@@ -1590,7 +1590,7 @@ function renderEditorLookupCandidates(candidates) {
 async function lookupSongOnline(payload = {}) {
   const requestBody = {
     preferredScripts: ["gujarati", "devanagari", "romanized", "english"],
-    limit: 8,
+    limit: 5,
     ...payload
   };
 
@@ -1627,32 +1627,54 @@ async function runOnlineLookupForSearch(query) {
   }
 
   const runId = ++onlineLookupRunId;
-  setSearchOnlineState("Not in library — finding online...");
+
+  renderResults([], safeQuery, {
+    emptyStateMessage: "Not in library — checking online...",
+    onlinePending: true
+  });
+
+  setSearchOnlineState("");
   renderSearchOnlineCandidates([]);
 
   try {
-    const candidates = await lookupSongOnline({ query: safeQuery });
+    const candidates = await lookupSongOnline({
+      query: safeQuery,
+      limit: 5
+    });
 
     if (runId !== onlineLookupRunId) return;
 
     if (!candidates.length) {
-      setSearchOnlineState("Not in library — nothing reliable found online.");
+      renderResults([], safeQuery, {
+        emptyStateMessage: "Not in library — nothing reliable found online.",
+        onlinePending: true
+      });
+
+      setSearchOnlineState("");
       renderSearchOnlineCandidates([]);
       return;
     }
 
-    setSearchOnlineState("Not in library — online matches found below.");
+    renderResults([], safeQuery, {
+      emptyStateMessage: "Not in library — online matches found below.",
+      onlinePending: true
+    });
+
+    setSearchOnlineState("");
     renderSearchOnlineCandidates(candidates);
-  } 
-  catch (error) {
-  if (runId !== onlineLookupRunId) return;
+  } catch (error) {
+    if (runId !== onlineLookupRunId) return;
 
-  console.error("ONLINE LOOKUP ERROR:", error);
+    console.error("ONLINE LOOKUP ERROR:", error);
 
-  const message = String(error?.message || error || "Unknown online lookup error");
-  setSearchOnlineState(`Not in library — online lookup failed. ${message}`);
-  renderSearchOnlineCandidates([]);
-}
+    renderResults([], safeQuery, {
+      emptyStateMessage: "Not in library — online lookup failed.",
+      onlinePending: true
+    });
+
+    setSearchOnlineState("");
+    renderSearchOnlineCandidates([]);
+  }
 }
 
 function applyEditorCandidate(candidate) {
@@ -4593,9 +4615,19 @@ showStatus("appStatus", "Song deleted.", "success");
       }
 
       if (!results.length) {
-        root.innerHTML = `<div class="empty">No matching song found.</div>`;
-        return;
-      }
+  const emptyMessage = options.emptyStateMessage || "No matching song found.";
+  const isOnlinePending = !!options.onlinePending;
+
+  root.innerHTML = `
+    <div
+      class="empty"
+      ${isOnlinePending ? 'style="border-color:#fecaca;background:#fef2f2;color:#b91c1c;font-weight:700;"' : ""}
+    >
+      ${escapeHtml(emptyMessage)}
+    </div>
+  `;
+  return;
+}
 
       root.innerHTML = results.map(song => {
      const snippet = options.showSnippets === false ? "" : buildSnippet(song, query);
