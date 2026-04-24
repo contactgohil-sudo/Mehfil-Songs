@@ -1396,6 +1396,130 @@ function getScriptLabel(script) {
   if (script === "mixed") return "Mixed";
   return "Unknown";
 }
+    function getStrongQueryWords(query) {
+  return normalizeText(query)
+    .split(/\s+/)
+    .filter(word => word && word.length >= 3 && !WEAK_QUERY_WORDS.has(word));
+}
+
+function countWordHitsInText(text, words) {
+  const haystack = String(text || "");
+  if (!haystack || !words.length) return 0;
+
+  let hits = 0;
+  for (const word of words) {
+    if (word && haystack.includes(word)) {
+      hits++;
+    }
+  }
+
+  return hits;
+}
+
+function getPreparedFieldMatchState(song, query) {
+  const q = normalizeText(query);
+
+  const titleMatch = preparedFieldMatch(
+    song._titleNorm || normalizeText(song.title || ""),
+    song._titleParts || splitMetaParts(song.title || ""),
+    q
+  );
+
+  const movieMatch = preparedFieldMatch(
+    song._movieNorm || normalizeText(song.movie || ""),
+    song._movieParts || splitMetaParts(song.movie || ""),
+    q
+  );
+
+  const singerMatch = preparedFieldMatch(
+    song._singerNorm || normalizeText(song.singer || ""),
+    song._singerParts || splitMetaParts(song.singer || ""),
+    q
+  );
+
+  return { titleMatch, movieMatch, singerMatch };
+}
+
+function isStrongStructuredLocalMatch(song, query) {
+  const q = normalizeText(query);
+  if (!q) return false;
+
+  const { titleMatch, movieMatch, singerMatch } = getPreparedFieldMatchState(song, q);
+
+  if (titleMatch.exact || titleMatch.starts) return true;
+  if (movieMatch.exact || movieMatch.starts) return true;
+  if (singerMatch.exact || singerMatch.starts) return true;
+
+  if (q.length >= 5 && (titleMatch.contains || movieMatch.contains || singerMatch.contains)) {
+    return true;
+  }
+
+  return false;
+}
+
+function isStrongLyricLocalMatch(song, query) {
+  const q = normalizeText(query);
+  if (!q) return false;
+
+  const lyricsNorm = String(song._lyricsSearch || normalizeText(song.lyrics || ""));
+  const lyricsLoose = String(song._lyricsRomanLoose || normalizeRomanPhraseLoose(song.lyrics || ""));
+  const lyricsCompact = String(song._lyricsRomanCompact || compactRomanPhrase(song.lyrics || ""));
+  const queryLoose = normalizeRomanPhraseLoose(query);
+  const queryCompact = compactRomanPhrase(query);
+  const strongWords = getStrongQueryWords(query);
+
+  const directPhraseMatch =
+    (q.length >= 5 && lyricsNorm.includes(q)) ||
+    (queryLoose.length >= 5 && lyricsLoose.includes(queryLoose));
+
+  if (directPhraseMatch) {
+    return true;
+  }
+
+  const lyricScore = Number(song?._lyricMatchInfo?.score || 0);
+
+  const normHits = countWordHitsInText(lyricsNorm, strongWords);
+  const looseHits = countWordHitsInText(lyricsLoose, strongWords);
+  const wordHits = Math.max(normHits, looseHits);
+
+  if (strongWords.length >= 3) {
+    if (wordHits >= 2 && lyricScore >= 0.78) return true;
+    return false;
+  }
+
+  if (strongWords.length === 2) {
+    if (wordHits >= 2 && lyricScore >= 0.74) return true;
+    return false;
+  }
+
+  if (strongWords.length === 1) {
+    if (
+      wordHits === 1 &&
+      queryCompact.length >= 4 &&
+      lyricsCompact.includes(queryCompact) &&
+      lyricScore >= 0.88
+    ) {
+      return true;
+    }
+
+    return false;
+  }
+
+  return false;
+}
+
+function filterStrongLocalResults(results, query) {
+  const safeResults = Array.isArray(results) ? results : [];
+  const safeQuery = String(query || "").trim();
+
+  if (!safeQuery) return [];
+
+  return safeResults.filter(song => {
+    if (isStrongStructuredLocalMatch(song, safeQuery)) return true;
+    if (isStrongLyricLocalMatch(song, safeQuery)) return true;
+    return false;
+  });
+}
 
 function formatConfidence(value) {
   const n = Number(value || 0);
@@ -3147,13 +3271,15 @@ rejectStaleWorkerSearches(runId);
 
     if (runId !== searchRunId) return;
 
-    requestAnimationFrame(() => {
+   requestAnimationFrame(() => {
   if (runId !== searchRunId) return;
 
-  renderResults(enriched, safeQuery, { showSnippets });
+  const displayResults = filterStrongLocalResults(enriched, safeQuery);
+
+  renderResults(displayResults, safeQuery, { showSnippets });
 
   if (mode === "deep") {
-    if (enriched.length === 0 && safeQuery.trim().length >= 3) {
+    if (displayResults.length === 0 && safeQuery.trim().length >= 3) {
       runOnlineLookupForSearch(safeQuery);
     } else {
       clearSearchOnlineUi();
@@ -3174,10 +3300,12 @@ console.error("SCHEDULE SEARCH RENDER ERROR:", error);
     requestAnimationFrame(() => {
   if (runId !== searchRunId) return;
 
-  renderResults(fallbackResults, safeQuery, { showSnippets });
+ const displayResults = filterStrongLocalResults(fallbackResults, safeQuery);
+
+  renderResults(displayResults, safeQuery, { showSnippets });
 
   if (mode === "deep") {
-    if (fallbackResults.length === 0 && safeQuery.trim().length >= 3) {
+    if (displayResults.length === 0 && safeQuery.trim().length >= 3) {
       runOnlineLookupForSearch(safeQuery);
     } else {
       clearSearchOnlineUi();
