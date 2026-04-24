@@ -1588,19 +1588,35 @@ function renderEditorLookupCandidates(candidates) {
 }
 
 async function lookupSongOnline(payload = {}) {
+  const requestBody = {
+    preferredScripts: ["gujarati", "devanagari", "romanized", "english"],
+    limit: 8,
+    ...payload
+  };
+
   const { data, error } = await supabaseClient.functions.invoke("lookup-song-online", {
-    body: {
-      preferredScripts: ["gujarati", "devanagari", "romanized", "english"],
-      limit: 8,
-      ...payload
-    }
+    body: requestBody
   });
 
   if (error) {
-    throw error;
+    const message =
+      error?.message ||
+      error?.context?.message ||
+      error?.context?.error ||
+      "Unknown function invoke error";
+
+    throw new Error(`Edge Function call failed: ${message}`);
   }
 
-  return Array.isArray(data?.candidates) ? data.candidates : [];
+  if (data?.error) {
+    throw new Error(`Edge Function returned error: ${data.error}`);
+  }
+
+  if (!data || !Array.isArray(data.candidates)) {
+    throw new Error("Edge Function returned invalid response shape.");
+  }
+
+  return data.candidates;
 }
 
 async function runOnlineLookupForSearch(query) {
@@ -1627,13 +1643,16 @@ async function runOnlineLookupForSearch(query) {
 
     setSearchOnlineState("Not in library — online matches found below.");
     renderSearchOnlineCandidates(candidates);
-  } catch (error) {
-    if (runId !== onlineLookupRunId) return;
+  } 
+  catch (error) {
+  if (runId !== onlineLookupRunId) return;
 
-    console.error("ONLINE LOOKUP ERROR:", error);
-    setSearchOnlineState("Not in library — online lookup failed.");
-    renderSearchOnlineCandidates([]);
-  }
+  console.error("ONLINE LOOKUP ERROR:", error);
+
+  const message = String(error?.message || error || "Unknown online lookup error");
+  setSearchOnlineState(`Not in library — online lookup failed. ${message}`);
+  renderSearchOnlineCandidates([]);
+}
 }
 
 function applyEditorCandidate(candidate) {
@@ -3649,11 +3668,13 @@ async function fetchLyricsForEditor() {
     status.style.color = "#b91c1c";
     status.textContent = "Multiple online matches found. Choose the best one below.";
     renderEditorLookupCandidates(candidates);
-  } catch (error) {
-    console.error("EDITOR ONLINE LOOKUP ERROR:", error);
-    status.style.color = "#b91c1c";
-    status.textContent = "Online lookup failed.";
-  } finally {
+  } 
+  catch (error) {
+  console.error("EDITOR ONLINE LOOKUP ERROR:", error);
+  status.style.color = "#b91c1c";
+  status.textContent = `Online lookup failed. ${String(error?.message || error || "Unknown error")}`;
+}
+  finally {
     fetchBtn.disabled = false;
     fetchBtn.style.opacity = "1";
   }
