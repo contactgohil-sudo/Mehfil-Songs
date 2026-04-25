@@ -1705,6 +1705,32 @@ function getCandidatePreview(candidate) {
   );
 }
 
+function getEmbeddedOnlineSongFromLookupKey(candidate) {
+  if (!candidate?.lookup_key) return null;
+
+  try {
+    const meta = JSON.parse(String(candidate.lookup_key || "{}"));
+    const lyrics = cleanLyricsText(meta.lyrics || meta.preview || "");
+
+    if (!lyrics || lyrics.length < 20) return null;
+
+    return {
+      ...candidate,
+      title: meta.title || candidate.title || "",
+      movie: meta.movie || candidate.movie || "",
+      singer: meta.singer || candidate.singer || "",
+      source_name: meta.source_name || candidate.source_name || candidate.provider || "Online",
+      source_url: meta.source_url || candidate.source_url || "",
+      script: meta.script || candidate.script || "unknown",
+      status: meta.status || candidate.status || "lyrics_ready",
+      lyrics,
+      is_partial: false
+    };
+  } catch (error) {
+    return null;
+  }
+}
+
 function hasUsableOnlineLyrics(candidate) {
   const preview = getCandidatePreview(candidate);
   const lyrics = cleanLyricsText(candidate?.lyrics || "");
@@ -1927,17 +1953,25 @@ async function lookupSongOnline(payload = {}) {
   }
 
   const cached = getCachedOnlineDetail(candidate.lookup_key);
-  if (cached) {
-    return {
-      ...candidate,
-      ...cached,
-      lyrics: cleanLyricsText(cached.lyrics || cached.preview || candidate.lyrics || candidate.preview || "")
-    };
-  }
+if (cached) {
+  return {
+    ...candidate,
+    ...cached,
+    lyrics: cleanLyricsText(cached.lyrics || cached.preview || candidate.lyrics || candidate.preview || "")
+  };
+}
 
-  const data = await invokeEdgeFunction("fetch-online-song-detail", {
-    lookup_key: candidate.lookup_key
-  });
+// If lookup-song-online-fast already embedded full lyrics in lookup_key,
+// use them immediately. Do not wait for another Edge Function call.
+const embeddedSong = getEmbeddedOnlineSongFromLookupKey(candidate);
+if (embeddedSong && embeddedSong.status !== "metadata_only") {
+  setCachedOnlineDetail(candidate.lookup_key, embeddedSong);
+  return embeddedSong;
+}
+
+const data = await invokeEdgeFunction("fetch-online-song-detail", {
+  lookup_key: candidate.lookup_key
+});
 
   const returnedSong = data?.song || null;
   const returnedLyrics = cleanLyricsText(returnedSong?.lyrics || "");
@@ -2160,15 +2194,18 @@ if (!hasSavableOnlineLyrics(candidate)) {
 async function openOnlineCandidate(candidate) {
   if (!candidate) return;
 
-  const preview = getCandidatePreview(candidate);
+  const embeddedSong = getEmbeddedOnlineSongFromLookupKey(candidate);
+const preview = embeddedSong
+  ? cleanLyricsText(embeddedSong.lyrics || "")
+  : getCandidatePreview(candidate);
 
   hideSearchOnlineBanner();
 
   openModalKind = "online";
-  openOnlineCandidateData = {
-    ...candidate,
-    lyrics: candidate.lyrics || candidate.preview || ""
-  };
+  openOnlineCandidateData = embeddedSong || {
+  ...candidate,
+  lyrics: candidate.lyrics || candidate.preview || ""
+};
   openSongId = null;
 
   document.getElementById("modalTitle").textContent = candidate.title || "";
@@ -2179,7 +2216,7 @@ async function openOnlineCandidate(candidate) {
     <div><strong>Source:</strong> ${escapeHtml(candidate.source_name || candidate.provider || "Online")}</div>
     <div><strong>Confidence:</strong> ${escapeHtml(formatConfidence(candidate.confidence))}</div>
     <div><strong>Language:</strong> ${escapeHtml(getScriptLabel(candidate.script))}</div>
-    <div><strong>Status:</strong> Loading full lyrics...</div>
+    <div><strong>Status:</strong> ${embeddedSong ? "Full lyrics ready" : "Loading full lyrics..."}</div>
   `;
   modalExtraMeta.classList.remove("hidden");
 
