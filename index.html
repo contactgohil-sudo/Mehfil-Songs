@@ -433,30 +433,7 @@
   display: block;
 }
 
-    .search-online-state-row {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-}
-
-.search-online-spinner {
-  width: 18px;
-  height: 18px;
-  border: 2px solid rgba(185, 28, 28, 0.18);
-  border-top-color: #b91c1c;
-  border-radius: 999px;
-  animation: searchSpin 0.8s linear infinite;
-  flex-shrink: 0;
-  margin-top: 2px;
-}
-
-@keyframes searchSpin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-.search-online-state-row {
+   .search-online-state-row {
   display: flex;
   align-items: flex-start;
   gap: 10px;
@@ -524,6 +501,29 @@
   font-size: 12px;
   font-weight: 700;
   line-height: 1;
+}
+.online-preview {
+  margin-top: 8px;
+  color: #374151;
+  font-size: 14px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+}
+
+.online-preview-missing {
+  margin-top: 8px;
+  color: #9a3412;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.online-result-card-disabled {
+  opacity: 0.82;
+  cursor: not-allowed;
+}
+
+.online-result-card-disabled:hover {
+  border-color: var(--line);
 }
 
     .toolbar {
@@ -1144,20 +1144,8 @@
   </div>
 
   <div id="searchOnlineState" class="search-online-state"></div>
-  <div id="searchResults"></div>
-  <div id="searchOnlineCandidates" class="search-online-candidates"></div>
-
-<div
-  id="searchOnlineState"
-  class="tiny hidden"
-  style="margin-top:10px; color:#b91c1c; font-weight:700;"
-></div>
-
-<div
-  id="searchOnlineCandidates"
-  class="hidden"
-  style="margin-top:10px;"
-></div>
+<div id="searchResults"></div>
+<div id="searchOnlineCandidates" class="search-online-candidates"></div>
         </div>
       </section>
 
@@ -1543,7 +1531,9 @@ function setSearchOnlineState(message = "", type = "info") {
   } else if (type === "success") {
     helper = "Choose a result below to open it. You can then save it to your library.";
   } else if (type === "error") {
-    helper = "Try another title, or type a slightly longer search phrase.";
+    helper = String(message).startsWith("Online lookup failed:")
+      ? "This is a technical online lookup problem, not a spelling problem."
+      : "Try another title, or type a slightly longer search phrase.";
   }
 
   el.className = "search-online-state show";
@@ -1707,20 +1697,51 @@ function formatConfidence(value) {
   return `${Math.max(0, Math.min(Math.round(n), 100))}%`;
 }
 
+function getCandidatePreview(candidate) {
+  return cleanLyricsText(
+    candidate?.preview ||
+    candidate?.lyrics ||
+    ""
+  );
+}
+
+function hasUsableOnlineLyrics(candidate) {
+  const preview = getCandidatePreview(candidate);
+  const lyrics = cleanLyricsText(candidate?.lyrics || "");
+  return preview.length >= 8 || lyrics.length >= 8;
+}
+
+function hasSavableOnlineLyrics(candidate) {
+  const lyrics = cleanLyricsText(candidate?.lyrics || "");
+  if (!lyrics || lyrics.length < 20) return false;
+  if (candidate?.status === "metadata_only") return false;
+  if (candidate?.is_partial === true) return false;
+  return true;
+}
+
 function buildOnlineCandidateCardHtml(candidate, index, type) {
-  const preview = String(candidate.preview || "").trim();
+  const preview = getCandidatePreview(candidate);
+  const usable = hasUsableOnlineLyrics(candidate);
+  const isPossibleOnly = candidate.status === "metadata_only" || !usable;
+  const previewText = preview.length > 360 ? preview.slice(0, 360).trim() + "..." : preview;
 
   return `
-    <div class="result-card" data-online-index="${index}" data-online-type="${type}">
+    <div
+      class="result-card online-result-card"
+      data-online-index="${index}"
+      data-online-type="${type}"
+      data-has-preview="${usable ? "1" : "0"}"
+    >
       <div class="result-main">
         <div class="online-pill-row">
-          <span class="online-pill">Online result</span>
-          <span class="online-pill">${escapeHtml(candidate.source_name || "Online")}</span>
+          <span class="online-pill">${isPossibleOnly ? "Possible match" : "Lyrics preview"}</span>
+          <span class="online-pill">${escapeHtml(candidate.source_name || candidate.provider || "Online")}</span>
           <span class="online-pill">${escapeHtml(formatConfidence(candidate.confidence))}</span>
           <span class="online-pill">${escapeHtml(getScriptLabel(candidate.script))}</span>
         </div>
 
         <div class="song-title">${escapeHtml(candidate.title || "")}</div>
+
         <div class="song-meta">
           ${escapeHtml(joinMeta([
             candidate.movie || "",
@@ -1728,7 +1749,11 @@ function buildOnlineCandidateCardHtml(candidate, index, type) {
           ]))}
         </div>
 
-        ${preview ? `<div class="song-snippet">${escapeHtml(preview)}${preview.length >= 220 ? "..." : ""}</div>` : ""}
+        ${
+          previewText
+            ? `<div class="song-snippet online-preview">${escapeHtml(previewText)}</div>`
+            : `<div class="song-snippet online-preview-missing">Possible match. Tap to try loading lyrics.</div>`
+        }
       </div>
     </div>
   `;
@@ -1772,6 +1797,78 @@ function renderEditorLookupCandidates(candidates) {
   box.classList.remove("hidden");
 }
 
+function shortenErrorText(value, maxLength = 420) {
+  const text = String(value || "").replace(/\s+/g, " ").trim();
+  if (text.length <= maxLength) return text;
+  return text.slice(0, maxLength).trim() + "...";
+}
+
+async function getEdgeAuthToken() {
+  try {
+    const { data } = await supabaseClient.auth.getSession();
+    return data?.session?.access_token || SUPABASE_KEY;
+  } catch (_) {
+    return SUPABASE_KEY;
+  }
+}
+
+async function invokeEdgeFunction(functionName, body = {}) {
+  const token = await getEdgeAuthToken();
+  const url = `${SUPABASE_URL}/functions/v1/${functionName}`;
+
+  let response;
+
+  try {
+    response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "apikey": SUPABASE_KEY,
+        "Authorization": `Bearer ${token}`
+      },
+      body: JSON.stringify(body)
+    });
+  } catch (networkError) {
+    throw new Error(
+      `${functionName} network failure: ${shortenErrorText(networkError?.message || networkError || "Could not reach Edge Function")}`
+    );
+  }
+
+  const rawText = await response.text();
+  let parsed = null;
+
+  try {
+    parsed = rawText ? JSON.parse(rawText) : null;
+  } catch (_) {
+    parsed = null;
+  }
+
+  if (!response.ok) {
+    const bodyMessage =
+      parsed?.error ||
+      parsed?.message ||
+      rawText ||
+      response.statusText ||
+      "Unknown Edge Function error";
+
+    throw new Error(
+      `${functionName} HTTP ${response.status}: ${shortenErrorText(bodyMessage)}`
+    );
+  }
+
+  if (parsed?.error) {
+    throw new Error(
+      `${functionName} returned error: ${shortenErrorText(parsed.error)}`
+    );
+  }
+
+  if (!parsed) {
+    throw new Error(`${functionName} returned empty or non-JSON response.`);
+  }
+
+  return parsed;
+}
+
 async function lookupSongOnline(payload = {}) {
   const requestBody = {
     preferredScripts: ["gujarati", "devanagari", "romanized", "english"],
@@ -1787,6 +1884,8 @@ async function lookupSongOnline(payload = {}) {
   const { data, error } = await supabaseClient.functions.invoke("lookup-song-online-fast", {
     body: requestBody
   });
+
+  window.__lastOnlineLookupDebug = data || null;
 
   if (error) {
     const message =
@@ -1806,11 +1905,23 @@ async function lookupSongOnline(payload = {}) {
     throw new Error("Edge Function returned invalid response shape.");
   }
 
+  if (data.debug || data.build_id) {
+    const debugText = [
+      data.build_id ? `build=${data.build_id}` : "",
+      data.debug?.returned_count != null ? `returned=${data.debug.returned_count}` : "",
+      data.debug?.providers_enabled ? `providers=${data.debug.providers_enabled.join(",")}` : ""
+    ].filter(Boolean).join(" | ");
+
+    if (debugText) {
+      console.log("ONLINE LOOKUP DEBUG:", debugText, data.debug || data);
+    }
+  }
+
   setCachedOnlineLookup(requestBody, data.candidates);
   return data.candidates;
 }
 
-   async function fetchOnlineSongDetail(candidate) {
+  async function fetchOnlineSongDetail(candidate) {
   if (!candidate?.lookup_key) {
     throw new Error("Missing lookup key.");
   }
@@ -1819,44 +1930,48 @@ async function lookupSongOnline(payload = {}) {
   if (cached) {
     return {
       ...candidate,
-      ...cached
+      ...cached,
+      lyrics: cleanLyricsText(cached.lyrics || cached.preview || candidate.lyrics || candidate.preview || "")
     };
   }
 
-  const { data, error } = await supabaseClient.functions.invoke("fetch-online-song-detail", {
-    body: {
-      lookup_key: candidate.lookup_key
-    }
+  const data = await invokeEdgeFunction("fetch-online-song-detail", {
+    lookup_key: candidate.lookup_key
   });
 
-  if (error) {
-    const message =
-      error?.message ||
-      error?.context?.message ||
-      error?.context?.error ||
-      "Unknown function invoke error";
+  const returnedSong = data?.song || null;
+  const returnedLyrics = cleanLyricsText(returnedSong?.lyrics || "");
+  const fallbackPreview = getCandidatePreview(candidate);
 
-    throw new Error(`Detail fetch failed: ${message}`);
+  if (!returnedSong && !fallbackPreview) {
+    throw new Error("Detail fetch returned no song and no preview fallback.");
   }
 
-  if (data?.error) {
-    throw new Error(`Detail fetch failed: ${data.error}`);
-  }
+  const mergedSong = {
+    ...candidate,
+    ...(returnedSong || {}),
+    title: returnedSong?.title || candidate.title || "",
+    movie: returnedSong?.movie || candidate.movie || "",
+    singer: returnedSong?.singer || candidate.singer || "",
+    source_name: returnedSong?.source_name || candidate.source_name || candidate.provider || "Online",
+    source_url: returnedSong?.source_url || candidate.source_url || "",
+    script: returnedSong?.script || candidate.script || "unknown",
+    lyrics: returnedLyrics || fallbackPreview,
+    is_partial: returnedSong?.is_partial === true || !returnedLyrics
+  };
 
-  if (!data?.song || !data.song.lyrics) {
+  if (!mergedSong.lyrics) {
     throw new Error("Detail fetch returned invalid data.");
   }
 
-  setCachedOnlineDetail(candidate.lookup_key, data.song);
+  setCachedOnlineDetail(candidate.lookup_key, mergedSong);
 
-  return {
-    ...candidate,
-    ...data.song
-  };
-} 
+  return mergedSong;
+}
 
 async function runOnlineLookupForSearch(query) {
   const safeQuery = String(query || "").trim();
+
   if (!safeQuery || safeQuery.length < 3) {
     clearSearchOnlineUi();
     return;
@@ -1869,33 +1984,57 @@ async function runOnlineLookupForSearch(query) {
   renderSearchOnlineCandidates([]);
 
   try {
-    const candidates = await lookupSongOnline({
+    const rawCandidates = await lookupSongOnline({
       query: safeQuery,
-      limit: 5
+      limit: 6
     });
 
     if (runId !== onlineLookupRunId) return;
 
-    if (!candidates.length) {
-      renderResults([], safeQuery, { suppressEmptyState: true });
-      setSearchOnlineState("Not in library. Nothing reliable was found online.", "error");
+    const allCandidates = Array.isArray(rawCandidates) ? rawCandidates : [];
+    const lyricsReady = allCandidates.filter(hasUsableOnlineLyrics);
+    const possibleOnly = allCandidates.filter(candidate => !hasUsableOnlineLyrics(candidate));
+
+    renderResults([], safeQuery, { suppressEmptyState: true });
+
+    if (!allCandidates.length) {
+      const debug = window.__lastOnlineLookupDebug || {};
+      const debugText = [
+        debug.build_id ? `Build: ${debug.build_id}` : "",
+        debug.debug?.providers_enabled ? `Providers: ${debug.debug.providers_enabled.join(", ")}` : "",
+        debug.debug?.returned_count != null ? `Returned: ${debug.debug.returned_count}` : ""
+      ].filter(Boolean).join(" | ");
+
+      setSearchOnlineState(
+        debugText
+          ? `Nothing found online. ${debugText}`
+          : "Not in library. Nothing was found online.",
+        "error"
+      );
       renderSearchOnlineCandidates([]);
       return;
     }
 
-    renderResults([], safeQuery, { suppressEmptyState: true });
-    setSearchOnlineState("Not in library. Online matches found.", "success");
-    renderSearchOnlineCandidates(candidates);
+    setSearchOnlineState(
+      `Not in library. ${lyricsReady.length} lyrics-ready and ${possibleOnly.length} possible online match(es) found.`,
+      "success"
+    );
+
+    renderSearchOnlineCandidates(allCandidates);
   } catch (error) {
     if (runId !== onlineLookupRunId) return;
 
-    console.error("ONLINE LOOKUP ERROR:", error);
+    const visibleMessage = shortenErrorText(error?.message || error || "Unknown error");
 
     renderResults([], safeQuery, { suppressEmptyState: true });
-    setSearchOnlineState("Not in library. Online lookup failed.", "error");
+    setSearchOnlineState(
+      `Online lookup failed: ${visibleMessage}`,
+      "error"
+    );
     renderSearchOnlineCandidates([]);
   }
 }
+
 
 function applyEditorCandidate(candidate) {
   const titleInput = document.getElementById("songTitle");
@@ -1909,12 +2048,12 @@ function applyEditorCandidate(candidate) {
   titleInput.value = candidate.title || "";
   movieInput.value = candidate.movie || "";
   singerInput.value = candidate.singer || "";
-  lyricsBox.value = cleanLyricsText(candidate.lyrics || "");
+  lyricsBox.value = cleanLyricsText(candidate.lyrics || candidate.preview || "");
 
   markInputAutofilled(titleInput, true);
   markInputAutofilled(movieInput, !!candidate.movie);
   markInputAutofilled(singerInput, !!candidate.singer);
-  markTextareaAutofilled(lyricsBox, true);
+  markTextareaAutofilled(lyricsBox, !!lyricsBox.value.trim());
 
   clearEditorLookupUi();
   checkEditorDuplicateState();
@@ -1938,9 +2077,18 @@ async function saveOnlineCandidateToLibrary(candidate, options = {}) {
   const lyrics = cleanLyricsText(candidate.lyrics || "");
 
   if (!title || !lyrics) {
-    showStatus("appStatus", "Online result is missing title or lyrics.", "error");
-    return null;
-  }
+  showStatus("appStatus", "Online result is missing title or lyrics.", "error");
+  return null;
+}
+
+if (!hasSavableOnlineLyrics(candidate)) {
+  showStatus(
+    "appStatus",
+    "This online result is not ready to save because full lyrics were not loaded. Use Edit and add lyrics manually.",
+    "warn"
+  );
+  return null;
+}
 
   const existing = duplicateSongExists(title, null);
   if (existing) {
@@ -2012,11 +2160,14 @@ async function saveOnlineCandidateToLibrary(candidate, options = {}) {
 async function openOnlineCandidate(candidate) {
   if (!candidate) return;
 
+  const preview = getCandidatePreview(candidate);
+
   hideSearchOnlineBanner();
 
   openModalKind = "online";
   openOnlineCandidateData = {
-    ...candidate
+    ...candidate,
+    lyrics: candidate.lyrics || candidate.preview || ""
   };
   openSongId = null;
 
@@ -2025,26 +2176,32 @@ async function openOnlineCandidate(candidate) {
 
   const modalExtraMeta = document.getElementById("modalExtraMeta");
   modalExtraMeta.innerHTML = `
-    <div><strong>Source:</strong> ${escapeHtml(candidate.source_name || "Online")}</div>
+    <div><strong>Source:</strong> ${escapeHtml(candidate.source_name || candidate.provider || "Online")}</div>
     <div><strong>Confidence:</strong> ${escapeHtml(formatConfidence(candidate.confidence))}</div>
     <div><strong>Language:</strong> ${escapeHtml(getScriptLabel(candidate.script))}</div>
+    <div><strong>Status:</strong> Loading full lyrics...</div>
   `;
   modalExtraMeta.classList.remove("hidden");
 
-  const preview = String(candidate.preview || "").trim();
-
-  document.getElementById("modalLyrics").innerHTML = `
-    ${preview ? `<div style="white-space:pre-wrap; line-height:1.8; margin-bottom:14px;">${escapeHtml(preview)}</div>` : ""}
-    <div style="display:flex; align-items:center; gap:10px;">
+  document.getElementById("modalLyrics").innerHTML = preview
+  ? `
+    <div style="white-space:pre-wrap; line-height:1.8; margin-bottom:14px;">${escapeHtml(preview)}</div>
+    <div style="display:flex; align-items:center; gap:10px; color:#6b7280;">
       <span class="search-online-spinner" aria-hidden="true"></span>
-      <span>Loading full lyrics...</span>
+      <span>Trying to load full lyrics...</span>
+    </div>
+  `
+  : `
+    <div style="display:flex; align-items:center; gap:10px; color:#6b7280;">
+      <span class="search-online-spinner" aria-hidden="true"></span>
+      <span>Possible match. Trying to load lyrics...</span>
     </div>
   `;
 
   document.getElementById("modalSaveBtn").classList.add("hidden");
   document.getElementById("modalBookmarkBtn").classList.add("hidden");
   document.getElementById("modalShareNowBtn").classList.add("hidden");
-  document.getElementById("modalEditBtn").classList.add("hidden");
+  document.getElementById("modalEditBtn").classList.toggle("hidden", !isApproved());
   document.getElementById("modalDeleteBtn").classList.add("hidden");
 
   document.getElementById("songModal").classList.add("show");
@@ -2052,47 +2209,93 @@ async function openOnlineCandidate(candidate) {
 
   try {
     const fullSong = await fetchOnlineSongDetail(candidate);
+    const fullLyrics = cleanLyricsText(fullSong.lyrics || "");
+
+    if (!fullLyrics) {
+      throw new Error("No lyrics returned after detail fetch.");
+    }
 
     openOnlineCandidateData = {
-      ...fullSong
+      ...candidate,
+      ...fullSong,
+      lyrics: fullLyrics
     };
 
-    document.getElementById("modalTitle").textContent = fullSong.title || "";
+    document.getElementById("modalTitle").textContent = fullSong.title || candidate.title || "";
     document.getElementById("modalMeta").textContent = joinMeta([fullSong.movie, fullSong.singer]);
 
     modalExtraMeta.innerHTML = `
-      <div><strong>Source:</strong> ${escapeHtml(fullSong.source_name || "Online")}</div>
-      <div><strong>Confidence:</strong> ${escapeHtml(formatConfidence(fullSong.confidence))}</div>
-      <div><strong>Language:</strong> ${escapeHtml(getScriptLabel(fullSong.script))}</div>
-      ${fullSong.is_partial ? `<div><strong>Status:</strong> Partial preview only</div>` : ""}
+      <div><strong>Source:</strong> ${escapeHtml(fullSong.source_name || candidate.source_name || "Online")}</div>
+      <div><strong>Confidence:</strong> ${escapeHtml(formatConfidence(fullSong.confidence || candidate.confidence))}</div>
+      <div><strong>Language:</strong> ${escapeHtml(getScriptLabel(fullSong.script || candidate.script))}</div>
+      <div><strong>Status:</strong> ${fullSong.is_partial ? "Preview only" : "Full lyrics loaded"}</div>
     `;
     modalExtraMeta.classList.remove("hidden");
 
-    document.getElementById("modalLyrics").innerHTML = escapeHtml(fullSong.lyrics || "");
+    document.getElementById("modalLyrics").innerHTML = escapeHtml(fullLyrics);
 
-    document.getElementById("modalSaveBtn").classList.toggle("hidden", !isApproved());
-    document.getElementById("modalBookmarkBtn").classList.toggle("hidden", !isApproved());
-    document.getElementById("modalShareNowBtn").classList.toggle("hidden", !isApproved());
-    document.getElementById("modalEditBtn").classList.toggle("hidden", !isApproved());
-  } catch (error) {
+    const canSaveOnline = isApproved() && hasSavableOnlineLyrics(openOnlineCandidateData);
+
+document.getElementById("modalSaveBtn").classList.toggle("hidden", !canSaveOnline);
+document.getElementById("modalBookmarkBtn").classList.toggle("hidden", !canSaveOnline);
+document.getElementById("modalShareNowBtn").classList.toggle("hidden", !canSaveOnline);
+document.getElementById("modalEditBtn").classList.toggle("hidden", !isApproved());
+    } catch (error) {
     console.error("OPEN ONLINE CANDIDATE ERROR:", error);
 
-    document.getElementById("modalLyrics").innerHTML = `
-      ${preview ? `<div style="white-space:pre-wrap; line-height:1.8; margin-bottom:14px;">${escapeHtml(preview)}</div>` : ""}
-      <div class="status-box show status-warn">
-        Full lyrics could not be loaded. Only preview is available.
-      </div>
-    `;
+    if (preview) {
+      openOnlineCandidateData = {
+        ...candidate,
+        lyrics: preview,
+        is_partial: true
+      };
 
-    modalExtraMeta.innerHTML = `
-      <div><strong>Source:</strong> ${escapeHtml(candidate.source_name || "Online")}</div>
-      <div><strong>Confidence:</strong> ${escapeHtml(formatConfidence(candidate.confidence))}</div>
-      <div><strong>Language:</strong> ${escapeHtml(getScriptLabel(candidate.script))}</div>
-      <div><strong>Status:</strong> Preview only</div>
-    `;
-    modalExtraMeta.classList.remove("hidden");
+      document.getElementById("modalLyrics").innerHTML = `
+        <div style="white-space:pre-wrap; line-height:1.8; margin-bottom:14px;">${escapeHtml(preview)}</div>
+        <div class="status-box show status-warn">
+          Full lyrics could not be loaded. Showing preview only.
+        </div>
+      `;
 
-    document.getElementById("modalEditBtn").classList.toggle("hidden", !isApproved());
+      modalExtraMeta.innerHTML = `
+        <div><strong>Source:</strong> ${escapeHtml(candidate.source_name || candidate.provider || "Online")}</div>
+        <div><strong>Confidence:</strong> ${escapeHtml(formatConfidence(candidate.confidence))}</div>
+        <div><strong>Language:</strong> ${escapeHtml(getScriptLabel(candidate.script))}</div>
+        <div><strong>Status:</strong> Preview only</div>
+      `;
+      modalExtraMeta.classList.remove("hidden");
+
+      document.getElementById("modalSaveBtn").classList.add("hidden");
+document.getElementById("modalBookmarkBtn").classList.add("hidden");
+document.getElementById("modalShareNowBtn").classList.add("hidden");
+document.getElementById("modalEditBtn").classList.toggle("hidden", !isApproved());
+    } else {
+      openOnlineCandidateData = {
+  ...candidate,
+  lyrics: "",
+  is_partial: true,
+  status: "metadata_only"
+};
+
+      document.getElementById("modalLyrics").innerHTML = `
+        <div class="status-box show status-warn">
+          This possible match was found online, but lyrics could not be loaded from the provider.
+        </div>
+      `;
+
+      modalExtraMeta.innerHTML = `
+        <div><strong>Source:</strong> ${escapeHtml(candidate.source_name || candidate.provider || "Online")}</div>
+        <div><strong>Confidence:</strong> ${escapeHtml(formatConfidence(candidate.confidence))}</div>
+        <div><strong>Language:</strong> ${escapeHtml(getScriptLabel(candidate.script))}</div>
+        <div><strong>Status:</strong> Lyrics not available</div>
+      `;
+      modalExtraMeta.classList.remove("hidden");
+
+      document.getElementById("modalSaveBtn").classList.add("hidden");
+      document.getElementById("modalBookmarkBtn").classList.add("hidden");
+      document.getElementById("modalShareNowBtn").classList.add("hidden");
+      document.getElementById("modalEditBtn").classList.toggle("hidden", !isApproved());
+    }
   }
 }
 
@@ -3927,21 +4130,23 @@ async function fetchLyricsForEditor() {
   status.textContent = "Finding online matches...";
 
   try {
-    const candidates = await lookupSongOnline({
-      query,
-      title,
-      singer,
-      movie,
-      limit: 6
-    });
+    const rawCandidates = await lookupSongOnline({
+  query,
+  title,
+  singer,
+  movie,
+  limit: 6
+});
 
-    if (!candidates.length) {
-      status.style.color = "#b91c1c";
-      status.textContent = "No reliable online result found. Please add manually.";
-      return;
-    }
+const candidates = Array.isArray(rawCandidates) ? rawCandidates : [];
 
-    const best = candidates[0] || null;
+if (!candidates.length) {
+  status.style.color = "#b91c1c";
+  status.textContent = "No online match found. Please add manually.";
+  return;
+}
+
+const best = candidates[0] || null;
 
     if (best && (best.confidence >= 86 || candidates.length === 1)) {
       if (lyricsBox.value.trim()) {
@@ -5390,20 +5595,48 @@ if (tabName !== "search") {
 
   const index = Number(card.dataset.onlineIndex);
   const candidate = searchOnlineCandidatesState[index];
-  if (candidate) {
-    openOnlineCandidate(candidate);
-  }
+
+  if (!candidate) return;
+
+  openOnlineCandidate(candidate);
 });
 
-document.getElementById("editorLookupCandidates").addEventListener("click", (e) => {
+document.getElementById("editorLookupCandidates").addEventListener("click", async (e) => {
   const card = e.target.closest("[data-online-index][data-online-type='editor']");
   if (!card) return;
 
   const index = Number(card.dataset.onlineIndex);
   const candidate = editorLookupCandidatesState[index];
-  if (candidate) {
-    applyEditorCandidate(candidate);
+  if (!candidate) return;
+
+  const status = document.getElementById("editorStatus");
+
+  status.style.color = "#6b7280";
+  status.textContent = "Loading selected online lyrics...";
+
+  try {
+    const fullSong = await fetchOnlineSongDetail(candidate);
+    applyEditorCandidate(fullSong);
+  } catch (error) {
+  catch (error) {
+  console.error("EDITOR DETAIL FETCH ERROR:", error);
+
+  const fallbackLyrics = getCandidatePreview(candidate);
+
+  applyEditorCandidate({
+    ...candidate,
+    lyrics: fallbackLyrics,
+    is_partial: true
+  });
+
+  status.style.color = "#b91c1c";
+
+  if (fallbackLyrics) {
+    status.textContent = "Full lyrics could not be loaded. Preview loaded. Review before saving.";
+  } else {
+    status.textContent = "Song metadata loaded, but lyrics could not be fetched. Add lyrics manually before saving.";
   }
+}
 });
       document.getElementById("modalSaveBtn").addEventListener("click", async () => {
   if (openModalKind === "online" && openOnlineCandidateData) {
