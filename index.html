@@ -5618,25 +5618,24 @@ document.getElementById("editorLookupCandidates").addEventListener("click", asyn
     const fullSong = await fetchOnlineSongDetail(candidate);
     applyEditorCandidate(fullSong);
   } catch (error) {
-  catch (error) {
-  console.error("EDITOR DETAIL FETCH ERROR:", error);
+    console.error("EDITOR DETAIL FETCH ERROR:", error);
 
-  const fallbackLyrics = getCandidatePreview(candidate);
+    const fallbackLyrics = getCandidatePreview(candidate);
 
-  applyEditorCandidate({
-    ...candidate,
-    lyrics: fallbackLyrics,
-    is_partial: true
-  });
+    applyEditorCandidate({
+      ...candidate,
+      lyrics: fallbackLyrics,
+      is_partial: true
+    });
 
-  status.style.color = "#b91c1c";
+    status.style.color = "#b91c1c";
 
-  if (fallbackLyrics) {
-    status.textContent = "Full lyrics could not be loaded. Preview loaded. Review before saving.";
-  } else {
-    status.textContent = "Song metadata loaded, but lyrics could not be fetched. Add lyrics manually before saving.";
+    if (fallbackLyrics) {
+      status.textContent = "Full lyrics could not be loaded. Preview loaded. Review before saving.";
+    } else {
+      status.textContent = "Song metadata loaded, but lyrics could not be fetched. Add lyrics manually before saving.";
+    }
   }
-}
 });
       document.getElementById("modalSaveBtn").addEventListener("click", async () => {
   if (openModalKind === "online" && openOnlineCandidateData) {
