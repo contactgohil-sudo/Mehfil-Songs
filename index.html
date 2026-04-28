@@ -322,6 +322,17 @@
       justify-content: center;
     }
 
+    .online-search-btn {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+}
+
+.online-search-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
     .mic-listening {
       background: #fee2e2;
       border-color: #fca5a5;
@@ -1130,17 +1141,27 @@
        <div class="card">
   <div class="search-bar">
     <button id="micBtn" class="icon-btn" type="button" title="Speak">🎤</button>
-    <input
-      id="searchInput"
-      class="search-input"
-      type="text"
-      placeholder="Search songs, lyrics, singer, movie..."
-      autocomplete="off"
-      autocapitalize="none"
-      spellcheck="false"
-      enterkeyhint="search"
-    />
-    <button id="clearBtn" class="icon-btn" type="button" title="Clear">✕</button>
+
+<input
+  id="searchInput"
+  class="search-input"
+  type="text"
+  placeholder="Search songs, lyrics, singer, movie..."
+  autocomplete="off"
+  autocapitalize="none"
+  spellcheck="false"
+  enterkeyhint="search"
+/>
+
+<button
+  id="onlineSearchBtn"
+  class="icon-btn online-search-btn"
+  type="button"
+  title="Search online"
+  aria-label="Search online"
+>🔎</button>
+
+<button id="clearBtn" class="icon-btn" type="button" title="Clear">✕</button>
   </div>
 
   <div id="searchOnlineState" class="search-online-state"></div>
@@ -2267,8 +2288,9 @@ async function fetchOnlineSongDetail(candidate) {
   }
 }
 
-async function runOnlineLookupForSearch(query) {
+async function runOnlineLookupForSearch(query, options = {}) {
   const safeQuery = String(query || "").trim();
+  const force = !!options.force;
 
   if (!safeQuery || safeQuery.length < 3) {
     clearSearchOnlineUi();
@@ -2277,7 +2299,11 @@ async function runOnlineLookupForSearch(query) {
 
   const runId = ++onlineLookupRunId;
 
-  setSearchOnlineState("No strong title match in library. Checking online...", "pending");
+  renderResults([], safeQuery, { suppressEmptyState: true });
+  setSearchOnlineState(
+    force ? "Searching online..." : "Not in library. Checking online...",
+    "pending"
+  );
   renderSearchOnlineCandidates([]);
 
   try {
@@ -2292,6 +2318,8 @@ async function runOnlineLookupForSearch(query) {
     const lyricsReady = allCandidates.filter(hasUsableOnlineLyrics);
     const possibleOnly = allCandidates.filter(candidate => !hasUsableOnlineLyrics(candidate));
 
+    renderResults([], safeQuery, { suppressEmptyState: true });
+
     if (!allCandidates.length) {
       const debug = window.__lastOnlineLookupDebug || {};
       const debugText = [
@@ -2303,7 +2331,7 @@ async function runOnlineLookupForSearch(query) {
       setSearchOnlineState(
         debugText
           ? `Nothing found online. ${debugText}`
-          : "No online lyrics found.",
+          : "Nothing was found online.",
         "error"
       );
 
@@ -2312,7 +2340,9 @@ async function runOnlineLookupForSearch(query) {
     }
 
     setSearchOnlineState(
-      `Online lookup found ${lyricsReady.length} lyrics-ready match(es).`,
+      force
+        ? `${lyricsReady.length} lyrics-ready and ${possibleOnly.length} possible online match(es) found.`
+        : `Not in library. ${lyricsReady.length} lyrics-ready and ${possibleOnly.length} possible online match(es) found.`,
       "success"
     );
 
@@ -2323,12 +2353,51 @@ async function runOnlineLookupForSearch(query) {
 
     const visibleMessage = shortenErrorText(error?.message || error || "Unknown error");
 
+    renderResults([], safeQuery, { suppressEmptyState: true });
     setSearchOnlineState(
       `Online lookup failed: ${visibleMessage}`,
       "error"
     );
-
     renderSearchOnlineCandidates([]);
+  }
+}
+
+async function runForcedOnlineSearch() {
+  const input = document.getElementById("searchInput");
+  const btn = document.getElementById("onlineSearchBtn");
+
+  if (!input) return;
+
+  const query = input.value.trim();
+
+  if (searchInputTimer) {
+    clearTimeout(searchInputTimer);
+    searchInputTimer = null;
+  }
+
+  if (deepSearchTimer) {
+    clearTimeout(deepSearchTimer);
+    deepSearchTimer = null;
+  }
+
+  searchRunId++;
+
+  if (!query || query.length < 3) {
+    setSearchOnlineState("Type a song title first, then tap 🔎.", "error");
+    input.focus();
+    return;
+  }
+
+  if (btn) {
+    btn.disabled = true;
+  }
+
+  try {
+    await runOnlineLookupForSearch(query, { force: true });
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+    }
   }
 }
 
@@ -3692,13 +3761,17 @@ function ensureSearchWorker() {
         else if (singerMatch.starts) score += 110;
         else if (singerContains) score += 50;
 
-        const lyricScore = scoreLyrics(song, q, qLoose, qCompact, strongWords, mode);
+        let lyricScore = { score: 0, matched: false };
 
-        if (!titleContains && !movieContains && !singerContains) {
-          score += lyricScore.score;
-        } else {
-          score += Math.round(lyricScore.score * 0.55);
-        }
+if (mode !== "fast") {
+  lyricScore = scoreLyrics(song, q, qLoose, qCompact, strongWords, mode);
+
+  if (!titleContains && !movieContains && !singerContains) {
+    score += lyricScore.score;
+  } else {
+    score += Math.round(lyricScore.score * 0.55);
+  }
+}
 
         if (score <= 0) continue;
 
@@ -4392,25 +4465,17 @@ async function scheduleSearchRender(query, options = {}) {
 
       const displayResults = filterStrongLocalResults(enriched, safeQuery);
 
-      if (mode === "deep" && displayResults.length === 0 && safeQuery.trim().length >= 3) {
-        const handledLocally = handleNoStrongLocalResultBeforeOnline(safeQuery, {
-          showSnippets
-        });
+if (mode === "deep" && displayResults.length === 0 && safeQuery.trim().length >= 3) {
+  renderResults([], safeQuery, { showSnippets });
+  setSearchOnlineState("Not in library? Tap 🔎 to search online.", "info");
+  renderSearchOnlineCandidates([]);
+  return;
+}
 
-        if (handledLocally) return;
+clearSearchOnlineUi();
+renderResults(displayResults, safeQuery, { showSnippets });
+});
 
-        renderResults([], safeQuery, {
-          showSnippets,
-          suppressEmptyState: true
-        });
-
-        runOnlineLookupForSearch(safeQuery);
-        return;
-      }
-
-      clearSearchOnlineUi();
-      renderResults(displayResults, safeQuery, { showSnippets });
-    });
 
   } catch (error) {
     if (String(error?.message || "") === "Search superseded") {
@@ -6365,20 +6430,20 @@ document.getElementById("liveNowDismissBtn").addEventListener("click", dismissPe
   }
 
   searchInputTimer = setTimeout(() => {
-    scheduleSearchRender(nextValue, {
-      mode: "fast",
-      showSnippets: false
-    });
-  }, 25);
+  scheduleSearchRender(nextValue, {
+    mode: "fast",
+    showSnippets: false
+  });
+}, 90);
 
-  deepSearchTimer = setTimeout(() => {
-    scheduleSearchRender(nextValue, {
-      mode: "deep",
-      showSnippets: true
-    });
-  }, 220);
+deepSearchTimer = setTimeout(() => {
+  scheduleSearchRender(nextValue, {
+    mode: "deep",
+    showSnippets: true
+  });
+}, 520);
 });
-
+    document.getElementById("onlineSearchBtn").addEventListener("click", runForcedOnlineSearch);
    document.getElementById("clearBtn").addEventListener("click", () => {
   if (searchInputTimer) {
     clearTimeout(searchInputTimer);
