@@ -5983,7 +5983,13 @@ function renderPendingUsers(users, counts = {}) {
         ? `<button class="btn-secondary" type="button" data-repair-profile-id="${escapeHtml(user.user_id || "")}">Repair Profile</button>`
         : "";
 
-      const actionButtons = [approveButton, resendButton, repairButton].filter(Boolean).join("");
+      const isCurrentUser = session?.user?.id && user.user_id === session.user.id;
+
+const rejectButton = user.user_id && !isCurrentUser
+  ? `<button class="btn-danger" type="button" data-reject-access-id="${escapeHtml(user.user_id || "")}" data-user-email="${escapeHtml(user.email || "")}">Reject</button>`
+  : "";
+
+const actionButtons = [approveButton, resendButton, repairButton, rejectButton].filter(Boolean).join("");
 
       return `
         <div class="pending-user">
@@ -6133,6 +6139,37 @@ async function repairMissingProfile(userId) {
   } catch (error) {
     console.error("REPAIR PROFILE ERROR:", error);
     showStatus("appStatus", error?.message || "Could not repair missing profile.", "error");
+  }
+}
+
+async function rejectAccessRequest(userId, email) {
+  if (!isAdmin()) return;
+
+  const safeUserId = String(userId || "").trim();
+  const safeEmail = String(email || "").trim();
+
+  if (!safeUserId) {
+    showStatus("appStatus", "Missing user ID.", "error");
+    return;
+  }
+
+  const confirmed = confirm(
+    `Reject access request for ${safeEmail || "this user"}?\n\nThis deletes their pending request and login account. They will need to sign up again if they want access later.`
+  );
+
+  if (!confirmed) return;
+
+  try {
+    await runSignupAdminAction("delete_account_data", {
+      user_id: safeUserId,
+      userId: safeUserId
+    });
+
+    showStatus("appStatus", `Rejected access request for ${safeEmail || "user"}.`, "success");
+    await loadUsersAdminData();
+  } catch (error) {
+    console.error("REJECT ACCESS REQUEST ERROR:", error);
+    showStatus("appStatus", error?.message || "Could not reject access request.", "error");
   }
 }
 
@@ -6985,15 +7022,24 @@ deepSearchTimer = setTimeout(() => {
   }
 
   const removeAccessBtn = e.target.closest("[data-remove-access-id]");
-  if (removeAccessBtn) {
-    await removeUserAccess(
-      removeAccessBtn.dataset.removeAccessId,
-      removeAccessBtn.dataset.userEmail
-    );
-    return;
-  }
+if (removeAccessBtn) {
+  await removeUserAccess(
+    removeAccessBtn.dataset.removeAccessId,
+    removeAccessBtn.dataset.userEmail
+  );
+  return;
+}
 
-  const deleteUserBtn = e.target.closest("[data-delete-user-id]");
+const rejectAccessBtn = e.target.closest("[data-reject-access-id]");
+if (rejectAccessBtn) {
+  await rejectAccessRequest(
+    rejectAccessBtn.dataset.rejectAccessId,
+    rejectAccessBtn.dataset.userEmail
+  );
+  return;
+}
+
+const deleteUserBtn = e.target.closest("[data-delete-user-id]");
   if (deleteUserBtn) {
     await deleteRegisteredUserAccountData(
       deleteUserBtn.dataset.deleteUserId,
