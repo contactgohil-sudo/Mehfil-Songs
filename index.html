@@ -1293,6 +1293,8 @@ let editorLookupCandidatesState = [];
 const ONLINE_LOOKUP_CACHE_TTL_MS = 3 * 60 * 1000;
 let onlineLookupCache = new Map();
 let onlineDetailCache = new Map();
+let onlineDetailInFlight = new Map();
+let onlineModalLoadToken = 0;
 
 let lyricWordIndex = new Map();
 let lyricPhoneticIndex = new Map();
@@ -1627,6 +1629,66 @@ function isStrongStructuredLocalMatch(song, query) {
   return false;
 }
 
+function getContentQueryWords(query) {
+  return normalizeText(query)
+    .split(/\s+/)
+    .filter(word =>
+      word &&
+      word.length >= 3 &&
+      !WEAK_QUERY_WORDS.has(word)
+    );
+}
+
+function hasWholeNormalizedWord(haystack, needle) {
+  const h = ` ${normalizeText(haystack)} `;
+  const n = normalizeText(needle);
+
+  if (!n || n.length < 3) return false;
+
+  return h.includes(` ${n} `);
+}
+
+function buildStrictWordVariants(word) {
+  const variants = new Set();
+
+  variants.add(normalizeText(word));
+  variants.add(normalizeRomanWordLoose(word));
+
+  buildRomanWordVariants(word).forEach(v => {
+    variants.add(normalizeText(v));
+    variants.add(normalizeRomanWordLoose(v));
+  });
+
+  return Array.from(variants)
+    .map(normalizeText)
+    .filter(v => v && v.length >= 3 && !WEAK_QUERY_WORDS.has(v));
+}
+
+function countStrictContentWordHits(song, query) {
+  const words = getContentQueryWords(query);
+
+  const lyricsNorm = song._lyricsSearch || normalizeText(song.lyrics || "");
+  const lyricsLoose = song._lyricsRomanLoose || normalizeRomanPhraseLoose(song.lyrics || "");
+
+  let hits = 0;
+
+  for (const word of words) {
+    const variants = buildStrictWordVariants(word);
+
+    const matched = variants.some(variant =>
+      hasWholeNormalizedWord(lyricsNorm, variant) ||
+      hasWholeNormalizedWord(lyricsLoose, variant)
+    );
+
+    if (matched) hits++;
+  }
+
+  return {
+    hits,
+    total: words.length
+  };
+}
+
 function isStrongLyricLocalMatch(song, query) {
   const q = normalizeText(query);
   if (!q) return false;
@@ -1634,45 +1696,39 @@ function isStrongLyricLocalMatch(song, query) {
   const lyricsNorm = String(song._lyricsSearch || normalizeText(song.lyrics || ""));
   const lyricsLoose = String(song._lyricsRomanLoose || normalizeRomanPhraseLoose(song.lyrics || ""));
   const lyricsCompact = String(song._lyricsRomanCompact || compactRomanPhrase(song.lyrics || ""));
+
   const queryLoose = normalizeRomanPhraseLoose(query);
   const queryCompact = compactRomanPhrase(query);
-  const strongWords = getStrongQueryWords(query);
 
   const directPhraseMatch =
-    (q.length >= 5 && lyricsNorm.includes(q)) ||
-    (queryLoose.length >= 5 && lyricsLoose.includes(queryLoose));
+    (q.length >= 6 && lyricsNorm.includes(q)) ||
+    (queryLoose.length >= 6 && lyricsLoose.includes(queryLoose));
 
   if (directPhraseMatch) {
     return true;
   }
 
+  const { hits, total } = countStrictContentWordHits(song, query);
   const lyricScore = Number(song?._lyricMatchInfo?.score || 0);
 
-  const normHits = countWordHitsInText(lyricsNorm, strongWords);
-  const looseHits = countWordHitsInText(lyricsLoose, strongWords);
-  const wordHits = Math.max(normHits, looseHits);
-
-  if (strongWords.length >= 3) {
-    if (wordHits >= 2 && lyricScore >= 0.78) return true;
-    return false;
+  if (total >= 4) {
+    return hits >= Math.ceil(total * 0.8);
   }
 
-  if (strongWords.length === 2) {
-    if (wordHits >= 2 && lyricScore >= 0.74) return true;
-    return false;
+  if (total === 3) {
+    return hits === 3 && lyricScore >= 0.86;
   }
 
-  if (strongWords.length === 1) {
-    if (
-      wordHits === 1 &&
+  if (total === 2) {
+    return hits === 2 && lyricScore >= 0.84;
+  }
+
+  if (total === 1) {
+    return (
+      hits === 1 &&
       queryCompact.length >= 4 &&
-      lyricsCompact.includes(queryCompact) &&
-      lyricScore >= 0.88
-    ) {
-      return true;
-    }
-
-    return false;
+      lyricsCompact.includes(queryCompact)
+    );
   }
 
   return false;
@@ -1802,6 +1858,7 @@ function renderSearchOnlineCandidates(candidates) {
     .join("");
 
   root.classList.remove("hidden");
+  prefetchOnlineCandidateDetails(searchOnlineCandidatesState, 3);
 }
 
 function renderEditorLookupCandidates(candidates) {
@@ -1821,6 +1878,7 @@ function renderEditorLookupCandidates(candidates) {
     .join("");
 
   box.classList.remove("hidden");
+  prefetchOnlineCandidateDetails(editorLookupCandidatesState, 3);
 }
 
 function shortenErrorText(value, maxLength = 420) {
@@ -1907,24 +1965,14 @@ async function lookupSongOnline(payload = {}) {
     return cached;
   }
 
-  const { data, error } = await supabaseClient.functions.invoke("lookup-song-online-fast", {
-    body: requestBody
-  });
+  const data = await invokeEdgeFunction("lookup-song-online-fast", requestBody);
 
   window.__lastOnlineLookupDebug = data || null;
 
-  if (error) {
-    const message =
-      error?.message ||
-      error?.context?.message ||
-      error?.context?.error ||
-      "Unknown function invoke error";
-
-    throw new Error(`Edge Function call failed: ${message}`);
-  }
-
   if (data?.error) {
-    throw new Error(`Edge Function returned error: ${data.error}`);
+    throw new Error(
+      `${data.error}${data.message ? ": " + data.message : ""}`
+    );
   }
 
   if (!data || !Array.isArray(data.candidates)) {
@@ -1932,75 +1980,110 @@ async function lookupSongOnline(payload = {}) {
   }
 
   if (data.debug || data.build_id) {
-    const debugText = [
-      data.build_id ? `build=${data.build_id}` : "",
-      data.debug?.returned_count != null ? `returned=${data.debug.returned_count}` : "",
-      data.debug?.providers_enabled ? `providers=${data.debug.providers_enabled.join(",")}` : ""
-    ].filter(Boolean).join(" | ");
-
-    if (debugText) {
-      console.log("ONLINE LOOKUP DEBUG:", debugText, data.debug || data);
-    }
+    console.log("ONLINE LOOKUP DEBUG:", data.build_id || "", data.debug || data);
   }
 
   setCachedOnlineLookup(requestBody, data.candidates);
   return data.candidates;
 }
 
-  async function fetchOnlineSongDetail(candidate) {
+  function prefetchOnlineCandidateDetails(candidates, limit = 3) {
+  const list = Array.isArray(candidates) ? candidates : [];
+
+  list
+    .filter(candidate => candidate?.lookup_key)
+    .slice(0, limit)
+    .forEach(candidate => {
+      if (getCachedOnlineDetail(candidate.lookup_key)) return;
+
+      fetchOnlineSongDetail(candidate).catch(error => {
+        console.log(
+          "Online detail prefetch skipped:",
+          candidate.title || "",
+          String(error?.message || error || "")
+        );
+      });
+    });
+}
+
+async function fetchOnlineSongDetail(candidate) {
   if (!candidate?.lookup_key) {
     throw new Error("Missing lookup key.");
   }
 
-  const cached = getCachedOnlineDetail(candidate.lookup_key);
-if (cached) {
-  return {
-    ...candidate,
-    ...cached,
-    lyrics: cleanLyricsText(cached.lyrics || cached.preview || candidate.lyrics || candidate.preview || "")
-  };
-}
+  const lookupKey = String(candidate.lookup_key || "");
 
-// If lookup-song-online-fast already embedded full lyrics in lookup_key,
-// use them immediately. Do not wait for another Edge Function call.
-const embeddedSong = getEmbeddedOnlineSongFromLookupKey(candidate);
-if (embeddedSong && embeddedSong.status !== "metadata_only") {
-  setCachedOnlineDetail(candidate.lookup_key, embeddedSong);
-  return embeddedSong;
-}
-
-const data = await invokeEdgeFunction("fetch-online-song-detail", {
-  lookup_key: candidate.lookup_key
-});
-
-  const returnedSong = data?.song || null;
-  const returnedLyrics = cleanLyricsText(returnedSong?.lyrics || "");
-  const fallbackPreview = getCandidatePreview(candidate);
-
-  if (!returnedSong && !fallbackPreview) {
-    throw new Error("Detail fetch returned no song and no preview fallback.");
+  const cached = getCachedOnlineDetail(lookupKey);
+  if (cached) {
+    return {
+      ...candidate,
+      ...cached,
+      lyrics: cleanLyricsText(cached.lyrics || cached.preview || candidate.lyrics || candidate.preview || "")
+    };
   }
 
-  const mergedSong = {
-    ...candidate,
-    ...(returnedSong || {}),
-    title: returnedSong?.title || candidate.title || "",
-    movie: returnedSong?.movie || candidate.movie || "",
-    singer: returnedSong?.singer || candidate.singer || "",
-    source_name: returnedSong?.source_name || candidate.source_name || candidate.provider || "Online",
-    source_url: returnedSong?.source_url || candidate.source_url || "",
-    script: returnedSong?.script || candidate.script || "unknown",
-    lyrics: returnedLyrics || fallbackPreview,
-    is_partial: returnedSong?.is_partial === true || !returnedLyrics
-  };
+  const embeddedSong = getEmbeddedOnlineSongFromLookupKey(candidate);
 
-  if (!mergedSong.lyrics) {
-    throw new Error("Detail fetch returned invalid data.");
+  if (embeddedSong && embeddedSong.status !== "metadata_only") {
+    const readySong = {
+      ...embeddedSong,
+      status: "lyrics_ready",
+      is_partial: false,
+      lyrics: cleanLyricsText(embeddedSong.lyrics || "")
+    };
+
+    setCachedOnlineDetail(lookupKey, readySong);
+    return readySong;
   }
 
-  setCachedOnlineDetail(candidate.lookup_key, mergedSong);
+  if (onlineDetailInFlight.has(lookupKey)) {
+    return onlineDetailInFlight.get(lookupKey);
+  }
 
-  return mergedSong;
+  const detailPromise = (async () => {
+    const data = await invokeEdgeFunction("fetch-online-song-detail", {
+      lookup_key: lookupKey
+    });
+
+    const returnedSong = data?.song || null;
+    const returnedLyrics = cleanLyricsText(returnedSong?.lyrics || "");
+    const fallbackPreview = getCandidatePreview(candidate);
+
+    if (!returnedSong && !fallbackPreview) {
+      throw new Error("Detail fetch returned no song and no preview fallback.");
+    }
+
+    const detailIsPartial = returnedSong?.is_partial === true;
+
+    const mergedSong = {
+      ...candidate,
+      ...(returnedSong || {}),
+      title: returnedSong?.title || candidate.title || "",
+      movie: returnedSong?.movie || candidate.movie || "",
+      singer: returnedSong?.singer || candidate.singer || "",
+      source_name: returnedSong?.source_name || candidate.source_name || candidate.provider || "Online",
+      source_url: returnedSong?.source_url || candidate.source_url || "",
+      script: returnedSong?.script || candidate.script || "unknown",
+      lyrics: returnedLyrics || fallbackPreview,
+      status: returnedLyrics && !detailIsPartial ? "lyrics_ready" : "metadata_only",
+      is_partial: detailIsPartial || !returnedLyrics
+    };
+
+    if (!mergedSong.lyrics) {
+      throw new Error("Detail fetch returned invalid data.");
+    }
+
+    setCachedOnlineDetail(lookupKey, mergedSong);
+    return mergedSong;
+  })();
+
+  onlineDetailInFlight.set(lookupKey, detailPromise);
+
+  try {
+    return await detailPromise;
+  } finally {
+    onlineDetailInFlight.delete(lookupKey);
+  }
 }
 
 async function runOnlineLookupForSearch(query) {
@@ -2045,6 +2128,7 @@ async function runOnlineLookupForSearch(query) {
           : "Not in library. Nothing was found online.",
         "error"
       );
+
       renderSearchOnlineCandidates([]);
       return;
     }
@@ -2055,6 +2139,7 @@ async function runOnlineLookupForSearch(query) {
     );
 
     renderSearchOnlineCandidates(allCandidates);
+    prefetchOnlineCandidateDetails(allCandidates, 3);
   } catch (error) {
     if (runId !== onlineLookupRunId) return;
 
@@ -2191,27 +2276,89 @@ if (!hasSavableOnlineLyrics(candidate)) {
   return null;
 }
 
+function setOnlineModalButtonsLoading(isLoading) {
+  const saveBtn = document.getElementById("modalSaveBtn");
+  const bookmarkBtn = document.getElementById("modalBookmarkBtn");
+  const shareBtn = document.getElementById("modalShareNowBtn");
+
+  if (!saveBtn || !bookmarkBtn || !shareBtn) return;
+
+  if (isLoading) {
+    saveBtn.textContent = "Loading...";
+    saveBtn.disabled = true;
+    saveBtn.style.opacity = "0.65";
+    saveBtn.classList.toggle("hidden", !isApproved());
+
+    bookmarkBtn.classList.add("hidden");
+    shareBtn.classList.add("hidden");
+    return;
+  }
+
+  saveBtn.textContent = "Save";
+  saveBtn.disabled = false;
+  saveBtn.style.opacity = "1";
+}
+
 async function openOnlineCandidate(candidate) {
   if (!candidate) return;
 
+  const modalToken = ++onlineModalLoadToken;
+
   const embeddedSong = getEmbeddedOnlineSongFromLookupKey(candidate);
-const preview = embeddedSong
-  ? cleanLyricsText(embeddedSong.lyrics || "")
-  : getCandidatePreview(candidate);
+  if (embeddedSong && cleanLyricsText(embeddedSong.lyrics || "").length >= 20) {
+  hideSearchOnlineBanner();
+
+  openModalKind = "online";
+  openOnlineCandidateData = embeddedSong;
+  openSongId = null;
+
+  document.getElementById("modalTitle").textContent = embeddedSong.title || candidate.title || "";
+  document.getElementById("modalMeta").textContent = joinMeta([embeddedSong.movie, embeddedSong.singer]);
+
+  const modalExtraMeta = document.getElementById("modalExtraMeta");
+  modalExtraMeta.innerHTML = `
+    <div><strong>Source:</strong> ${escapeHtml(embeddedSong.source_name || candidate.source_name || "Online")}</div>
+    <div><strong>Confidence:</strong> ${escapeHtml(formatConfidence(embeddedSong.confidence || candidate.confidence))}</div>
+    <div><strong>Language:</strong> ${escapeHtml(getScriptLabel(embeddedSong.script || candidate.script))}</div>
+    <div><strong>Status:</strong> Full lyrics ready</div>
+  `;
+  modalExtraMeta.classList.remove("hidden");
+
+  document.getElementById("modalLyrics").innerHTML = escapeHtml(cleanLyricsText(embeddedSong.lyrics || ""));
+
+  const canSaveOnline = isApproved() && hasSavableOnlineLyrics(embeddedSong);
+
+  document.getElementById("modalSaveBtn").classList.toggle("hidden", !canSaveOnline);
+  document.getElementById("modalBookmarkBtn").classList.toggle("hidden", !canSaveOnline);
+  document.getElementById("modalShareNowBtn").classList.toggle("hidden", !canSaveOnline);
+  document.getElementById("modalEditBtn").classList.toggle("hidden", !isApproved());
+  document.getElementById("modalDeleteBtn").classList.add("hidden");
+
+  document.getElementById("songModal").classList.add("show");
+  document.body.style.overflow = "hidden";
+
+  return;
+}
+  const preview = embeddedSong
+    ? cleanLyricsText(embeddedSong.lyrics || "")
+    : getCandidatePreview(candidate);
 
   hideSearchOnlineBanner();
 
   openModalKind = "online";
   openOnlineCandidateData = embeddedSong || {
-  ...candidate,
-  lyrics: candidate.lyrics || candidate.preview || ""
-};
+    ...candidate,
+    lyrics: candidate.lyrics || candidate.preview || ""
+  };
+
   openSongId = null;
 
   document.getElementById("modalTitle").textContent = candidate.title || "";
   document.getElementById("modalMeta").textContent = joinMeta([candidate.movie, candidate.singer]);
 
   const modalExtraMeta = document.getElementById("modalExtraMeta");
+  const modalLyrics = document.getElementById("modalLyrics");
+
   modalExtraMeta.innerHTML = `
     <div><strong>Source:</strong> ${escapeHtml(candidate.source_name || candidate.provider || "Online")}</div>
     <div><strong>Confidence:</strong> ${escapeHtml(formatConfidence(candidate.confidence))}</div>
@@ -2220,32 +2367,49 @@ const preview = embeddedSong
   `;
   modalExtraMeta.classList.remove("hidden");
 
-  document.getElementById("modalLyrics").innerHTML = preview
-  ? `
-    <div style="white-space:pre-wrap; line-height:1.8; margin-bottom:14px;">${escapeHtml(preview)}</div>
-    <div style="display:flex; align-items:center; gap:10px; color:#6b7280;">
-      <span class="search-online-spinner" aria-hidden="true"></span>
-      <span>Trying to load full lyrics...</span>
-    </div>
-  `
-  : `
-    <div style="display:flex; align-items:center; gap:10px; color:#6b7280;">
-      <span class="search-online-spinner" aria-hidden="true"></span>
-      <span>Possible match. Trying to load lyrics...</span>
-    </div>
-  `;
+  if (preview) {
+    modalLyrics.innerHTML = embeddedSong
+      ? escapeHtml(preview)
+      : `
+        <div style="white-space:pre-wrap; line-height:1.8; margin-bottom:14px;">${escapeHtml(preview)}</div>
+        <div style="display:flex; align-items:center; gap:10px; color:#6b7280;">
+          <span class="search-online-spinner" aria-hidden="true"></span>
+          <span>Loading full lyrics...</span>
+        </div>
+      `;
+  } else {
+    modalLyrics.innerHTML = `
+      <div style="display:flex; align-items:center; gap:10px; color:#6b7280;">
+        <span class="search-online-spinner" aria-hidden="true"></span>
+        <span>Possible match found. Loading lyrics...</span>
+      </div>
+    `;
+  }
 
-  document.getElementById("modalSaveBtn").classList.add("hidden");
-  document.getElementById("modalBookmarkBtn").classList.add("hidden");
-  document.getElementById("modalShareNowBtn").classList.add("hidden");
-  document.getElementById("modalEditBtn").classList.toggle("hidden", !isApproved());
   document.getElementById("modalDeleteBtn").classList.add("hidden");
+  document.getElementById("modalEditBtn").classList.toggle("hidden", !isApproved());
+
+  setOnlineModalButtonsLoading(!embeddedSong);
+
+  if (embeddedSong && hasSavableOnlineLyrics(embeddedSong)) {
+    document.getElementById("modalSaveBtn").classList.toggle("hidden", !isApproved());
+    document.getElementById("modalBookmarkBtn").classList.toggle("hidden", !isApproved());
+    document.getElementById("modalShareNowBtn").classList.toggle("hidden", !isApproved());
+  } else {
+    document.getElementById("modalBookmarkBtn").classList.add("hidden");
+    document.getElementById("modalShareNowBtn").classList.add("hidden");
+  }
 
   document.getElementById("songModal").classList.add("show");
   document.body.style.overflow = "hidden";
 
   try {
-    const fullSong = await fetchOnlineSongDetail(candidate);
+    const fullSong = embeddedSong || await fetchOnlineSongDetail(candidate);
+
+    if (modalToken !== onlineModalLoadToken || openModalKind !== "online") {
+      return;
+    }
+
     const fullLyrics = cleanLyricsText(fullSong.lyrics || "");
 
     if (!fullLyrics) {
@@ -2255,7 +2419,8 @@ const preview = embeddedSong
     openOnlineCandidateData = {
       ...candidate,
       ...fullSong,
-      lyrics: fullLyrics
+      lyrics: fullLyrics,
+      status: fullSong.is_partial ? "metadata_only" : "lyrics_ready"
     };
 
     document.getElementById("modalTitle").textContent = fullSong.title || candidate.title || "";
@@ -2269,25 +2434,34 @@ const preview = embeddedSong
     `;
     modalExtraMeta.classList.remove("hidden");
 
-    document.getElementById("modalLyrics").innerHTML = escapeHtml(fullLyrics);
+    modalLyrics.innerHTML = escapeHtml(fullLyrics);
+
+    setOnlineModalButtonsLoading(false);
 
     const canSaveOnline = isApproved() && hasSavableOnlineLyrics(openOnlineCandidateData);
 
-document.getElementById("modalSaveBtn").classList.toggle("hidden", !canSaveOnline);
-document.getElementById("modalBookmarkBtn").classList.toggle("hidden", !canSaveOnline);
-document.getElementById("modalShareNowBtn").classList.toggle("hidden", !canSaveOnline);
-document.getElementById("modalEditBtn").classList.toggle("hidden", !isApproved());
-    } catch (error) {
+    document.getElementById("modalSaveBtn").classList.toggle("hidden", !canSaveOnline);
+    document.getElementById("modalBookmarkBtn").classList.toggle("hidden", !canSaveOnline);
+    document.getElementById("modalShareNowBtn").classList.toggle("hidden", !canSaveOnline);
+    document.getElementById("modalEditBtn").classList.toggle("hidden", !isApproved());
+  } catch (error) {
+    if (modalToken !== onlineModalLoadToken || openModalKind !== "online") {
+      return;
+    }
+
     console.error("OPEN ONLINE CANDIDATE ERROR:", error);
+
+    setOnlineModalButtonsLoading(false);
 
     if (preview) {
       openOnlineCandidateData = {
         ...candidate,
         lyrics: preview,
-        is_partial: true
+        is_partial: true,
+        status: "metadata_only"
       };
 
-      document.getElementById("modalLyrics").innerHTML = `
+      modalLyrics.innerHTML = `
         <div style="white-space:pre-wrap; line-height:1.8; margin-bottom:14px;">${escapeHtml(preview)}</div>
         <div class="status-box show status-warn">
           Full lyrics could not be loaded. Showing preview only.
@@ -2303,18 +2477,18 @@ document.getElementById("modalEditBtn").classList.toggle("hidden", !isApproved()
       modalExtraMeta.classList.remove("hidden");
 
       document.getElementById("modalSaveBtn").classList.add("hidden");
-document.getElementById("modalBookmarkBtn").classList.add("hidden");
-document.getElementById("modalShareNowBtn").classList.add("hidden");
-document.getElementById("modalEditBtn").classList.toggle("hidden", !isApproved());
+      document.getElementById("modalBookmarkBtn").classList.add("hidden");
+      document.getElementById("modalShareNowBtn").classList.add("hidden");
+      document.getElementById("modalEditBtn").classList.toggle("hidden", !isApproved());
     } else {
       openOnlineCandidateData = {
-  ...candidate,
-  lyrics: "",
-  is_partial: true,
-  status: "metadata_only"
-};
+        ...candidate,
+        lyrics: "",
+        is_partial: true,
+        status: "metadata_only"
+      };
 
-      document.getElementById("modalLyrics").innerHTML = `
+      modalLyrics.innerHTML = `
         <div class="status-box show status-warn">
           This possible match was found online, but lyrics could not be loaded from the provider.
         </div>
@@ -4196,8 +4370,17 @@ const best = candidates[0] || null;
         }
       }
 
-      applyEditorCandidate(best);
-      return;
+      try {
+  const fullBest = await fetchOnlineSongDetail(best);
+  applyEditorCandidate(fullBest);
+} catch (detailError) {
+  console.error("BEST DETAIL FETCH ERROR:", detailError);
+  applyEditorCandidate(best);
+  status.style.color = "#b91c1c";
+  status.textContent = "Best online match loaded, but full lyrics could not be fetched. Review before saving.";
+}
+
+    return;
     }
 
     status.style.color = "#b91c1c";
@@ -5328,9 +5511,13 @@ modalBookmarkBtn.dataset.songId = String(songId);
     }
 
     function closeSongModal() {
+  onlineModalLoadToken++;
   openSongId = null;
   openModalKind = "local";
   openOnlineCandidateData = null;
+
+  setOnlineModalButtonsLoading(false);
+
   document.getElementById("songModal").classList.remove("show");
   document.body.style.overflow = "";
 }
