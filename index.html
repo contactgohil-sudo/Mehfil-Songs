@@ -1072,7 +1072,7 @@
         <button id="tabListBtn" class="tab-btn" type="button">List of Songs</button>
         <button id="tabFavoritesBtn" class="tab-btn" type="button">Favorites</button>
         <button id="toggleAddBtn" class="tab-btn add-tab-btn hidden" type="button">+ Add Song</button>
-        <button id="tabAdminBtn" class="tab-btn hidden" type="button">Pending Requests</button>
+        <button id="tabAdminBtn" class="tab-btn hidden" type="button">Users</button>
       </div>
 
       <section id="songEditorCard" class="card hidden">
@@ -1205,19 +1205,31 @@
       </section>
 
       <section id="adminTab" class="hidden">
-        <div class="card">
-          <div class="toolbar">
-            <div class="toolbar-left">
-              <strong>Pending Signup Requests</strong>
-            </div>
-            <div class="toolbar-right">
-              <button id="refreshPendingBtn" class="btn-secondary" type="button">Refresh</button>
-            </div>
-          </div>
+  <div class="card">
+    <div class="toolbar">
+      <div class="toolbar-left">
+        <strong>Users</strong>
+        <span class="tiny">Manage access, signup verification, and registered members</span>
+      </div>
+      <div class="toolbar-right">
+        <button id="refreshUsersBtn" class="btn-secondary" type="button">Refresh</button>
+      </div>
+    </div>
 
-          <div id="pendingUsersList"></div>
-        </div>
-      </section>
+    <div class="tabs" style="margin-top:8px;">
+      <button id="adminPendingSubtabBtn" class="tab-btn active" type="button">Pending requests</button>
+      <button id="adminRegisteredSubtabBtn" class="tab-btn" type="button">Registered users</button>
+    </div>
+
+    <div id="adminPendingPanel">
+      <div id="pendingUsersList"></div>
+    </div>
+
+    <div id="adminRegisteredPanel" class="hidden">
+      <div id="registeredUsersList"></div>
+    </div>
+  </div>
+</section>
     </section>
 
     <div class="footer">© 2026 Mehfil. All rights reserved.</div>
@@ -4874,106 +4886,137 @@ const best = candidates[0] || null;
     
     
     async function ensureProfile(user, fallbackName = "") {
-      if (!user) return null;
+  if (!user) return null;
 
-      const { data: existing, error: fetchError } = await supabaseClient
-        .from("profiles")
-        .select("*")
-        .eq("id", user.id)
-        .maybeSingle();
+  const { data: existing, error: fetchError } = await supabaseClient
+    .from("profiles")
+    .select("*")
+    .eq("id", user.id)
+    .maybeSingle();
 
-      if (fetchError) {
-        console.error("PROFILE FETCH ERROR:", fetchError);
-        throw fetchError;
-      }
+  if (fetchError) {
+    console.error("PROFILE FETCH ERROR:", fetchError);
+  }
 
-      if (existing) {
-        return existing;
-      }
+  if (existing) {
+    return existing;
+  }
 
-      const payload = {
-        id: user.id,
-        email: user.email || "",
-        name: fallbackName || user.user_metadata?.name || "",
-        approved: false,
-        role: "user"
-      };
+  try {
+    await invokeEdgeFunction("request-access-profile", {
+      user_id: user.id,
+      userId: user.id,
+      email: user.email || "",
+      name: fallbackName || user.user_metadata?.name || user.email || ""
+    });
+  } catch (error) {
+    console.error("ENSURE PROFILE EDGE ERROR:", error);
+    return null;
+  }
 
-      const { data, error: insertError } = await supabaseClient
-        .from("profiles")
-        .insert([payload])
-        .select()
-        .single();
+  const { data: createdProfile, error: refetchError } = await supabaseClient
+    .from("profiles")
+    .select("*")
+    .eq("id", user.id)
+    .maybeSingle();
 
-      if (insertError) {
-        console.error("PROFILE INSERT ERROR:", insertError);
-        throw insertError;
-      }
+  if (refetchError) {
+    console.error("PROFILE REFETCH ERROR:", refetchError);
+    return null;
+  }
 
-      return data;
-    }
-
-    async function loadProfile() {
-      if (!session?.user) {
-        profile = null;
-        return null;
-      }
-
-      await ensureProfile(session.user, "");
-
-      const { data, error } = await supabaseClient
-        .from("profiles")
-        .select("*")
-        .eq("id", session.user.id)
-        .single();
-
-      if (error) {
-        console.error("LOAD PROFILE ERROR:", error);
-        throw error;
-      }
-
-      profile = data;
-      return profile;
-    }
-
-    async function signUpRequest() {
-      const name = document.getElementById("authName").value.trim();
-      const email = document.getElementById("authEmail").value.trim();
-      const password = document.getElementById("authPassword").value;
-
-      if (!name || !email || !password) {
-        showStatus("authStatus", "Name, email, and password are required.", "error");
-        return;
-      }
-
-      showStatus("authStatus", "Creating account request...", "info");
-
-      const { data, error } = await supabaseClient.auth.signUp({
-        email,
-        password,
-        options: {
-          emailRedirectTo: REDIRECT_URL,
-          data: { name }
-        }
-      });
-
-      if (error) {
-        showStatus("authStatus", error.message, "error");
-        return;
-      }
-
-      const signupUser = data?.user || data?.session?.user || null;
-
-if (signupUser) {
-  await ensureProfile(signupUser, name);
+  return createdProfile || null;
 }
 
-      showStatus(
-        "authStatus",
-        "Request created. Check your email, verify your account, then wait for admin approval and log in.",
-        "success"
-      );
+    async function loadProfile() {
+  if (!session?.user) {
+    profile = null;
+    return null;
+  }
+
+  const ensuredProfile = await ensureProfile(session.user, "");
+
+  if (ensuredProfile) {
+    profile = ensuredProfile;
+    return profile;
+  }
+
+  profile = {
+    id: session.user.id,
+    email: session.user.email || "",
+    name: session.user.user_metadata?.name || session.user.email || "User",
+    approved: false,
+    role: "user"
+  };
+
+  return profile;
+}
+
+    async function signUpRequest() {
+  const name = document.getElementById("authName").value.trim();
+  const email = document.getElementById("authEmail").value.trim();
+  const password = document.getElementById("authPassword").value;
+
+  if (!name || !email || !password) {
+    showStatus("authStatus", "Name, email, and password are required.", "error");
+    return;
+  }
+
+  showStatus("authStatus", "Creating account request...", "info");
+
+  try {
+    const { data, error } = await supabaseClient.auth.signUp({
+      email,
+      password,
+      options: {
+        emailRedirectTo: REDIRECT_URL,
+        data: { name }
+      }
+    });
+
+    if (error) {
+      showStatus("authStatus", error.message, "error");
+      return;
     }
+
+    const signupUser = data?.user || data?.session?.user || null;
+
+    if (signupUser?.id) {
+      try {
+        await invokeEdgeFunction("request-access-profile", {
+          user_id: signupUser.id,
+          userId: signupUser.id,
+          email: signupUser.email || email,
+          name
+        });
+      } catch (profileError) {
+        console.error("CREATE ACCESS PROFILE ERROR:", profileError);
+
+        showStatus(
+          "authStatus",
+          "Your login account was created and the confirmation email was sent, but the access request profile could not be created automatically. Ask an admin to repair the missing profile from Users.",
+          "warn"
+        );
+
+        return;
+      }
+    }
+
+    showStatus(
+      "authStatus",
+      "Request created. Check your email, verify your account, then wait for admin approval.",
+      "success"
+    );
+  } catch (error) {
+    console.error("SIGNUP REQUEST ERROR:", error);
+
+    showStatus(
+      "authStatus",
+      error?.message || "Signup failed.",
+      "error"
+    );
+  }
+}
 
     async function loginUser() {
       const email = document.getElementById("authEmail").value.trim();
@@ -5721,60 +5764,445 @@ closeSongModal();
 showStatus("appStatus", "Song deleted.", "success");
     }
 
-    async function loadPendingUsers() {
-      if (!isAdmin()) return;
+    let adminUsersState = {
+  rows: [],
+  counts: {}
+};
 
-      const { data, error } = await supabaseClient
-        .from("profiles")
-        .select("*")
-        .eq("approved", false)
-        .order("created_at", { ascending: true });
+let adminUsersActiveSubtab = "pending";
 
-      if (error) {
-        console.error("LOAD PENDING USERS ERROR:", error);
-        document.getElementById("pendingUsersList").innerHTML = `<div class="empty">${escapeHtml(error.message)}</div>`;
-        return;
-      }
+async function loadPendingUsers() {
+  return await loadUsersAdminData();
+}
 
-      renderPendingUsers(data || []);
+async function loadUsersAdminData() {
+  if (!isAdmin()) return;
+
+  const pendingRoot = document.getElementById("pendingUsersList");
+  const registeredRoot = document.getElementById("registeredUsersList");
+
+  if (pendingRoot) {
+    pendingRoot.innerHTML = `<div class="empty">Loading users...</div>`;
+  }
+
+  if (registeredRoot) {
+    registeredRoot.innerHTML = `<div class="empty">Loading users...</div>`;
+  }
+
+  try {
+    const data = await invokeEdgeFunction("list-signup-status", {});
+
+    adminUsersState = {
+      rows: Array.isArray(data?.rows) ? data.rows : [],
+      counts: data?.counts || {}
+    };
+
+    renderAdminUsers();
+  } catch (error) {
+    console.error("LOAD USERS ADMIN ERROR:", error);
+
+    const message = escapeHtml(error?.message || "Could not load users.");
+
+    if (pendingRoot) {
+      pendingRoot.innerHTML = `<div class="empty">${message}</div>`;
     }
 
-    function renderPendingUsers(users) {
-      const root = document.getElementById("pendingUsersList");
+    if (registeredRoot) {
+      registeredRoot.innerHTML = `<div class="empty">${message}</div>`;
+    }
+  }
+}
 
-      if (!users.length) {
-        root.innerHTML = `<div class="empty">No pending requests.</div>`;
-        return;
-      }
+function setAdminUsersSubtab(tabName) {
+  adminUsersActiveSubtab = tabName === "registered" ? "registered" : "pending";
 
-      root.innerHTML = users.map(user => `
+  document.getElementById("adminPendingSubtabBtn").classList.toggle("active", adminUsersActiveSubtab === "pending");
+  document.getElementById("adminRegisteredSubtabBtn").classList.toggle("active", adminUsersActiveSubtab === "registered");
+
+  document.getElementById("adminPendingPanel").classList.toggle("hidden", adminUsersActiveSubtab !== "pending");
+  document.getElementById("adminRegisteredPanel").classList.toggle("hidden", adminUsersActiveSubtab !== "registered");
+
+  renderAdminUsers();
+}
+
+function renderAdminUsers() {
+  const rows = Array.isArray(adminUsersState.rows) ? adminUsersState.rows : [];
+  const counts = adminUsersState.counts || {};
+
+  const pendingRows = rows.filter(user => {
+    if (!user) return false;
+
+    return (
+      user.status === "pending_admin" ||
+      user.status === "pending_admin_email_unverified" ||
+      user.status === "approved_email_unverified" ||
+      user.status === "profile_missing" ||
+      user.status === "profile_without_auth" ||
+      user.approved !== true
+    );
+  });
+
+  const registeredRows = rows.filter(user => {
+    if (!user) return false;
+
+    return (
+      user.approved === true ||
+      user.status === "approved" ||
+      user.status === "approved_email_unverified"
+    );
+  });
+
+  renderPendingUsers(pendingRows, counts);
+  renderRegisteredUsers(registeredRows, counts);
+}
+
+function getSignupStatusLabel(status) {
+  if (status === "approved") return "Approved";
+  if (status === "approved_email_unverified") return "Approved, email not verified";
+  if (status === "pending_admin") return "Waiting for admin approval";
+  if (status === "pending_admin_email_unverified") return "Waiting approval, email not verified";
+  if (status === "profile_missing") return "Profile missing";
+  if (status === "profile_without_auth") return "Broken profile";
+  if (status === "email_unverified") return "Email not verified";
+  return "Unknown";
+}
+
+function getSignupStatusHelp(status) {
+  if (status === "approved_email_unverified") {
+    return "This user already has platform access, but Supabase Auth still shows the email as unverified. You may resend the verification email.";
+  }
+
+  if (status === "pending_admin_email_unverified" || status === "email_unverified") {
+    return "The user has not verified email yet. You may approve only if you trust the user, or resend the verification email first.";
+  }
+
+  if (status === "pending_admin") {
+    return "Email is verified. Admin can approve this account.";
+  }
+
+  if (status === "profile_missing") {
+    return "Auth user exists, but the public profile row was not created. Repair the profile before approval.";
+  }
+
+  if (status === "profile_without_auth") {
+    return "Profile row exists, but matching Auth user was not found. This is a data mismatch.";
+  }
+
+  return "";
+}
+
+function formatDateTimeSafe(value) {
+  if (!value) return "Unknown";
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "Unknown";
+  }
+
+  return date.toLocaleString();
+}
+
+function renderUserMetaLines(user) {
+  const statusLabel = getSignupStatusLabel(user.status);
+  const statusHelp = getSignupStatusHelp(user.status);
+
+  return `
+    <div class="pending-user-title">${escapeHtml(user.name || "Unnamed User")}</div>
+
+    <div class="pending-user-meta">${escapeHtml(user.email || "No email")}</div>
+
+    <div class="pending-user-meta">
+      Status: <strong>${escapeHtml(statusLabel)}</strong>
+    </div>
+
+    <div class="pending-user-meta">
+      Platform approved: ${user.approved ? "Yes" : "No"}
+    </div>
+
+    <div class="pending-user-meta">
+      Email verified: ${user.email_verified ? "Yes" : "No"}
+    </div>
+
+    <div class="pending-user-meta">
+      Requested: ${escapeHtml(formatDateTimeSafe(user.created_at))}
+    </div>
+
+    ${
+      user.last_sign_in_at
+        ? `<div class="pending-user-meta">Last login: ${escapeHtml(formatDateTimeSafe(user.last_sign_in_at))}</div>`
+        : ""
+    }
+
+    ${
+      user.user_id
+        ? `<div class="pending-user-meta">User ID: ${escapeHtml(String(user.user_id))}</div>`
+        : ""
+    }
+
+    ${
+      statusHelp
+        ? `<div class="pending-user-meta" style="margin-top:5px;">${escapeHtml(statusHelp)}</div>`
+        : ""
+    }
+  `;
+}
+
+function renderPendingUsers(users, counts = {}) {
+  const root = document.getElementById("pendingUsersList");
+  if (!root) return;
+
+  const safeUsers = Array.isArray(users) ? users : [];
+
+  if (!safeUsers.length) {
+    root.innerHTML = `<div class="empty">No open signup or verification items.</div>`;
+    return;
+  }
+
+  const countLine = [
+    counts.pending_admin ? `${counts.pending_admin} waiting approval` : "",
+    counts.pending_admin_email_unverified ? `${counts.pending_admin_email_unverified} waiting approval + unverified` : "",
+    counts.approved_email_unverified ? `${counts.approved_email_unverified} approved + unverified` : "",
+    counts.profile_missing ? `${counts.profile_missing} missing profile` : "",
+    counts.profile_without_auth ? `${counts.profile_without_auth} broken profile` : ""
+  ].filter(Boolean).join(" • ");
+
+  root.innerHTML = `
+    ${countLine ? `<div class="tiny" style="margin-bottom:10px;">${escapeHtml(countLine)}</div>` : ""}
+
+    ${safeUsers.map(user => {
+      const approveButton = user.can_approve || user.status === "pending_admin" || user.status === "pending_admin_email_unverified"
+        ? `<button class="btn" type="button" data-approve-id="${escapeHtml(user.user_id || "")}">Approve</button>`
+        : "";
+
+      const resendButton = user.can_resend_verification || user.email_verified === false
+        ? `<button class="btn-secondary" type="button" data-resend-email="${escapeHtml(user.email || "")}">Resend Email</button>`
+        : "";
+
+      const repairButton = user.can_create_profile || user.status === "profile_missing"
+        ? `<button class="btn-secondary" type="button" data-repair-profile-id="${escapeHtml(user.user_id || "")}">Repair Profile</button>`
+        : "";
+
+      const actionButtons = [approveButton, resendButton, repairButton].filter(Boolean).join("");
+
+      return `
         <div class="pending-user">
           <div class="pending-user-main">
-            <div class="pending-user-title">${escapeHtml(user.name || "Unnamed User")}</div>
-            <div class="pending-user-meta">${escapeHtml(user.email || "")}</div>
-            <div class="pending-user-meta">Requested: ${escapeHtml(new Date(user.created_at).toLocaleString())}</div>
+            ${renderUserMetaLines(user)}
           </div>
+
           <div class="stack-actions">
-            <button class="btn" type="button" data-approve-id="${user.id}">Approve</button>
+            ${
+              actionButtons
+                ? actionButtons
+                : `<button class="btn-secondary" type="button" disabled style="opacity:0.55; cursor:not-allowed;">No action</button>`
+            }
           </div>
         </div>
-      `).join("");
-    }
+      `;
+    }).join("")}
+  `;
+}
 
-    async function approveUser(profileId) {
-      const { error } = await supabaseClient
-        .from("profiles")
-        .update({ approved: true })
-        .eq("id", profileId);
+function renderRegisteredUsers(users, counts = {}) {
+  const root = document.getElementById("registeredUsersList");
+  if (!root) return;
 
-      if (error) {
-        showStatus("appStatus", error.message, "error");
-        return;
-      }
+  const safeUsers = Array.isArray(users) ? users : [];
 
-      showStatus("appStatus", "User approved.", "success");
-      await loadPendingUsers();
-    }
+  if (!safeUsers.length) {
+    root.innerHTML = `<div class="empty">No registered users found.</div>`;
+    return;
+  }
+
+  root.innerHTML = `
+    <div class="tiny" style="margin-bottom:10px;">
+      ${safeUsers.length} registered user${safeUsers.length === 1 ? "" : "s"}
+    </div>
+
+    ${safeUsers.map(user => {
+      const isCurrentUser = session?.user?.id && user.user_id === session.user.id;
+
+      const resendButton = user.email_verified === false
+        ? `<button class="btn-secondary" type="button" data-resend-email="${escapeHtml(user.email || "")}">Resend Email</button>`
+        : "";
+
+      const removeAccessButton = !isCurrentUser
+        ? `<button class="btn-secondary" type="button" data-remove-access-id="${escapeHtml(user.user_id || "")}" data-user-email="${escapeHtml(user.email || "")}">Remove Access</button>`
+        : "";
+
+      const deleteButton = !isCurrentUser
+        ? `<button class="btn-danger" type="button" data-delete-user-id="${escapeHtml(user.user_id || "")}" data-user-email="${escapeHtml(user.email || "")}">Delete Account Data</button>`
+        : "";
+
+      const currentUserBadge = isCurrentUser
+        ? `<button class="btn-secondary" type="button" disabled style="opacity:0.55; cursor:not-allowed;">Current admin</button>`
+        : "";
+
+      return `
+        <div class="pending-user">
+          <div class="pending-user-main">
+            ${renderUserMetaLines(user)}
+          </div>
+
+          <div class="stack-actions">
+            ${currentUserBadge}
+            ${resendButton}
+            ${removeAccessButton}
+            ${deleteButton}
+          </div>
+        </div>
+      `;
+    }).join("")}
+  `;
+}
+
+async function runSignupAdminAction(action, payload = {}) {
+  return await invokeEdgeFunction("manage-signup-user", {
+    action,
+    redirectTo: REDIRECT_URL,
+    ...payload
+  });
+}
+
+async function approveUser(profileId) {
+  if (!isAdmin()) return;
+
+  const userId = String(profileId || "").trim();
+
+  if (!userId) {
+    showStatus("appStatus", "Missing user ID.", "error");
+    return;
+  }
+
+  try {
+    await runSignupAdminAction("approve", {
+      user_id: userId,
+      userId
+    });
+
+    showStatus("appStatus", "User approved.", "success");
+    await loadUsersAdminData();
+  } catch (error) {
+    console.error("APPROVE USER ERROR:", error);
+    showStatus("appStatus", error?.message || "Could not approve user.", "error");
+  }
+}
+
+async function resendVerificationEmail(email) {
+  if (!isAdmin()) return;
+
+  const safeEmail = String(email || "").trim();
+
+  if (!safeEmail) {
+    showStatus("appStatus", "Missing email address.", "error");
+    return;
+  }
+
+  try {
+    await runSignupAdminAction("resend_verification", {
+      email: safeEmail
+    });
+
+    showStatus("appStatus", `Verification email resent to ${safeEmail}.`, "success");
+    await loadUsersAdminData();
+  } catch (error) {
+    console.error("RESEND VERIFICATION ERROR:", error);
+    showStatus("appStatus", error?.message || "Could not resend verification email.", "error");
+  }
+}
+
+async function repairMissingProfile(userId) {
+  if (!isAdmin()) return;
+
+  const safeUserId = String(userId || "").trim();
+
+  if (!safeUserId) {
+    showStatus("appStatus", "Missing user ID.", "error");
+    return;
+  }
+
+  try {
+    await runSignupAdminAction("create_missing_profile", {
+      user_id: safeUserId,
+      userId: safeUserId
+    });
+
+    showStatus("appStatus", "Missing profile repaired. You can approve the user now.", "success");
+    await loadUsersAdminData();
+  } catch (error) {
+    console.error("REPAIR PROFILE ERROR:", error);
+    showStatus("appStatus", error?.message || "Could not repair missing profile.", "error");
+  }
+}
+
+async function removeUserAccess(userId, email) {
+  if (!isAdmin()) return;
+
+  const safeUserId = String(userId || "").trim();
+  const safeEmail = String(email || "").trim();
+
+  if (!safeUserId) {
+    showStatus("appStatus", "Missing user ID.", "error");
+    return;
+  }
+
+  const confirmed = confirm(
+    `Remove platform access for ${safeEmail || "this user"}?\n\nThis keeps the login account but sets approved = false.`
+  );
+
+  if (!confirmed) return;
+
+  try {
+    await runSignupAdminAction("remove_access", {
+      user_id: safeUserId,
+      userId: safeUserId
+    });
+
+    showStatus("appStatus", `Access removed for ${safeEmail || "user"}.`, "success");
+    await loadUsersAdminData();
+  } catch (error) {
+    console.error("REMOVE ACCESS ERROR:", error);
+    showStatus("appStatus", error?.message || "Could not remove access.", "error");
+  }
+}
+
+async function deleteRegisteredUserAccountData(userId, email) {
+  if (!isAdmin()) return;
+
+  const safeUserId = String(userId || "").trim();
+  const safeEmail = String(email || "").trim();
+
+  if (!safeUserId) {
+    showStatus("appStatus", "Missing user ID.", "error");
+    return;
+  }
+
+  const confirmed = confirm(
+    `Delete account data for ${safeEmail || "this user"}?\n\nThis deletes their profile, bookmarks, live-share history, and Supabase login account.\n\nThey will not be able to access the platform unless they sign up again.`
+  );
+
+  if (!confirmed) return;
+
+  const secondConfirm = confirm(
+    `Final confirmation:\n\nReally delete ${safeEmail || "this user"}?`
+  );
+
+  if (!secondConfirm) return;
+
+  try {
+    await runSignupAdminAction("delete_account_data", {
+      user_id: safeUserId,
+      userId: safeUserId
+    });
+
+    showStatus("appStatus", `Deleted account data for ${safeEmail || "user"}.`, "success");
+    await loadUsersAdminData();
+  } catch (error) {
+    console.error("DELETE ACCOUNT DATA ERROR:", error);
+    showStatus("appStatus", error?.message || "Could not delete account data.", "error");
+  }
+}
 
     function renderResults(results, query = "", options = {}) {
   const root = document.getElementById("searchResults");
@@ -6398,7 +6826,15 @@ document.getElementById("songSinger").addEventListener("input", () => {
       document.getElementById("tabFavoritesBtn").addEventListener("click", () => activateTab("favorites"));
       document.getElementById("tabAdminBtn").addEventListener("click", () => activateTab("admin"));
 
-      document.getElementById("refreshPendingBtn").addEventListener("click", loadPendingUsers);
+      document.getElementById("refreshUsersBtn").addEventListener("click", loadUsersAdminData);
+
+document.getElementById("adminPendingSubtabBtn").addEventListener("click", () => {
+  setAdminUsersSubtab("pending");
+});
+
+document.getElementById("adminRegisteredSubtabBtn").addEventListener("click", () => {
+  setAdminUsersSubtab("registered");
+});
       document.getElementById("liveNowOpenBtn").addEventListener("click", openPendingLiveSong);
 document.getElementById("liveNowDismissBtn").addEventListener("click", dismissPendingLiveSong);
       document.getElementById("liveMiniBtn").addEventListener("click", openPendingLiveSong);
@@ -6529,10 +6965,46 @@ deepSearchTimer = setTimeout(() => {
         if (row) openSong(Number(row.dataset.songId));
       });
 
-      document.getElementById("pendingUsersList").addEventListener("click", (e) => {
-        const btn = e.target.closest("[data-approve-id]");
-        if (btn) approveUser(btn.dataset.approveId);
-      });
+      async function handleAdminUserActionClick(e) {
+  const approveBtn = e.target.closest("[data-approve-id]");
+  if (approveBtn) {
+    await approveUser(approveBtn.dataset.approveId);
+    return;
+  }
+
+  const resendBtn = e.target.closest("[data-resend-email]");
+  if (resendBtn) {
+    await resendVerificationEmail(resendBtn.dataset.resendEmail);
+    return;
+  }
+
+  const repairBtn = e.target.closest("[data-repair-profile-id]");
+  if (repairBtn) {
+    await repairMissingProfile(repairBtn.dataset.repairProfileId);
+    return;
+  }
+
+  const removeAccessBtn = e.target.closest("[data-remove-access-id]");
+  if (removeAccessBtn) {
+    await removeUserAccess(
+      removeAccessBtn.dataset.removeAccessId,
+      removeAccessBtn.dataset.userEmail
+    );
+    return;
+  }
+
+  const deleteUserBtn = e.target.closest("[data-delete-user-id]");
+  if (deleteUserBtn) {
+    await deleteRegisteredUserAccountData(
+      deleteUserBtn.dataset.deleteUserId,
+      deleteUserBtn.dataset.userEmail
+    );
+    return;
+  }
+}
+
+document.getElementById("pendingUsersList").addEventListener("click", handleAdminUserActionClick);
+document.getElementById("registeredUsersList").addEventListener("click", handleAdminUserActionClick);
 
       document.getElementById("modalCloseBtn").addEventListener("click", closeSongModal);
 
