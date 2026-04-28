@@ -1,4 +1,4 @@
-const BUILD_ID = "lookup-2026-04-25-clean-lrclib-ovh-saregama-v1";
+const BUILD_ID = "lookup-2026-04-29-lrclib-saregama-gated-v5";
 const APP_USER_AGENT = "MehfilLyrics/1.0 contact:mehfil-app";
 
 const corsHeaders = {
@@ -7,7 +7,7 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS"
 };
 
-type Provider = "saregama" | "lrclib" | "ovh";
+type Provider = "saregama" | "lrclib";
 type CandidateStatus = "lyrics_ready" | "metadata_only";
 type ScriptType = "gujarati" | "devanagari" | "romanized" | "english" | "mixed" | "unknown";
 
@@ -46,6 +46,71 @@ type SaregamaSource = {
   aliases: string[];
 };
 
+const SPELLING_GROUPS = [
+  ["mohabbat", "mahobbat", "mohobbat", "muhabbat", "mahabbat", "mohabat", "muhabat", "mahobat", "mohobat"],
+  ["fariyaad", "fariyad", "faryaad", "faryad", "fariyadh", "faryadh"],
+  ["wala", "waala", "vala", "vaala"],
+  ["pyaar", "pyar", "piyar", "piyaar"],
+  ["yaad", "yad"],
+  ["aankhiyon", "ankhiyon", "ankhiyo", "aankhiyo", "ankhio"],
+  ["kajra", "kajara", "kajraa"],
+  ["darna", "darana"],
+  ["kiya", "kia", "kiyaa"],
+  ["huzoor", "huzur", "hujoor", "hazoor"],
+  ["tumko", "tum ko"],
+  ["koi", "koyi"],
+  ["aao", "ao"]
+];
+
+const WEAK_WORDS = new Set([
+  "the", "a", "an", "song", "lyrics", "lyric",
+  "ka", "ki", "ke", "ko", "se", "me", "mein", "to", "ho", "hai", "hain", "na"
+]);
+
+const SAREGAMA_SOURCES: SaregamaSource[] = [
+  {
+    title: "Aao Huzoor Tumko",
+    singer: "Asha Bhosle",
+    movie: "Kismat",
+    urls: [
+      "https://www.saregama.com/song-lyrics/aao-huzoor-tumko_7220",
+      "https://nsrgm-www.saregama.com/song-lyrics/aao-huzoor-tumko_7220"
+    ],
+    aliases: [
+      "aao huzoor tumko",
+      "aao huzur tumko",
+      "aao hujoor tumko",
+      "aao hazoor tumko",
+      "aao huzoor",
+      "huzoor tumko",
+      "hujoor tumko",
+      "huzur tumko"
+    ]
+  },
+  {
+    title: "Kajra Mohabbat Wala",
+    singer: "Asha Bhosle, Shamshad Begum",
+    movie: "Kismat",
+    urls: [
+      "https://www.saregama.com/song-lyrics/kajra-mohabbat-wala_7217",
+      "https://nsrgm-www.saregama.com/song-lyrics/kajra-mohabbat-wala_7217"
+    ],
+    aliases: [
+      "kajra mohabbat wala",
+      "kajra mohabbat waala",
+      "kajra mahobbat wala",
+      "kajra mohobbat wala",
+      "kajra muhabbat wala",
+      "kajra muhabbat waala",
+      "kajraa mohabbat wala",
+      "kajara mohabbat wala",
+      "ankhiyo me aisa dala",
+      "ankhiyon mein aisa dala",
+      "kajre ne le li meri jaan"
+    ]
+  }
+];
+
 function json(data: unknown, status = 200) {
   return new Response(JSON.stringify(data, null, 2), {
     status,
@@ -60,7 +125,7 @@ function normalizeText(text: string) {
   return String(text || "")
     .toLowerCase()
     .normalize("NFC")
-    .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?"'!|[\]\\]/g, " ")
+    .replace(/[^\p{L}\p{N}\s]+/gu, " ")
     .replace(/\s+/g, " ")
     .trim();
 }
@@ -73,6 +138,18 @@ function cleanLyricsText(text: string) {
     .replace(/[ \t]+\n/g, "\n")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
+}
+
+function getLrclibLyrics(row: Record<string, unknown>) {
+  return cleanLyricsText(
+    String(
+      row.plainLyrics ||
+      row.plain_lyrics ||
+      row.syncedLyrics ||
+      row.synced_lyrics ||
+      ""
+    )
+  );
 }
 
 function buildPreview(text: string) {
@@ -164,12 +241,247 @@ function removeVersionNoise(title: string) {
     .replace(/\bretro\b/gi, " ")
     .replace(/\bdj\b/gi, " ")
     .replace(/\breprise\b/gi, " ")
+    .replace(/\bslowed\b/gi, " ")
+    .replace(/\breverb\b/gi, " ")
     .replace(/\s+/g, " ")
     .trim();
 }
 
 function isNoisyVersionTitle(title: string) {
-  return /\b(lofi|lo-fi|trap|remix|cover|single|viral|dj|construction)\b/i.test(String(title || ""));
+  return /\b(lofi|lo-fi|trap|remix|cover|single|viral|dj|construction|karaoke|instrumental|slowed|reverb)\b/i
+    .test(String(title || ""));
+}
+
+function canonicalizeCommonSongSpellings(value: string) {
+  let out = normalizeText(removeVersionNoise(value || ""))
+    .replace(/\blyrics?\b/g, " ")
+    .replace(/\bsong\b/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  for (const group of SPELLING_GROUPS) {
+    const canonical = group[0];
+
+    for (const spelling of group) {
+      out = out.replace(new RegExp(`\\b${spelling}\\b`, "g"), canonical);
+    }
+  }
+
+  return out.replace(/\s+/g, " ").trim();
+}
+
+function normalizeSongLoose(text: string) {
+  return canonicalizeCommonSongSpellings(text)
+    .replace(/aa/g, "a")
+    .replace(/ii/g, "i")
+    .replace(/ee/g, "i")
+    .replace(/uu/g, "u")
+    .replace(/oo/g, "u")
+    .replace(/ai/g, "e")
+    .replace(/au/g, "o")
+    .replace(/kh/g, "k")
+    .replace(/gh/g, "g")
+    .replace(/chh/g, "ch")
+    .replace(/jh/g, "j")
+    .replace(/th/g, "t")
+    .replace(/dh/g, "d")
+    .replace(/ph/g, "f")
+    .replace(/bh/g, "b")
+    .replace(/sh/g, "s")
+    .replace(/v/g, "w")
+    .replace(/q/g, "k")
+    .replace(/z/g, "j")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function compactPhoneticKey(text: string) {
+  return normalizeSongLoose(text)
+    .replace(/[aeiou]+/g, "")
+    .replace(/(.)\1+/g, "$1")
+    .replace(/\s+/g, "");
+}
+
+function getStrongWords(text: string) {
+  return canonicalizeCommonSongSpellings(text)
+    .split(/\s+/)
+    .map(word => word.trim())
+    .filter(word => word.length >= 2 && !WEAK_WORDS.has(word));
+}
+
+function getStrongWordCoverage(wantedTitle: string, rowTitle: string) {
+  const wantedWords = getStrongWords(wantedTitle);
+  const rowWords = new Set(getStrongWords(rowTitle));
+
+  let hits = 0;
+
+  for (const word of wantedWords) {
+    if (rowWords.has(word)) hits++;
+  }
+
+  return {
+    hits,
+    total: wantedWords.length,
+    coverage: wantedWords.length ? hits / wantedWords.length : 0
+  };
+}
+
+function isAcceptableLrclibTitleMatch(rowTitle: string, wantedTitle: string) {
+  const rowCanonical = canonicalizeCommonSongSpellings(rowTitle);
+  const wantedCanonical = canonicalizeCommonSongSpellings(wantedTitle);
+
+  if (!rowCanonical || !wantedCanonical) return false;
+
+  if (rowCanonical === wantedCanonical) return true;
+
+  if (
+    rowCanonical.length >= 5 &&
+    wantedCanonical.length >= 5 &&
+    (rowCanonical.includes(wantedCanonical) || wantedCanonical.includes(rowCanonical))
+  ) {
+    return true;
+  }
+
+  const rowLoose = normalizeSongLoose(rowTitle);
+  const wantedLoose = normalizeSongLoose(wantedTitle);
+
+  if (rowLoose && wantedLoose && rowLoose === wantedLoose) return true;
+
+  const rowCompact = compactPhoneticKey(rowTitle);
+  const wantedCompact = compactPhoneticKey(wantedTitle);
+
+  if (
+    rowCompact &&
+    wantedCompact &&
+    wantedCompact.length >= 4 &&
+    rowCompact === wantedCompact
+  ) {
+    return true;
+  }
+
+  const coverage = getStrongWordCoverage(wantedTitle, rowTitle);
+
+  if (coverage.total <= 1) return true;
+
+  if (coverage.total === 2) {
+    return coverage.hits >= 2;
+  }
+
+  if (coverage.total === 3) {
+    return coverage.hits >= 2;
+  }
+
+  return coverage.hits >= 3 && coverage.coverage >= 0.65;
+}
+
+function expandCommonIndianSongSpellings(value: string) {
+  const base = normalizeText(value)
+    .replace(/\blyrics?\b/g, " ")
+    .replace(/\bsong\b/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  const variants = new Set<string>();
+
+  if (!base) return [];
+
+  variants.add(base);
+
+  for (const group of SPELLING_GROUPS) {
+    const currentVariants = Array.from(variants);
+
+    for (const current of currentVariants) {
+      for (const from of group) {
+        const pattern = new RegExp(`\\b${from}\\b`, "g");
+
+        if (!pattern.test(current)) continue;
+
+        for (const to of group) {
+          variants.add(current.replace(pattern, to));
+        }
+      }
+    }
+  }
+
+  return Array.from(variants)
+    .map(v => v.replace(/\s+/g, " ").trim())
+    .filter(Boolean)
+    .slice(0, 32);
+}
+
+function buildLrclibQueryVariants(input: { query: string; title: string; singer: string }) {
+  const query = normalizeText(input.query || "");
+  const title = normalizeText(input.title || "");
+  const singer = normalizeText(input.singer || "");
+
+  const source = title || query;
+  const words = source.split(/\s+/).filter(Boolean);
+  const strongWords = getStrongWords(source);
+
+  const variants = new Set<string>();
+
+  function add(value: string) {
+    const clean = normalizeText(value)
+      .replace(/\blyrics?\b/g, " ")
+      .replace(/\bsong\b/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+
+    if (!clean) return;
+
+    variants.add(clean);
+
+    const canonical = canonicalizeCommonSongSpellings(clean);
+    if (canonical) variants.add(canonical);
+
+    const loose = normalizeSongLoose(clean);
+    if (loose) variants.add(loose);
+
+    expandCommonIndianSongSpellings(clean).forEach(v => variants.add(v));
+    expandCommonIndianSongSpellings(canonical).forEach(v => variants.add(v));
+  }
+
+  add(source);
+  add(query);
+
+  if (title && singer) add(`${title} ${singer}`);
+  if (query && singer) add(`${query} ${singer}`);
+
+  if (words.length >= 2) {
+    add(words.slice(0, 2).join(" "));
+    add(words.slice(0, 3).join(" "));
+    add(words.slice(-2).join(" "));
+    add(`${words[0]} ${words[words.length - 1]}`);
+  }
+
+  if (strongWords.length >= 2) {
+    add(strongWords.slice(0, 2).join(" "));
+    add(strongWords.slice(0, 3).join(" "));
+    add(strongWords.slice(-2).join(" "));
+    add(`${strongWords[0]} ${strongWords[strongWords.length - 1]}`);
+  }
+
+  return Array.from(variants)
+    .map(v => v.replace(/\s+/g, " ").trim())
+    .filter(Boolean)
+    .slice(0, 14);
+}
+
+function getLyricsLengthScore(lyrics: string) {
+  const length = cleanLyricsText(lyrics).length;
+
+  let score = 0;
+
+  if (length >= 80) score += 5;
+  if (length >= 180) score += 6;
+  if (length >= 350) score += 7;
+  if (length >= 650) score += 7;
+  if (length >= 1000) score += 4;
+  if (length >= 1600) score += 2;
+
+  if (length > 6000) score -= 8;
+
+  return Math.max(0, Math.min(score, 30));
 }
 
 function scriptPreferenceScore(script: ScriptType, preferredScripts: string[]) {
@@ -193,111 +505,17 @@ function makeLookupKey(candidate: InternalCandidate) {
   });
 }
 
-function scoreLyricsReadyCandidate(
-  candidate: InternalCandidate,
-  query: string,
-  title: string,
-  singer: string,
-  preferredScripts: string[]
-) {
-  const q = normalizeText(query);
-  const t = normalizeText(title || query);
-  const s = normalizeText(singer || "");
-
-  const candidateTitle = normalizeText(candidate.title);
-  const cleanCandidateTitle = normalizeText(removeVersionNoise(candidate.title));
-  const cleanQueryTitle = normalizeText(removeVersionNoise(title || query));
-
-  let score = 0;
-
-  if (candidateTitle === t || cleanCandidateTitle === cleanQueryTitle) score += 36;
-  if (candidateTitle.includes(t) || t.includes(candidateTitle)) score += 16;
-
-  score += Math.round(tokenOverlapScore(t, candidate.title) * 34);
-  score += Math.round(tokenOverlapScore(q, candidate.title) * 18);
-
-  if (s) {
-    score += Math.round(tokenOverlapScore(s, candidate.singer) * 22);
-  }
-
-  score += scriptPreferenceScore(candidate.script, preferredScripts);
-
-  const lyricsLength = cleanLyricsText(candidate.lyrics || candidate.preview).length;
-  if (lyricsLength >= 100) score += 8;
-  if (lyricsLength >= 250) score += 6;
-  if (lyricsLength >= 500) score += 5;
-
-  if (candidate.provider === "saregama") score += 24;
-  if (candidate.provider === "lrclib") score += 12;
-  if (candidate.provider === "ovh") score += 8;
-
-  if (isNoisyVersionTitle(candidate.title) && !isNoisyVersionTitle(query)) {
-    score -= 16;
-  }
-
-  return Math.max(0, Math.min(score, 100));
-}
-
-function scoreMetadataOnlyCandidate(candidate: InternalCandidate, query: string, title: string, singer: string) {
-  const q = normalizeText(query);
-  const t = normalizeText(title || query);
-  const s = normalizeText(singer || "");
-
-  let score = 0;
-
-  score += Math.round(tokenOverlapScore(t, candidate.title) * 48);
-  score += Math.round(tokenOverlapScore(q, candidate.title) * 26);
-
-  if (s) {
-    score += Math.round(tokenOverlapScore(s, candidate.singer) * 18);
-  }
-
-  if (candidate.title && normalizeText(candidate.title) === t) score += 20;
-  if (candidate.provider === "ovh") score += 8;
-
-  if (isNoisyVersionTitle(candidate.title) && !isNoisyVersionTitle(query)) {
-    score -= 16;
-  }
-
-  return Math.max(0, Math.min(score, 88));
-}
-
-function buildQueryVariants(input: { query: string; title: string }) {
-  const base = normalizeText(input.title || input.query);
-  if (!base) return [];
-
-  const words = base.split(/\s+/).filter(Boolean);
-  const variants = new Set<string>();
-
-  variants.add(base);
-
-  if (words.length >= 2) {
-    variants.add(words.slice(0, 2).join(" "));
-    variants.add(words.slice(0, 3).join(" "));
-    variants.add(words.slice(-2).join(" "));
-  }
-
-  if (words.length >= 3) {
-    variants.add(words.slice(1, 3).join(" "));
-    variants.add(words.slice(1, 4).join(" "));
-  }
-
-  return Array.from(variants).filter(Boolean).slice(0, 7);
-}
-
 async function safeJson(url: string, timeoutMs = 3000) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
-  const headers: Record<string, string> = {
-    "Accept": "application/json",
-    "User-Agent": APP_USER_AGENT
-  };
-
   try {
     const response = await fetch(url, {
       signal: controller.signal,
-      headers
+      headers: {
+        "Accept": "application/json",
+        "User-Agent": APP_USER_AGENT
+      }
     });
 
     if (!response.ok) {
@@ -333,7 +551,8 @@ async function safeText(url: string, timeoutMs = 5200) {
     const response = await fetch(url, {
       signal: controller.signal,
       headers: {
-        "Accept": "text/html,application/xhtml+xml,text/plain"
+        "Accept": "text/html,application/xhtml+xml,text/plain",
+        "User-Agent": APP_USER_AGENT
       }
     });
 
@@ -359,55 +578,30 @@ async function safeText(url: string, timeoutMs = 5200) {
   }
 }
 
-const SAREGAMA_SOURCES: SaregamaSource[] = [
-  {
-    title: "Aao Huzoor Tumko",
-    singer: "Asha Bhosle",
-    movie: "Kismat",
-    urls: [
-      "https://www.saregama.com/song-lyrics/aao-huzoor-tumko_7220",
-      "https://nsrgm-www.saregama.com/song-lyrics/aao-huzoor-tumko_7220"
-    ],
-    aliases: [
-      "aao huzoor tumko",
-      "aao huzur tumko",
-      "aao hujoor tumko",
-      "aao hazoor tumko",
-      "aao huzoor",
-      "huzoor tumko",
-      "hujoor tumko",
-      "huzur tumko"
-    ]
-  },
-  {
-    title: "Kajra Mohabbat Wala",
-    singer: "Asha Bhosle, Shamshad Begum",
-    movie: "Kismat",
-    urls: [
-      "https://www.saregama.com/song-lyrics/kajra-mohabbat-wala_7217",
-      "https://nsrgm-www.saregama.com/song-lyrics/kajra-mohabbat-wala_7217"
-    ],
-    aliases: [
-      "kajra mohabbat wala",
-      "kajra mohabbat waala",
-      "kajra muhabbat wala",
-      "kajra muhabbat waala",
-      "kajraa mohabbat wala",
-      "kajara mohabbat wala",
-      "ankhiyo me aisa dala",
-      "ankhiyon mein aisa dala",
-      "kajre ne le li meri jaan"
-    ]
-  }
-];
-
 function findSaregamaSources(query: string, title: string) {
-  const q = normalizeText(`${title || ""} ${query || ""}`);
+  const inputRaw = normalizeText(`${title || ""} ${query || ""}`);
+  const inputCanonical = canonicalizeCommonSongSpellings(`${title || ""} ${query || ""}`);
+  const inputLoose = normalizeSongLoose(`${title || ""} ${query || ""}`);
 
   return SAREGAMA_SOURCES.filter(source => {
-    return source.aliases.some(alias => {
-      const a = normalizeText(alias);
-      return q.includes(a) || a.includes(q);
+    const sourceValues = [
+      source.title,
+      ...source.aliases
+    ];
+
+    return sourceValues.some(value => {
+      const aliasRaw = normalizeText(value);
+      const aliasCanonical = canonicalizeCommonSongSpellings(value);
+      const aliasLoose = normalizeSongLoose(value);
+
+      return (
+        inputRaw.includes(aliasRaw) ||
+        aliasRaw.includes(inputRaw) ||
+        inputCanonical.includes(aliasCanonical) ||
+        aliasCanonical.includes(inputCanonical) ||
+        inputLoose.includes(aliasLoose) ||
+        aliasLoose.includes(inputLoose)
+      );
     });
   });
 }
@@ -550,221 +744,321 @@ async function fetchSaregamaCandidates(input: { query: string; title: string }) 
   };
 }
 
-function mapLrclibRowToCandidate(row: Record<string, unknown>, fallbackTitle = "", fallbackSinger = "") {
-  const title = String(row.trackName || row.track_name || fallbackTitle || "").trim();
-  const singer = String(row.artistName || row.artist_name || fallbackSinger || "").trim();
-  const movie = String(row.albumName || row.album_name || "").trim();
+function scoreLrclibRow(
+  row: Record<string, unknown>,
+  input: { query: string; title: string; singer: string; movie?: string }
+) {
+  const rowTitle = String(row.trackName || row.track_name || "").trim();
+  const rowSinger = String(row.artistName || row.artist_name || "").trim();
+  const rowAlbum = String(row.albumName || row.album_name || "").trim();
+  const lyrics = getLrclibLyrics(row);
 
-  const lyrics = cleanLyricsText(
-    String(row.plainLyrics || row.plain_lyrics || row.syncedLyrics || row.synced_lyrics || "")
-  );
+  if (!rowTitle || !lyrics || lyrics.length < 20) return 0;
 
-  if (!title || !lyrics || lyrics.length < 20) return null;
+  const wantedTitle = input.title || input.query || "";
+  const wantedSinger = input.singer || "";
+  const wantedMovie = input.movie || "";
 
-  return {
-    provider: "lrclib",
-    title,
-    singer,
-    movie,
-    source_name: "LRCLIB",
-    source_url: "https://lrclib.net/",
-    script: detectScript(lyrics),
-    preview: buildPreview(lyrics),
-    lyrics: lyrics.slice(0, 18000),
-    status: "lyrics_ready"
-  } as InternalCandidate;
+  const rowTitleNorm = normalizeText(removeVersionNoise(rowTitle));
+  const wantedTitleNorm = normalizeText(removeVersionNoise(wantedTitle));
+
+  const rowTitleCanonical = canonicalizeCommonSongSpellings(rowTitle);
+  const wantedTitleCanonical = canonicalizeCommonSongSpellings(wantedTitle);
+
+  const rowTitleLoose = normalizeSongLoose(rowTitle);
+  const wantedTitleLoose = normalizeSongLoose(wantedTitle);
+
+  const rowCompact = compactPhoneticKey(rowTitle);
+  const wantedCompact = compactPhoneticKey(wantedTitle);
+
+  const wantedStrongWords = getStrongWords(wantedTitle);
+  const rowCanonicalWords = new Set(rowTitleCanonical.split(/\s+/).filter(Boolean));
+
+  let strongHits = 0;
+  for (const word of wantedStrongWords) {
+    if (rowCanonicalWords.has(word)) strongHits++;
+  }
+
+  let score = 0;
+
+  if (rowTitleNorm === wantedTitleNorm && wantedTitleNorm) score += 48;
+  if (rowTitleCanonical && rowTitleCanonical === wantedTitleCanonical) score += 45;
+  if (rowTitleLoose && rowTitleLoose === wantedTitleLoose) score += 38;
+  if (rowCompact && wantedCompact && rowCompact === wantedCompact) score += 32;
+
+  if (rowTitleNorm.includes(wantedTitleNorm) || wantedTitleNorm.includes(rowTitleNorm)) {
+    score += 18;
+  }
+
+  if (rowTitleCanonical.includes(wantedTitleCanonical) || wantedTitleCanonical.includes(rowTitleCanonical)) {
+    score += 18;
+  }
+
+  score += Math.round(tokenOverlapScore(wantedTitle, rowTitle) * 32);
+  score += Math.round(tokenOverlapScore(input.query, rowTitle) * 20);
+
+  if (wantedStrongWords.length >= 2) {
+    const coverage = strongHits / wantedStrongWords.length;
+    score += Math.round(coverage * 30);
+  }
+
+  if (wantedSinger) {
+    score += Math.round(tokenOverlapScore(wantedSinger, rowSinger) * 24);
+  }
+
+  if (wantedMovie) {
+    score += Math.round(tokenOverlapScore(wantedMovie, rowAlbum) * 14);
+  }
+
+  score += getLyricsLengthScore(lyrics);
+
+  if (isNoisyVersionTitle(rowTitle) && !isNoisyVersionTitle(wantedTitle)) {
+    score -= 22;
+  }
+
+  const lowerTitle = rowTitle.toLowerCase();
+
+  if (/\bkaraoke\b/i.test(lowerTitle)) score -= 30;
+  if (/\binstrumental\b/i.test(lowerTitle)) score -= 30;
+  if (/\bslowed\b/i.test(lowerTitle)) score -= 18;
+  if (/\breverb\b/i.test(lowerTitle)) score -= 18;
+
+  return Math.max(0, Math.min(score, 100));
 }
 
-async function fetchLrclibCandidates(input: { query: string; title: string; singer: string }) {
-  const variants = buildQueryVariants(input);
+async function fetchLrclibCandidates(input: { query: string; title: string; singer: string; movie?: string }) {
+  const variants = buildLrclibQueryVariants(input);
   const urls: string[] = [];
 
-  // Broad search. Best when user only types a title like "Koi Fariyaad".
   for (const variant of variants) {
     const qParams = new URLSearchParams();
     qParams.set("q", variant);
     urls.push(`https://lrclib.net/api/search?${qParams.toString()}`);
   }
 
-  // Track search. Better when title is known.
-  for (const variant of variants) {
-    const trackParams = new URLSearchParams();
-    trackParams.set("track_name", variant);
-    if (input.singer) trackParams.set("artist_name", input.singer);
-    urls.push(`https://lrclib.net/api/search?${trackParams.toString()}`);
+  function addExactTitleSearch(value: string) {
+  const clean = normalizeText(value);
+  if (!clean) return;
+
+  const exactParams = new URLSearchParams();
+  exactParams.set("track_name", clean);
+
+  if (input.singer) {
+    exactParams.set("artist_name", input.singer);
   }
 
-  // Direct get. Best when title + singer are known.
-  if (input.title && input.singer) {
-    const getParams = new URLSearchParams();
-    getParams.set("track_name", input.title);
-    getParams.set("artist_name", input.singer);
-    urls.unshift(`https://lrclib.net/api/get?${getParams.toString()}`);
-  }
-
-  const results = await Promise.all(urls.map(url => safeJson(url, 4500)));
-
-  const rows: Record<string, unknown>[] = [];
-
-  for (const result of results) {
-    if (Array.isArray(result)) {
-      rows.push(...(result as Record<string, unknown>[]));
-    } else if (result && typeof result === "object") {
-      rows.push(result as Record<string, unknown>);
-    }
-  }
-
-  const bestByKey = new Map<string, InternalCandidate>();
-
-  for (const row of rows.slice(0, 80)) {
-    const candidate = mapLrclibRowToCandidate(row, input.title, input.singer);
-    if (!candidate) continue;
-
-    const key = `${normalizeText(removeVersionNoise(candidate.title))}::${normalizeText(candidate.singer)}`;
-    const existing = bestByKey.get(key);
-
-    if (!existing || String(candidate.lyrics || "").length > String(existing.lyrics || "").length) {
-      bestByKey.set(key, candidate);
-    }
-  }
-
-  return Array.from(bestByKey.values()).slice(0, 12);
+  urls.unshift(`https://lrclib.net/api/search?${exactParams.toString()}`);
 }
 
-async function fetchOvhLyricsCandidates(input: { query: string; title: string }) {
-  const variants = buildQueryVariants(input);
+const exactTitleSource = input.title || input.query;
+addExactTitleSearch(exactTitleSource);
 
-  const suggestResults = await Promise.all(
-    variants.map(variant =>
-      safeJson(`https://api.lyrics.ovh/suggest/${encodeURIComponent(variant)}`, 2600)
-    )
-  );
-
-  const rows = suggestResults.flatMap(result =>
-    Array.isArray((result as Record<string, unknown>)?.data)
-      ? ((result as Record<string, unknown>).data as unknown[]).slice(0, 8)
-      : []
-  );
-
-  const uniqueMeta = new Map<string, { title: string; singer: string; movie: string; source_url: string }>();
-
-  for (const row of rows) {
-    const safeRow = row as {
-      title?: string;
-      artist?: { name?: string };
-      album?: { title?: string };
-      link?: string;
-    };
-
-    const title = String(safeRow.title || "").trim();
-    const singer = String(safeRow.artist?.name || "").trim();
-    const movie = String(safeRow.album?.title || "").trim();
-    const source_url = String(safeRow.link || "https://lyrics.ovh/").trim();
-
-    if (!title || !singer) continue;
-
-    const key = `${normalizeText(removeVersionNoise(title))}::${normalizeText(singer)}`;
-    if (!uniqueMeta.has(key)) {
-      uniqueMeta.set(key, { title, singer, movie, source_url });
-    }
-  }
-
-  const candidates = await Promise.all(
-    Array.from(uniqueMeta.values()).slice(0, 12).map(async meta => {
-      const lyricsData = await safeJson(
-        `https://api.lyrics.ovh/v1/${encodeURIComponent(meta.singer)}/${encodeURIComponent(meta.title)}`,
-        2800
-      );
-
-      const lyrics = cleanLyricsText(String((lyricsData as Record<string, unknown>)?.lyrics || ""));
-
-      if (!lyrics || lyrics.length < 20) return null;
-
-      return {
-        provider: "ovh",
-        title: meta.title,
-        singer: meta.singer,
-        movie: meta.movie,
-        source_name: "lyrics.ovh",
-        source_url: meta.source_url || "https://lyrics.ovh/",
-        script: detectScript(lyrics),
-        preview: buildPreview(lyrics),
-        lyrics: lyrics.slice(0, 18000),
-        status: "lyrics_ready"
-      } as InternalCandidate;
-    })
-  );
-
-  return candidates.filter(Boolean) as InternalCandidate[];
+const canonicalExactTitle = canonicalizeCommonSongSpellings(exactTitleSource);
+if (canonicalExactTitle && canonicalExactTitle !== normalizeText(exactTitleSource)) {
+  addExactTitleSearch(canonicalExactTitle);
 }
 
-async function fetchOvhPossibleMatches(input: { query: string; title: string }) {
-  const variants = buildQueryVariants(input);
+  const uniqueUrls = Array.from(new Set(urls)).slice(0, 14);
 
-  const suggestResults = await Promise.all(
-    variants.map(variant =>
-      safeJson(`https://api.lyrics.ovh/suggest/${encodeURIComponent(variant)}`, 2600)
-    )
+  const results = await Promise.allSettled(
+    uniqueUrls.map(url => safeJson(url, 3200))
   );
 
-  const rows = suggestResults.flatMap(result =>
-    Array.isArray((result as Record<string, unknown>)?.data)
-      ? ((result as Record<string, unknown>).data as unknown[]).slice(0, 8)
-      : []
-  );
+  const rows = results.flatMap(result => {
+    if (result.status !== "fulfilled") return [];
+    return Array.isArray(result.value) ? result.value : [];
+  });
 
-  const bestByKey = new Map<string, InternalCandidate>();
+  const bestByKey = new Map<string, { candidate: InternalCandidate; score: number; lyricsLength: number }>();
 
-  for (const row of rows) {
-    const safeRow = row as {
-      title?: string;
-      artist?: { name?: string };
-      album?: { title?: string };
-      link?: string;
-    };
+const debug = {
+  variants,
+  urls: uniqueUrls,
+  raw_rows_count: rows.length,
+  inspected_rows: 0,
+  rejected_missing_title_or_lyrics: 0,
+  rejected_title_gate: 0,
+  rejected_low_score: 0,
+  accepted_rows: 0,
+  sample_rows: [] as unknown[]
+};
 
-    const title = String(safeRow.title || "").trim();
-    const singer = String(safeRow.artist?.name || "").trim();
-    const movie = String(safeRow.album?.title || "").trim();
+  for (const row of rows.slice(0, 120)) {
+    const safeRow = row as Record<string, unknown>;
 
-    if (!title || !singer) continue;
+    const title = String(safeRow.trackName || safeRow.track_name || "").trim();
+    const singer = String(safeRow.artistName || safeRow.artist_name || "").trim();
+    const movie = String(safeRow.albumName || safeRow.album_name || "").trim();
+    const lyrics = getLrclibLyrics(safeRow);
+
+    debug.inspected_rows++;
+
+if (debug.sample_rows.length < 12) {
+  debug.sample_rows.push({
+    title,
+    singer,
+    movie,
+    lyrics_length: lyrics.length,
+    plainLyrics_length: String(safeRow.plainLyrics || safeRow.plain_lyrics || "").length,
+    syncedLyrics_length: String(safeRow.syncedLyrics || safeRow.synced_lyrics || "").length
+  });
+}
+
+if (!title || !lyrics || lyrics.length < 20) {
+  debug.rejected_missing_title_or_lyrics++;
+  continue;
+}
+
+const wantedTitleForGate = input.title || input.query;
+
+if (!isAcceptableLrclibTitleMatch(title, wantedTitleForGate)) {
+  debug.rejected_title_gate++;
+  continue;
+}
+
+const score = scoreLrclibRow(safeRow, input);
+
+if (score < 24) {
+  debug.rejected_low_score++;
+  continue;
+}
+
+debug.accepted_rows++;
+
+    const id = String(safeRow.id || "").trim();
+    const key = id
+      ? `id:${id}`
+      : `${canonicalizeCommonSongSpellings(title)}::${normalizeText(singer)}::${normalizeText(movie)}::${lyrics.slice(0, 80)}`;
 
     const candidate: InternalCandidate = {
-      provider: "ovh",
+      provider: "lrclib",
       title,
       singer,
       movie,
-      source_name: "lyrics.ovh",
-      source_url: String(safeRow.link || "https://lyrics.ovh/"),
-      script: "unknown",
-      preview: "",
-      lyrics: "",
-      status: "metadata_only"
+      source_name: "LRCLIB",
+      source_url: "https://lrclib.net/",
+      script: detectScript(lyrics),
+      preview: buildPreview(lyrics),
+      lyrics: lyrics.slice(0, 18000),
+      status: "lyrics_ready"
     };
 
-    const key = `${normalizeText(removeVersionNoise(title))}::${normalizeText(singer)}`;
+    const existing = bestByKey.get(key);
+    const lyricsLength = lyrics.length;
 
-    if (!bestByKey.has(key)) {
-      bestByKey.set(key, candidate);
+    if (
+      !existing ||
+      score > existing.score ||
+      (score === existing.score && lyricsLength > existing.lyricsLength)
+    ) {
+      bestByKey.set(key, {
+        candidate,
+        score,
+        lyricsLength
+      });
     }
   }
 
-  return Array.from(bestByKey.values()).slice(0, 12);
+  const candidates = Array.from(bestByKey.values())
+  .sort((a, b) => b.score - a.score || b.lyricsLength - a.lyricsLength)
+  .map(row => row.candidate)
+  .slice(0, 12);
+
+return {
+  candidates,
+  debug: {
+    ...debug,
+    final_candidates_count: candidates.length
+  }
+};
+}
+
+function scoreLyricsReadyCandidate(
+  candidate: InternalCandidate,
+  query: string,
+  title: string,
+  singer: string,
+  preferredScripts: string[]
+) {
+  const q = normalizeText(query);
+  const t = normalizeText(title || query);
+  const s = normalizeText(singer || "");
+
+  const candidateTitle = normalizeText(candidate.title);
+  const cleanCandidateTitle = normalizeText(removeVersionNoise(candidate.title));
+  const cleanQueryTitle = normalizeText(removeVersionNoise(title || query));
+
+  const candidateCanonicalTitle = canonicalizeCommonSongSpellings(candidate.title);
+  const queryCanonicalTitle = canonicalizeCommonSongSpellings(title || query);
+
+  const candidateLooseTitle = normalizeSongLoose(candidate.title);
+  const queryLooseTitle = normalizeSongLoose(title || query);
+
+  const candidateCompact = compactPhoneticKey(candidate.title);
+  const queryCompact = compactPhoneticKey(title || query);
+
+  let score = 0;
+
+  if (candidateTitle === t || cleanCandidateTitle === cleanQueryTitle) score += 36;
+  if (candidateCanonicalTitle && candidateCanonicalTitle === queryCanonicalTitle) score += 34;
+  if (candidateLooseTitle && candidateLooseTitle === queryLooseTitle) score += 28;
+  if (candidateCompact && candidateCompact === queryCompact) score += 22;
+
+  if (candidateTitle.includes(t) || t.includes(candidateTitle)) score += 16;
+  if (candidateCanonicalTitle.includes(queryCanonicalTitle) || queryCanonicalTitle.includes(candidateCanonicalTitle)) score += 16;
+
+  score += Math.round(tokenOverlapScore(t, candidate.title) * 34);
+  score += Math.round(tokenOverlapScore(q, candidate.title) * 18);
+
+  if (s) {
+    score += Math.round(tokenOverlapScore(s, candidate.singer) * 22);
+  }
+
+  score += scriptPreferenceScore(candidate.script, preferredScripts);
+
+  const lyricsLength = cleanLyricsText(candidate.lyrics || candidate.preview).length;
+  if (lyricsLength >= 100) score += 8;
+  if (lyricsLength >= 250) score += 6;
+  if (lyricsLength >= 500) score += 5;
+
+  if (candidate.provider === "saregama") score += 24;
+  if (candidate.provider === "lrclib") score += 14;
+
+  if (isNoisyVersionTitle(candidate.title) && !isNoisyVersionTitle(query)) {
+    score -= 18;
+  }
+
+  return Math.max(0, Math.min(score, 100));
 }
 
 function dedupeCandidates(candidates: Candidate[]) {
   const bestByKey = new Map<string, Candidate>();
 
   for (const candidate of candidates) {
-    const key = `${normalizeText(removeVersionNoise(candidate.title))}::${normalizeText(candidate.singer)}`;
+    const key = `${canonicalizeCommonSongSpellings(candidate.title)}::${normalizeText(candidate.singer)}`;
     const existing = bestByKey.get(key);
 
-    if (
-      !existing ||
-      candidate.status === "lyrics_ready" && existing.status !== "lyrics_ready" ||
-      candidate.confidence > existing.confidence ||
-      candidate.preview.length > existing.preview.length
-    ) {
+    if (!existing) {
+      bestByKey.set(key, candidate);
+      continue;
+    }
+
+    const candidateLength = getLyricsLengthFromLookupKey(candidate);
+    const existingLength = getLyricsLengthFromLookupKey(existing);
+
+    const candidateIsBetter =
+      (candidate.status === "lyrics_ready" && existing.status !== "lyrics_ready") ||
+      candidate.confidence >= existing.confidence + 5 ||
+      (
+        Math.abs(candidate.confidence - existing.confidence) <= 4 &&
+        candidateLength > existingLength
+      ) ||
+      (
+        candidate.confidence > existing.confidence &&
+        candidateLength >= existingLength
+      );
+
+    if (candidateIsBetter) {
       bestByKey.set(key, candidate);
     }
   }
@@ -773,10 +1067,12 @@ function dedupeCandidates(candidates: Candidate[]) {
 }
 
 function finalizeCandidate(candidate: InternalCandidate, confidence: number): Candidate {
+  const lyrics = cleanLyricsText(candidate.lyrics || candidate.preview).slice(0, 18000);
+
   const safeCandidate: InternalCandidate = {
     ...candidate,
-    preview: candidate.status === "lyrics_ready" ? buildPreview(candidate.lyrics || candidate.preview) : "",
-    lyrics: candidate.status === "lyrics_ready" ? cleanLyricsText(candidate.lyrics || candidate.preview).slice(0, 18000) : ""
+    preview: candidate.status === "lyrics_ready" ? buildPreview(lyrics) : "",
+    lyrics: candidate.status === "lyrics_ready" ? lyrics : ""
   };
 
   return {
@@ -794,9 +1090,25 @@ function finalizeCandidate(candidate: InternalCandidate, confidence: number): Ca
   };
 }
 
+function getLyricsLengthFromLookupKey(candidate: Candidate) {
+  try {
+    return cleanLyricsText(JSON.parse(candidate.lookup_key || "{}")?.lyrics || candidate.preview || "").length;
+  } catch {
+    return cleanLyricsText(candidate.preview || "").length;
+  }
+}
+
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
-  if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
+  if (req.method === "OPTIONS") {
+    return new Response("ok", {
+      status: 200,
+      headers: corsHeaders
+    });
+  }
+
+  if (req.method !== "POST") {
+    return json({ error: "Method not allowed" }, 405);
+  }
 
   try {
     const body = (await req.json()) as LookupBody;
@@ -804,6 +1116,7 @@ Deno.serve(async (req) => {
     const query = String(body.query || `${body.title || ""} ${body.singer || ""} ${body.movie || ""}`).trim();
     const title = String(body.title || "").trim();
     const singer = String(body.singer || "").trim();
+    const movie = String(body.movie || "").trim();
 
     const limit = Math.max(1, Math.min(Number(body.limit || 6), 8));
 
@@ -823,18 +1136,27 @@ Deno.serve(async (req) => {
       });
     }
 
-    const [saregamaResult, lrclibResult, ovhLyricsResult, ovhPossibleResult] = await Promise.all([
-      fetchSaregamaCandidates({ query, title }),
-      fetchLrclibCandidates({ query, title, singer }),
-      fetchOvhLyricsCandidates({ query, title }),
-      fetchOvhPossibleMatches({ query, title })
-    ]);
+    const lrclibVariants = buildLrclibQueryVariants({ query, title, singer });
+    const hasSaregamaMatch = findSaregamaSources(query, title).length > 0;
 
-    const lyricsReady = [
-      ...saregamaResult.candidates,
-      ...lrclibResult,
-      ...ovhLyricsResult
-    ]
+    const [saregamaResult, lrclibResult] = await Promise.all([
+  hasSaregamaMatch
+    ? fetchSaregamaCandidates({ query, title })
+    : Promise.resolve({
+        candidates: [],
+        debug: {
+          matched_sources: 0,
+          attempts: [],
+          count: 0
+        }
+      }),
+  fetchLrclibCandidates({ query, title, singer, movie })
+]);
+
+const lyricsReady = [
+  ...saregamaResult.candidates,
+  ...lrclibResult.candidates
+]
       .filter(candidate => cleanLyricsText(candidate.lyrics || candidate.preview).length >= 20)
       .map(candidate => finalizeCandidate(
         {
@@ -843,35 +1165,19 @@ Deno.serve(async (req) => {
         },
         scoreLyricsReadyCandidate(candidate, query, title, singer, preferredScripts)
       ))
-      .filter(candidate => candidate.confidence >= 18);
+      .filter(candidate => candidate.confidence >= 18)
+     .sort((a, b) => {
+  const confidenceDiff = b.confidence - a.confidence;
+  const lengthDiff = getLyricsLengthFromLookupKey(b) - getLyricsLengthFromLookupKey(a);
 
-    const readyKeys = new Set(
-      lyricsReady.map(candidate =>
-        `${normalizeText(removeVersionNoise(candidate.title))}::${normalizeText(candidate.singer)}`
-      )
-    );
+  if (Math.abs(confidenceDiff) <= 5 && lengthDiff !== 0) {
+    return lengthDiff;
+  }
 
-    const possibleMatches = ovhPossibleResult
-      .filter(candidate => {
-        const key = `${normalizeText(removeVersionNoise(candidate.title))}::${normalizeText(candidate.singer)}`;
-        return !readyKeys.has(key);
-      })
-      .map(candidate => finalizeCandidate(
-        {
-          ...candidate,
-          status: "metadata_only",
-          preview: "",
-          lyrics: ""
-        },
-        scoreMetadataOnlyCandidate(candidate, query, title, singer)
-      ))
-      .filter(candidate => candidate.confidence >= 20)
-      .sort((a, b) => b.confidence - a.confidence);
+  return confidenceDiff || lengthDiff;
+});
 
-    const merged = dedupeCandidates([
-      ...lyricsReady.sort((a, b) => b.confidence - a.confidence),
-      ...possibleMatches
-    ]).slice(0, limit);
+    const merged = dedupeCandidates(lyricsReady).slice(0, limit);
 
     return json({
       build_id: BUILD_ID,
@@ -879,21 +1185,30 @@ Deno.serve(async (req) => {
       debug: {
         query,
         title,
+        singer,
+        movie,
+        lrclib_variants: lrclibVariants,
         saregama_count: saregamaResult.candidates.length,
-        lrclib_count: lrclibResult.length,
-        ovh_lyrics_count: ovhLyricsResult.length,
-        ovh_possible_count: ovhPossibleResult.length,
-        lyrics_ready_count: lyricsReady.length,
-        metadata_only_count: possibleMatches.length,
+       lrclib_count: lrclibResult.candidates.length,
+        lrclib_debug: lrclibResult.debug,
+        lyrics_ready_count: merged.filter(candidate => candidate.status === "lyrics_ready").length,
+        metadata_only_count: 0,
         returned_count: merged.length,
-        providers_enabled: ["saregama", "lrclib", "ovh"]
+        providers_enabled: ["lrclib", "saregama"],
+        ovh_disabled: true,
+        reason: merged.length
+          ? "Lyrics-ready result found from LRCLIB/Saregama."
+          : "No lyrics-ready result found from LRCLIB/Saregama. OVH intentionally disabled because it mostly returns metadata without lyrics."
       }
     });
   } catch (error) {
+    console.error("lookup-song-online-fast crash", error);
+
     return json({
       build_id: BUILD_ID,
+      candidates: [],
       error: "lookup_failed",
       message: String((error as Error)?.message || error || "Unknown error")
-    }, 500);
+    }, 200);
   }
 });
