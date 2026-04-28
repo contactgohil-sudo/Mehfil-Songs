@@ -1,4 +1,4 @@
-const BUILD_ID = "lookup-2026-04-29-lrclib-saregama-gated-v5";
+const BUILD_ID = "lookup-2026-04-29-fast-priority-v8";
 const APP_USER_AGENT = "MehfilLyrics/1.0 contact:mehfil-app";
 
 const corsHeaders = {
@@ -18,6 +18,7 @@ type LookupBody = {
   movie?: string;
   limit?: number;
   preferredScripts?: string[];
+  deep?: boolean;
 };
 
 type Candidate = {
@@ -485,9 +486,12 @@ function getLyricsLengthScore(lyrics: string) {
 }
 
 function scriptPreferenceScore(script: ScriptType, preferredScripts: string[]) {
-  const index = preferredScripts.indexOf(script);
-  if (index === -1) return 0;
-  return Math.max(0, 10 - index * 2);
+  if (script === "devanagari") return 32;
+  if (script === "gujarati") return 28;
+  if (script === "mixed") return 18;
+  if (script === "romanized") return 4;
+  if (script === "english") return 0;
+  return 0;
 }
 
 function makeLookupKey(candidate: InternalCandidate) {
@@ -505,7 +509,7 @@ function makeLookupKey(candidate: InternalCandidate) {
   });
 }
 
-async function safeJson(url: string, timeoutMs = 3000) {
+async function safeJson(url: string, timeoutMs = 1800) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
@@ -518,25 +522,10 @@ async function safeJson(url: string, timeoutMs = 3000) {
       }
     });
 
-    if (!response.ok) {
-      console.log("safeJson failed", {
-        url,
-        status: response.status,
-        statusText: response.statusText
-      });
-      return null;
-    }
+    if (!response.ok) return null;
 
-    try {
-      return await response.json();
-    } catch {
-      return null;
-    }
-  } catch (error) {
-    console.log("safeJson exception", {
-      url,
-      error: String((error as Error)?.message || error)
-    });
+    return await response.json().catch(() => null);
+  } catch {
     return null;
   } finally {
     clearTimeout(timeout);
@@ -826,7 +815,10 @@ function scoreLrclibRow(
   return Math.max(0, Math.min(score, 100));
 }
 
-async function fetchLrclibCandidates(input: { query: string; title: string; singer: string; movie?: string }) {
+async function fetchLrclibCandidates(
+  input: { query: string; title: string; singer: string; movie?: string },
+  options: { timeoutMs?: number; urlLimit?: number; retries?: number } = {}
+) {
   const variants = buildLrclibQueryVariants(input);
   const urls: string[] = [];
 
@@ -858,11 +850,11 @@ if (canonicalExactTitle && canonicalExactTitle !== normalizeText(exactTitleSourc
   addExactTitleSearch(canonicalExactTitle);
 }
 
-  const uniqueUrls = Array.from(new Set(urls)).slice(0, 14);
+  const uniqueUrls = Array.from(new Set(urls)).slice(0, options.urlLimit || 10);
 
-  const results = await Promise.allSettled(
-    uniqueUrls.map(url => safeJson(url, 3200))
-  );
+const results = await Promise.allSettled(
+  uniqueUrls.map(url => safeJson(url, options.timeoutMs || 2600, options.retries || 0))
+);
 
   const rows = results.flatMap(result => {
     if (result.status !== "fulfilled") return [];
@@ -1035,7 +1027,27 @@ function dedupeCandidates(candidates: Candidate[]) {
   const bestByKey = new Map<string, Candidate>();
 
   for (const candidate of candidates) {
-    const key = `${canonicalizeCommonSongSpellings(candidate.title)}::${normalizeText(candidate.singer)}`;
+    let lyricsKey = "";
+
+    try {
+      const parsed = JSON.parse(candidate.lookup_key || "{}");
+      lyricsKey = cleanLyricsText(parsed.lyrics || candidate.preview || "")
+        .slice(0, 160)
+        .toLowerCase();
+    } catch {
+      lyricsKey = cleanLyricsText(candidate.preview || "")
+        .slice(0, 160)
+        .toLowerCase();
+    }
+
+    const key = [
+      candidate.provider,
+      canonicalizeCommonSongSpellings(candidate.title),
+      normalizeText(candidate.singer),
+      normalizeText(candidate.movie),
+      lyricsKey
+    ].join("::");
+
     const existing = bestByKey.get(key);
 
     if (!existing) {
@@ -1046,24 +1058,35 @@ function dedupeCandidates(candidates: Candidate[]) {
     const candidateLength = getLyricsLengthFromLookupKey(candidate);
     const existingLength = getLyricsLengthFromLookupKey(existing);
 
-    const candidateIsBetter =
-      (candidate.status === "lyrics_ready" && existing.status !== "lyrics_ready") ||
-      candidate.confidence >= existing.confidence + 5 ||
-      (
-        Math.abs(candidate.confidence - existing.confidence) <= 4 &&
-        candidateLength > existingLength
-      ) ||
-      (
-        candidate.confidence > existing.confidence &&
-        candidateLength >= existingLength
-      );
-
-    if (candidateIsBetter) {
+    if (
+      candidate.confidence > existing.confidence ||
+      candidateLength > existingLength
+    ) {
       bestByKey.set(key, candidate);
     }
   }
 
-  return Array.from(bestByKey.values());
+  return Array.from(bestByKey.values())
+    .sort((a, b) => {
+  const scriptRank = {
+    devanagari: 5,
+    gujarati: 4,
+    mixed: 3,
+    romanized: 2,
+    english: 1,
+    unknown: 0
+  };
+
+  const scriptDiff =
+    (scriptRank[b.script] || 0) - (scriptRank[a.script] || 0);
+
+  if (scriptDiff !== 0) return scriptDiff;
+
+  const confidenceDiff = b.confidence - a.confidence;
+  const lengthDiff = getLyricsLengthFromLookupKey(b) - getLyricsLengthFromLookupKey(a);
+
+  return confidenceDiff || lengthDiff;
+});
 }
 
 function finalizeCandidate(candidate: InternalCandidate, confidence: number): Candidate {
@@ -1139,7 +1162,7 @@ Deno.serve(async (req) => {
     const lrclibVariants = buildLrclibQueryVariants({ query, title, singer });
     const hasSaregamaMatch = findSaregamaSources(query, title).length > 0;
 
-    const [saregamaResult, lrclibResult] = await Promise.all([
+    let [saregamaResult, lrclibResult] = await Promise.all([
   hasSaregamaMatch
     ? fetchSaregamaCandidates({ query, title })
     : Promise.resolve({
@@ -1152,6 +1175,29 @@ Deno.serve(async (req) => {
       }),
   fetchLrclibCandidates({ query, title, singer, movie })
 ]);
+
+if (body.deep === true && lrclibResult.candidates.length < 4) {
+  const secondPass = await fetchLrclibCandidates(
+    { query, title, singer, movie },
+    {
+      timeoutMs: 5200,
+      urlLimit: 14,
+      retries: 1
+    }
+  );
+
+  if (secondPass.candidates.length > lrclibResult.candidates.length) {
+    lrclibResult = {
+      candidates: secondPass.candidates,
+      debug: {
+        ...secondPass.debug,
+        second_pass_used: true,
+        first_pass_count: lrclibResult.candidates.length
+      }
+    };
+  }
+}
+
 
 const lyricsReady = [
   ...saregamaResult.candidates,
