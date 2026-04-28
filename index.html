@@ -1793,6 +1793,108 @@ function isStrongLyricLocalMatch(song, query) {
   return false;
 }
 
+function isLikelyLyricFragmentQuery(query) {
+  const words = normalizeText(query).split(/\s+/).filter(Boolean);
+  if (words.length < 2) return false;
+
+  const weakCount = words.filter(word => WEAK_QUERY_WORDS.has(word)).length;
+  const strongWords = words.filter(word => word.length >= 3 && !WEAK_QUERY_WORDS.has(word));
+
+  // Example: "kam to nahi" => likely lyric fragment
+  if (words.length <= 3 && weakCount >= 1) return true;
+
+  // Example: "dil se re" / "tum ho paas" style fragments
+  if (words.length <= 5 && weakCount >= 2 && strongWords.length <= 2) return true;
+
+  return false;
+}
+
+function findLocalLyricFallbackResults(query) {
+  const q = normalizeText(query);
+  if (!q || q.length < 3) return [];
+
+  const qLoose = normalizeRomanPhraseLoose(query);
+  const qCompact = compactRomanPhrase(query);
+
+  const contentWords = q
+    .split(/\s+/)
+    .filter(word => word && word.length >= 2 && !WEAK_QUERY_WORDS.has(word));
+
+  const results = [];
+
+  for (const song of preparedSongs) {
+    const lyricsNorm = String(song._lyricsSearch || normalizeText(song.lyrics || ""));
+    const lyricsLoose = String(song._lyricsRomanLoose || normalizeRomanPhraseLoose(song.lyrics || ""));
+    const lyricsCompact = String(song._lyricsRomanCompact || compactRomanPhrase(song.lyrics || ""));
+
+    let score = 0;
+    let phraseHit = false;
+
+    if (q.length >= 6 && lyricsNorm.includes(q)) {
+      score += 240;
+      phraseHit = true;
+    }
+
+    if (qLoose.length >= 6 && lyricsLoose.includes(qLoose)) {
+      score += 240;
+      phraseHit = true;
+    }
+
+    if (qCompact.length >= 4 && lyricsCompact.includes(qCompact)) {
+      score += 160;
+      phraseHit = true;
+    }
+
+    let wordHits = 0;
+
+    for (const word of contentWords) {
+      const variants = buildStrictWordVariants(word);
+
+      const matched = variants.some(variant => {
+        const compact = compactRomanWord(variant);
+
+        return (
+          hasWholeNormalizedWord(lyricsNorm, variant) ||
+          hasWholeNormalizedWord(lyricsLoose, variant) ||
+          (compact.length >= 2 && lyricsCompact.includes(compact))
+        );
+      });
+
+      if (matched) wordHits++;
+    }
+
+    if (contentWords.length) {
+      score += wordHits * 45;
+    }
+
+    const enough =
+      phraseHit ||
+      (contentWords.length === 1 && wordHits === 1 && q.length >= 4) ||
+      (contentWords.length === 2 && wordHits === 2) ||
+      (contentWords.length >= 3 && wordHits >= Math.ceil(contentWords.length * 0.75));
+
+    if (!enough) continue;
+
+    const lyricInfo = getLyricMatchInfo(song, query);
+
+    results.push({
+      ...song,
+      _score: score,
+      _matchType: {
+        title: false,
+        movie: false,
+        singer: false,
+        lyrics: true
+      },
+      _lyricMatchInfo: lyricInfo
+    });
+  }
+
+  return results
+    .sort((a, b) => b._score - a._score || String(a.title || "").localeCompare(String(b.title || "")))
+    .slice(0, 20);
+}
+
 function filterStrongLocalResults(results, query) {
   const safeResults = Array.isArray(results) ? results : [];
   const safeQuery = String(query || "").trim();
@@ -4139,6 +4241,127 @@ function searchSongs(query, options = {}) {
   return mode === "fast" ? searchSongsFast(query) : searchSongsDeep(query);
 }
 
+function isLikelyLyricFragmentQuery(query) {
+  const words = normalizeText(query).split(/\s+/).filter(Boolean);
+  if (words.length < 2) return false;
+
+  const weakCount = words.filter(word => WEAK_QUERY_WORDS.has(word)).length;
+  const strongWords = words.filter(word => word.length >= 3 && !WEAK_QUERY_WORDS.has(word));
+
+  if (words.length <= 3 && weakCount >= 1) return true;
+  if (words.length <= 5 && weakCount >= 2 && strongWords.length <= 2) return true;
+
+  return false;
+}
+
+function findLocalLyricFallbackResults(query) {
+  const q = normalizeText(query);
+  if (!q || q.length < 3) return [];
+
+  const qLoose = normalizeRomanPhraseLoose(query);
+  const qCompact = compactRomanPhrase(query);
+
+  const contentWords = q
+    .split(/\s+/)
+    .filter(word => word && word.length >= 2 && !WEAK_QUERY_WORDS.has(word));
+
+  const results = [];
+
+  for (const song of preparedSongs) {
+    const lyricsNorm = String(song._lyricsSearch || normalizeText(song.lyrics || ""));
+    const lyricsLoose = String(song._lyricsRomanLoose || normalizeRomanPhraseLoose(song.lyrics || ""));
+    const lyricsCompact = String(song._lyricsRomanCompact || compactRomanPhrase(song.lyrics || ""));
+
+    let score = 0;
+    let phraseHit = false;
+
+    if (q.length >= 6 && lyricsNorm.includes(q)) {
+      score += 240;
+      phraseHit = true;
+    }
+
+    if (qLoose.length >= 6 && lyricsLoose.includes(qLoose)) {
+      score += 240;
+      phraseHit = true;
+    }
+
+    if (qCompact.length >= 4 && lyricsCompact.includes(qCompact)) {
+      score += 160;
+      phraseHit = true;
+    }
+
+    let wordHits = 0;
+
+    for (const word of contentWords) {
+      const variants = buildStrictWordVariants(word);
+
+      const matched = variants.some(variant => {
+        const compact = compactRomanWord(variant);
+
+        return (
+          hasWholeNormalizedWord(lyricsNorm, variant) ||
+          hasWholeNormalizedWord(lyricsLoose, variant) ||
+          (compact.length >= 2 && lyricsCompact.includes(compact))
+        );
+      });
+
+      if (matched) wordHits++;
+    }
+
+    if (contentWords.length) {
+      score += wordHits * 45;
+    }
+
+    const enough =
+      phraseHit ||
+      (contentWords.length === 1 && wordHits === 1 && q.length >= 4) ||
+      (contentWords.length === 2 && wordHits === 2) ||
+      (contentWords.length >= 3 && wordHits >= Math.ceil(contentWords.length * 0.75));
+
+    if (!enough) continue;
+
+    results.push({
+      ...song,
+      _score: score,
+      _matchType: {
+        title: false,
+        movie: false,
+        singer: false,
+        lyrics: true
+      },
+      _lyricMatchInfo: getLyricMatchInfo(song, query)
+    });
+  }
+
+  return results
+    .sort((a, b) => b._score - a._score || String(a.title || "").localeCompare(String(b.title || "")))
+    .slice(0, 20);
+}
+
+function handleNoStrongLocalResultBeforeOnline(query, options = {}) {
+  const safeQuery = String(query || "").trim();
+  const showSnippets = options.showSnippets !== false;
+
+  const lyricFallbackResults = findLocalLyricFallbackResults(safeQuery);
+
+  if (lyricFallbackResults.length > 0) {
+    clearSearchOnlineUi();
+    renderResults(lyricFallbackResults, safeQuery, { showSnippets: true });
+    return true;
+  }
+
+  if (isLikelyLyricFragmentQuery(safeQuery)) {
+    renderResults([], safeQuery, { showSnippets, suppressEmptyState: false });
+    setSearchOnlineState(
+      "No local lyric match found. Online lookup skipped because this looks like a lyric fragment, not a song title.",
+      "error"
+    );
+    return true;
+  }
+
+  return false;
+}
+
 async function scheduleSearchRender(query, options = {}) {
   const {
     mode = "deep",
@@ -4151,29 +4374,8 @@ async function scheduleSearchRender(query, options = {}) {
   const safeQuery = String(query || "");
 
   if (!safeQuery.trim()) {
-    clearSearchOnlineUi();
     renderResults([], "");
     return;
-  }
-
-  function renderLocalAndMaybeOnline(localResults) {
-    const displayResults = filterStrongLocalResults(localResults, safeQuery);
-    const shouldLookupOnline = shouldRunOnlineLookupFromLocalResults(
-      localResults,
-      safeQuery,
-      mode
-    );
-
-    renderResults(displayResults, safeQuery, {
-      showSnippets,
-      suppressEmptyState: shouldLookupOnline && displayResults.length === 0
-    });
-
-    if (shouldLookupOnline) {
-      runOnlineLookupForSearch(safeQuery);
-    } else {
-      clearSearchOnlineUi();
-    }
   }
 
   try {
@@ -4187,8 +4389,29 @@ async function scheduleSearchRender(query, options = {}) {
 
     requestAnimationFrame(() => {
       if (runId !== searchRunId) return;
-      renderLocalAndMaybeOnline(enriched);
+
+      const displayResults = filterStrongLocalResults(enriched, safeQuery);
+
+      if (mode === "deep" && displayResults.length === 0 && safeQuery.trim().length >= 3) {
+        const handledLocally = handleNoStrongLocalResultBeforeOnline(safeQuery, {
+          showSnippets
+        });
+
+        if (handledLocally) return;
+
+        renderResults([], safeQuery, {
+          showSnippets,
+          suppressEmptyState: true
+        });
+
+        runOnlineLookupForSearch(safeQuery);
+        return;
+      }
+
+      clearSearchOnlineUi();
+      renderResults(displayResults, safeQuery, { showSnippets });
     });
+
   } catch (error) {
     if (String(error?.message || "") === "Search superseded") {
       return;
@@ -4202,7 +4425,27 @@ async function scheduleSearchRender(query, options = {}) {
 
     requestAnimationFrame(() => {
       if (runId !== searchRunId) return;
-      renderLocalAndMaybeOnline(fallbackResults);
+
+      const displayResults = filterStrongLocalResults(fallbackResults, safeQuery);
+
+      if (mode === "deep" && displayResults.length === 0 && safeQuery.trim().length >= 3) {
+        const handledLocally = handleNoStrongLocalResultBeforeOnline(safeQuery, {
+          showSnippets
+        });
+
+        if (handledLocally) return;
+
+        renderResults([], safeQuery, {
+          showSnippets,
+          suppressEmptyState: true
+        });
+
+        runOnlineLookupForSearch(safeQuery);
+        return;
+      }
+
+      clearSearchOnlineUi();
+      renderResults(displayResults, safeQuery, { showSnippets });
     });
   }
 }
