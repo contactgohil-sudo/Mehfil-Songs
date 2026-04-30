@@ -1512,6 +1512,21 @@ function getFastLyricCandidateScore(song, query) {
       el.textContent = message;
     }
 
+    function showTemporaryStatus(id, message, type = "info", timeoutMs = 4500) {
+  showStatus(id, message, type);
+
+  if (!message) return;
+
+  setTimeout(() => {
+    const el = document.getElementById(id);
+    if (!el) return;
+
+    if (el.textContent === message) {
+      showStatus(id, "", "info");
+    }
+  }, timeoutMs);
+}
+
     function getOnlineLookupCacheKey(payload = {}) {
   return JSON.stringify({
     query: normalizeText(payload.query || ""),
@@ -2665,7 +2680,7 @@ if (!hasSavableOnlineLyrics(candidate)) {
   }
 
   clearSearchOnlineUi();
-  showStatus("appStatus", `Saved: ${title}`, "success");
+  showTemporaryStatus("appStatus", `Saved: ${title}`, "success", 4500);
 
   if (openAfterSave) {
     openSong(response.data.id);
@@ -5896,7 +5911,7 @@ if (wasEditingId) {
 
      applySongRealtimeChange("DELETE", { id: songId });
 closeSongModal();
-showStatus("appStatus", "Song deleted.", "success");
+showTemporaryStatus("appStatus", "Song deleted.", "success", 4500);
     }
 
     let adminUsersState = {
@@ -6222,7 +6237,7 @@ async function approveUser(profileId) {
       userId
     });
 
-    showStatus("appStatus", "User approved.", "success");
+    showTemporaryStatus("appStatus", "User approved.", "success", 4500);
     await loadUsersAdminData();
   } catch (error) {
     console.error("APPROVE USER ERROR:", error);
