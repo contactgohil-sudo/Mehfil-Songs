@@ -509,27 +509,51 @@ function makeLookupKey(candidate: InternalCandidate) {
   });
 }
 
-async function safeJson(url: string, timeoutMs = 1800) {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+async function safeJson(url: string, timeoutMs = 3000, retries = 1) {
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
-  try {
-    const response = await fetch(url, {
-      signal: controller.signal,
-      headers: {
-        "Accept": "application/json",
-        "User-Agent": APP_USER_AGENT
+    try {
+      const response = await fetch(url, {
+        signal: controller.signal,
+        headers: {
+          "Accept": "application/json",
+          "User-Agent": APP_USER_AGENT
+        }
+      });
+
+      clearTimeout(timeout);
+
+      if (!response.ok) {
+        if (attempt < retries) {
+          await new Promise(resolve => setTimeout(resolve, 250 + attempt * 250));
+          continue;
+        }
+        return null;
       }
-    });
 
-    if (!response.ok) return null;
+      const data = await response.json().catch(() => null);
 
-    return await response.json().catch(() => null);
-  } catch {
-    return null;
-  } finally {
-    clearTimeout(timeout);
+      if (!data && attempt < retries) {
+        await new Promise(resolve => setTimeout(resolve, 250 + attempt * 250));
+        continue;
+      }
+
+      return data;
+    } catch {
+      clearTimeout(timeout);
+
+      if (attempt < retries) {
+        await new Promise(resolve => setTimeout(resolve, 250 + attempt * 250));
+        continue;
+      }
+
+      return null;
+    }
   }
+
+  return null;
 }
 
 async function safeText(url: string, timeoutMs = 5200) {
@@ -1176,13 +1200,13 @@ Deno.serve(async (req) => {
   fetchLrclibCandidates({ query, title, singer, movie })
 ]);
 
-if (body.deep === true && lrclibResult.candidates.length < 4) {
+if (body.deep === true && lrclibResult.candidates.length < limit) {
   const secondPass = await fetchLrclibCandidates(
     { query, title, singer, movie },
     {
-      timeoutMs: 5200,
+      timeoutMs: 6500,
       urlLimit: 14,
-      retries: 1
+      retries: 2
     }
   );
 
