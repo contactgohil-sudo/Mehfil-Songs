@@ -72,18 +72,21 @@
   gap: 8px;
   flex-wrap: nowrap;
 }
-    .account-user {
-      text-align: right;
-      margin: 0;
-      font-size: 13px;
-      white-space: nowrap;
+.account-user {
+   text-align: right;
+    margin: 0;
+   font-size: 13px;
+   white-space: nowrap;
     }
 
-    .add-tab-btn {
-      background: var(--primary);
-      color: white;
-      border-color: var(--primary);
-    }
+ .add-tab-btn {
+   background: var(--primary);
+   color: white;
+   border-color: var(--primary);
+   }
+
+
+
 
     .top-logout-btn {
   white-space: nowrap;
@@ -714,6 +717,42 @@
   color: #ffffff !important;
   border-color: #b45309 !important;
   opacity: 1 !important;
+}
+
+.modal-save-highlight {
+  background: #b45309 !important;
+  color: #fff7ed !important;
+  border: 1px solid #92400e !important;
+  box-shadow: 0 0 0 4px rgba(180, 83, 9, 0.14), 0 10px 24px rgba(180, 83, 9, 0.22);
+  animation: savePulseSoft 1.4s ease-in-out infinite;
+}
+
+.modal-save-highlight:hover {
+  background: #b45309 !important;
+  color: #fff7ed !important;
+}
+
+.modal-save-highlight:disabled {
+  opacity: 0.55;
+  animation: none;
+  box-shadow: none;
+}
+
+@keyframes savePulseSoft {
+  0% {
+    transform: translateY(0);
+    box-shadow: 0 0 0 3px rgba(180, 83, 9, 0.12), 0 8px 20px rgba(180, 83, 9, 0.18);
+  }
+
+  50% {
+    transform: translateY(-1px);
+    box-shadow: 0 0 0 6px rgba(180, 83, 9, 0.18), 0 12px 28px rgba(180, 83, 9, 0.24);
+  }
+
+  100% {
+    transform: translateY(0);
+    box-shadow: 0 0 0 3px rgba(180, 83, 9, 0.12), 0 8px 20px rgba(180, 83, 9, 0.18);
+  }
 }
 
 .modal-btn {
@@ -1527,7 +1566,7 @@ function getFastLyricCandidateScore(song, query) {
   }, timeoutMs);
 }
 
-    function getOnlineLookupCacheKey(payload = {}) {
+ function getOnlineLookupCacheKey(payload = {}) {
   return JSON.stringify({
     query: normalizeText(payload.query || ""),
     title: normalizeText(payload.title || ""),
@@ -2217,7 +2256,8 @@ async function lookupSongOnline(payload = {}) {
   const requestBody = {
     preferredScripts: ["gujarati", "devanagari", "romanized", "english"],
     limit: 6,
-    ...payload
+    ...payload,
+    deep: true
   };
 
   const useCache = payload.useCache !== false;
@@ -2389,6 +2429,133 @@ function normalizeOnlineCandidates(candidates) {
     });
 }
 
+function mergeOnlineCandidates(primary = [], secondary = []) {
+  const map = new Map();
+
+  function getCandidateKey(candidate) {
+    return [
+      normalizeText(candidate?.provider || ""),
+      normalizeText(candidate?.title || ""),
+      normalizeText(candidate?.singer || ""),
+      normalizeText(candidate?.movie || ""),
+      normalizeText(candidate?.script || "")
+    ].join("::");
+  }
+
+  function getCandidateLyricsLength(candidate) {
+    try {
+      const parsed = JSON.parse(candidate?.lookup_key || "{}");
+      return cleanLyricsText(parsed.lyrics || candidate.preview || "").length;
+    } catch {
+      return cleanLyricsText(candidate?.preview || "").length;
+    }
+  }
+
+  function add(candidate) {
+    if (!candidate) return;
+
+    const key = getCandidateKey(candidate);
+    const existing = map.get(key);
+
+    if (!existing) {
+      map.set(key, candidate);
+      return;
+    }
+
+    const existingLength = getCandidateLyricsLength(existing);
+    const candidateLength = getCandidateLyricsLength(candidate);
+
+    const candidateBetter =
+      Number(candidate.confidence || 0) > Number(existing.confidence || 0) ||
+      candidateLength > existingLength ||
+      (
+        candidate.status === "lyrics_ready" &&
+        existing.status !== "lyrics_ready"
+      );
+
+    if (candidateBetter) {
+      map.set(key, candidate);
+    }
+  }
+
+  primary.forEach(add);
+  secondary.forEach(add);
+
+  return Array.from(map.values()).sort((a, b) => {
+    const scriptRank = {
+      devanagari: 5,
+      gujarati: 4,
+      mixed: 3,
+      romanized: 2,
+      english: 1,
+      unknown: 0
+    };
+
+    const scriptDiff =
+      (scriptRank[b.script] || 0) - (scriptRank[a.script] || 0);
+
+    if (scriptDiff !== 0) return scriptDiff;
+
+    const confidenceDiff = Number(b.confidence || 0) - Number(a.confidence || 0);
+    if (confidenceDiff !== 0) return confidenceDiff;
+
+    return getCandidateLyricsLength(b) - getCandidateLyricsLength(a);
+  });
+}
+
+function mergeOnlineCandidates(primary = [], secondary = []) {
+  const map = new Map();
+
+  [...primary, ...secondary].forEach(candidate => {
+    if (!candidate) return;
+
+    const key = [
+      normalizeText(candidate.title || ""),
+      normalizeText(candidate.singer || ""),
+      normalizeText(candidate.movie || ""),
+      candidate.provider || "",
+      candidate.script || ""
+    ].join("::");
+
+    const existing = map.get(key);
+
+    if (!existing) {
+      map.set(key, candidate);
+      return;
+    }
+
+    const existingLyricsLength = cleanLyricsText(existing.lyrics || existing.preview || "").length;
+    const candidateLyricsLength = cleanLyricsText(candidate.lyrics || candidate.preview || "").length;
+
+    const candidateBetter =
+      Number(candidate.confidence || 0) > Number(existing.confidence || 0) ||
+      candidateLyricsLength > existingLyricsLength;
+
+    if (candidateBetter) {
+      map.set(key, candidate);
+    }
+  });
+
+  return Array.from(map.values())
+    .sort((a, b) => {
+      const scriptRank = {
+        devanagari: 5,
+        gujarati: 4,
+        mixed: 3,
+        romanized: 2,
+        english: 1,
+        unknown: 0
+      };
+
+      const scriptDiff =
+        (scriptRank[b.script] || 0) - (scriptRank[a.script] || 0);
+
+      if (scriptDiff !== 0) return scriptDiff;
+
+      return Number(b.confidence || 0) - Number(a.confidence || 0);
+    });
+}
+
 async function runOnlineLookupForSearch(query, options = {}) {
   const safeQuery = String(query || "").trim();
   const force = !!options.force;
@@ -2401,127 +2568,130 @@ async function runOnlineLookupForSearch(query, options = {}) {
   const runId = ++onlineLookupRunId;
 
   renderResults([], safeQuery, { suppressEmptyState: true });
+  renderSearchOnlineCandidates([]);
+
   setSearchOnlineState(
     force ? "Searching online..." : "Not in library. Checking online...",
     "pending"
   );
-  renderSearchOnlineCandidates([]);
 
-  try {
-    const rawCandidates = await lookupSongOnline({
-      query: safeQuery,
-      limit: 6,
-      useCache: options.useCache !== false,
-      deep: false
-    });
+  let shownCandidates = [];
+  let fastFinished = false;
+  let deepFinished = false;
 
+  const showCandidates = (candidates, message) => {
     if (runId !== onlineLookupRunId) return;
 
-    const stableCandidates = normalizeOnlineCandidates(rawCandidates);
+    const merged = mergeOnlineCandidates(shownCandidates, candidates).slice(0, 6);
+    shownCandidates = merged;
 
-    const lyricsReady = stableCandidates.filter(candidate =>
-      candidate.bucket === "lyrics_ready"
-    );
+    if (merged.length > 0) {
+      renderResults([], safeQuery, { suppressEmptyState: true });
+      renderSearchOnlineCandidates(merged);
+      setSearchOnlineState(message, "success");
+      prefetchOnlineCandidateDetails(merged, 3);
+    }
+  };
 
-    const possibleOnly = stableCandidates.filter(candidate =>
-      candidate.bucket !== "lyrics_ready"
-    );
+  const fastPromise = lookupSongOnline({
+    query: safeQuery,
+    limit: 6,
+    deep: false
+  })
+    .then(candidates => {
+      fastFinished = true;
 
-    let allCandidates = [...lyricsReady, ...possibleOnly].slice(0, 6);
+      if (runId !== onlineLookupRunId) return;
 
-    renderResults([], safeQuery, { suppressEmptyState: true });
+      const list = Array.isArray(candidates) ? candidates : [];
 
-    if (!allCandidates.length) {
-      const debug = window.__lastOnlineLookupDebug || {};
-      const debugText = [
-        debug.build_id ? `Build: ${debug.build_id}` : "",
-        debug.debug?.providers_enabled ? `Providers: ${debug.debug.providers_enabled.join(", ")}` : "",
-        debug.debug?.returned_count != null ? `Returned: ${debug.debug.returned_count}` : ""
-      ].filter(Boolean).join(" | ");
+      if (list.length > 0) {
+        showCandidates(
+          list,
+          `${list.length} quick online match(es) found. Still checking for better results...`
+        );
+      } else if (!deepFinished) {
+        setSearchOnlineState("Quick search found nothing. Checking deeper...", "pending");
+      }
+    })
+    .catch(error => {
+      fastFinished = true;
+      console.error("FAST ONLINE LOOKUP ERROR:", error);
+
+      if (runId !== onlineLookupRunId) return;
+
+      if (!deepFinished) {
+        setSearchOnlineState("Quick search was slow. Checking deeper...", "pending");
+      }
+    });
+
+  const deepPromise = lookupSongOnline({
+    query: safeQuery,
+    limit: 6,
+    deep: true
+  })
+    .then(candidates => {
+      deepFinished = true;
+
+      if (runId !== onlineLookupRunId) return;
+
+      const list = Array.isArray(candidates) ? candidates : [];
+
+      if (list.length > 0) {
+        const finalList = mergeOnlineCandidates(shownCandidates, list).slice(0, 6);
+
+        shownCandidates = finalList;
+
+        renderResults([], safeQuery, { suppressEmptyState: true });
+        renderSearchOnlineCandidates(finalList);
+
+        setSearchOnlineState(
+          `${finalList.length} online match(es) found.`,
+          "success"
+        );
+
+        prefetchOnlineCandidateDetails(finalList, 3);
+        return;
+      }
+
+      if (!shownCandidates.length && fastFinished) {
+        setSearchOnlineState("Nothing found online.", "error");
+        renderSearchOnlineCandidates([]);
+      }
+    })
+    .catch(error => {
+      deepFinished = true;
+      console.error("DEEP ONLINE LOOKUP ERROR:", error);
+
+      if (runId !== onlineLookupRunId) return;
+
+      if (shownCandidates.length > 0) {
+        setSearchOnlineState(
+          `${shownCandidates.length} online match(es) found. Deeper search could not improve it.`,
+          "success"
+        );
+        return;
+      }
+
+      const visibleMessage = shortenErrorText(error?.message || error || "Unknown error");
 
       setSearchOnlineState(
-        debugText
-          ? `Nothing found online. ${debugText}`
-          : "Nothing was found online.",
+        `Online lookup failed: ${visibleMessage}`,
         "error"
       );
 
       renderSearchOnlineCandidates([]);
-      return;
-    }
+    });
 
-    setSearchOnlineState(
-      force
-        ? `${lyricsReady.length} lyrics-ready and ${possibleOnly.length} possible online match(es) found.`
-        : `Not in library. ${lyricsReady.length} lyrics-ready and ${possibleOnly.length} possible online match(es) found.`,
-      "success"
-    );
-
-    renderSearchOnlineCandidates(allCandidates);
-    prefetchOnlineCandidateDetails(allCandidates, 3);
-
-    if (allCandidates.length < 4) {
-      setSearchOnlineState(
-        `Showing ${allCandidates.length} quick result(s). Checking deeper...`,
-        "pending"
-      );
-
-      lookupSongOnline({
-        query: safeQuery,
-        limit: 6,
-        useCache: false,
-        deep: true
-      }).then(deepCandidates => {
-        if (runId !== onlineLookupRunId) return;
-
-        const deepStable = normalizeOnlineCandidates(deepCandidates);
-
-        const deepLyricsReady = deepStable.filter(candidate =>
-          candidate.bucket === "lyrics_ready"
-        );
-
-        const deepPossibleOnly = deepStable.filter(candidate =>
-          candidate.bucket !== "lyrics_ready"
-        );
-
-        const finalCandidates = [...deepLyricsReady, ...deepPossibleOnly].slice(0, 6);
-
-        if (finalCandidates.length > allCandidates.length) {
-          allCandidates = finalCandidates;
-
-          setSearchOnlineState(
-            `${finalCandidates.length} online match(es) found.`,
-            "success"
-          );
-
-          renderSearchOnlineCandidates(finalCandidates);
-          prefetchOnlineCandidateDetails(finalCandidates, 3);
-        } else {
-          setSearchOnlineState(
-            `${allCandidates.length} online match(es) found.`,
-            "success"
-          );
-        }
-      }).catch(error => {
-        console.log("Deep online lookup skipped:", error);
-        setSearchOnlineState(
-          `${allCandidates.length} online match(es) found.`,
-          "success"
-        );
-      });
-    }
-  } catch (error) {
+  setTimeout(() => {
     if (runId !== onlineLookupRunId) return;
 
-    const visibleMessage = shortenErrorText(error?.message || error || "Unknown error");
+    if (!shownCandidates.length && !fastFinished) {
+      setSearchOnlineState("Still checking LRCLIB. This title is taking longer than usual...", "pending");
+    }
+  }, 2500);
 
-    renderResults([], safeQuery, { suppressEmptyState: true });
-    setSearchOnlineState(
-      `Online lookup failed: ${visibleMessage}`,
-      "error"
-    );
-    renderSearchOnlineCandidates([]);
-  }
+  await Promise.allSettled([fastPromise, deepPromise]);
 }
 
 async function runForcedOnlineSearch() {
@@ -2715,6 +2885,19 @@ function setOnlineModalButtonsLoading(isLoading) {
   saveBtn.style.opacity = "1";
 }
 
+function setSaveButtonHighlight(shouldHighlight) {
+  const saveBtn = document.getElementById("modalSaveBtn");
+  if (!saveBtn) return;
+
+  saveBtn.classList.toggle("modal-save-highlight", !!shouldHighlight);
+
+  if (shouldHighlight) {
+    saveBtn.textContent = "Save to Library";
+  } else {
+    saveBtn.textContent = "Save";
+  }
+}
+
 async function openOnlineCandidate(candidate) {
   if (!candidate) return;
 
@@ -2743,10 +2926,13 @@ async function openOnlineCandidate(candidate) {
   document.getElementById("modalLyrics").innerHTML = escapeHtml(cleanLyricsText(embeddedSong.lyrics || ""));
 
   const canSaveOnline = isApproved() && hasSavableOnlineLyrics(embeddedSong);
+  setSaveButtonHighlight(canSaveOnline);
+
 
   document.getElementById("modalSaveBtn").classList.toggle("hidden", !canSaveOnline);
   document.getElementById("modalBookmarkBtn").classList.toggle("hidden", !canSaveOnline);
   document.getElementById("modalShareNowBtn").classList.toggle("hidden", !canSaveOnline);
+  setSaveButtonHighlight(canSaveOnline);
   document.getElementById("modalEditBtn").classList.toggle("hidden", !isApproved());
   document.getElementById("modalDeleteBtn").classList.add("hidden");
 
@@ -2895,6 +3081,7 @@ async function openOnlineCandidate(candidate) {
       document.getElementById("modalSaveBtn").classList.add("hidden");
       document.getElementById("modalBookmarkBtn").classList.add("hidden");
       document.getElementById("modalShareNowBtn").classList.add("hidden");
+      setSaveButtonHighlight(false);
       document.getElementById("modalEditBtn").classList.toggle("hidden", !isApproved());
     } else {
       openOnlineCandidateData = {
@@ -6548,6 +6735,7 @@ async function deleteRegisteredUserAccountData(userId, email) {
       openModalKind = "local";
 openOnlineCandidateData = null;
 document.getElementById("modalSaveBtn").classList.add("hidden");
+setSaveButtonHighlight(false);
       
       const song = preparedSongs.find(s => Number(s.id) === Number(songId));
       if (!song) return;
@@ -6599,13 +6787,14 @@ modalBookmarkBtn.dataset.songId = String(songId);
       document.body.style.overflow = "hidden";
     }
 
-    function closeSongModal() {
+ function closeSongModal() {
   onlineModalLoadToken++;
   openSongId = null;
   openModalKind = "local";
   openOnlineCandidateData = null;
 
   setOnlineModalButtonsLoading(false);
+  setSaveButtonHighlight(false);
 
   document.getElementById("songModal").classList.remove("show");
   document.body.style.overflow = "";
