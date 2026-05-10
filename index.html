@@ -2503,60 +2503,7 @@ function mergeOnlineCandidates(primary = [], secondary = []) {
   });
 }
 
-function mergeOnlineCandidates(primary = [], secondary = []) {
-  const map = new Map();
-
-  [...primary, ...secondary].forEach(candidate => {
-    if (!candidate) return;
-
-    const key = [
-      normalizeText(candidate.title || ""),
-      normalizeText(candidate.singer || ""),
-      normalizeText(candidate.movie || ""),
-      candidate.provider || "",
-      candidate.script || ""
-    ].join("::");
-
-    const existing = map.get(key);
-
-    if (!existing) {
-      map.set(key, candidate);
-      return;
-    }
-
-    const existingLyricsLength = cleanLyricsText(existing.lyrics || existing.preview || "").length;
-    const candidateLyricsLength = cleanLyricsText(candidate.lyrics || candidate.preview || "").length;
-
-    const candidateBetter =
-      Number(candidate.confidence || 0) > Number(existing.confidence || 0) ||
-      candidateLyricsLength > existingLyricsLength;
-
-    if (candidateBetter) {
-      map.set(key, candidate);
-    }
-  });
-
-  return Array.from(map.values())
-    .sort((a, b) => {
-      const scriptRank = {
-        devanagari: 5,
-        gujarati: 4,
-        mixed: 3,
-        romanized: 2,
-        english: 1,
-        unknown: 0
-      };
-
-      const scriptDiff =
-        (scriptRank[b.script] || 0) - (scriptRank[a.script] || 0);
-
-      if (scriptDiff !== 0) return scriptDiff;
-
-      return Number(b.confidence || 0) - Number(a.confidence || 0);
-    });
-}
-
-async function runOnlineLookupForSearch(query, options = {}) {
+  async function runOnlineLookupForSearch(query, options = {}) {
   const safeQuery = String(query || "").trim();
   const force = !!options.force;
 
