@@ -887,7 +887,7 @@ const results = await Promise.allSettled(
 
   const bestByKey = new Map<string, { candidate: InternalCandidate; score: number; lyricsLength: number }>();
 
-const debug = {
+const debug: LrclibDebug = {
   variants,
   urls: uniqueUrls,
   raw_rows_count: rows.length,
