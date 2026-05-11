@@ -1053,6 +1053,127 @@
   color: white !important;
   border-color: #fc470094 !important;
 }
+
+.admin-warmup-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.admin-warmup-textarea {
+  min-height: 180px;
+  resize: vertical;
+}
+
+.admin-warmup-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  margin-top: 8px;
+}
+
+.admin-warmup-option {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  font-size: 0.86rem;
+  color: var(--muted);
+}
+
+.admin-warmup-progress {
+  margin-top: 12px;
+}
+
+.admin-warmup-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+  font-size: 0.86rem;
+}
+
+.admin-warmup-table th,
+.admin-warmup-table td {
+  border-bottom: 1px solid var(--border);
+  padding: 8px 6px;
+  text-align: left;
+  vertical-align: top;
+}
+
+.admin-warmup-table th {
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.admin-warmup-status-ok {
+  color: #15803d;
+  font-weight: 700;
+}
+
+.admin-warmup-status-empty {
+  color: #b45309;
+  font-weight: 700;
+}
+
+.admin-warmup-status-error {
+  color: #b91c1c;
+  font-weight: 700;
+}
+
+.admin-cache-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-top: 10px;
+}
+
+.admin-cache-dashboard {
+  margin-top: 18px;
+  border-top: 1px solid var(--border);
+  padding-top: 14px;
+}
+
+.admin-cache-dashboard-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.admin-cache-dashboard-title {
+  font-weight: 800;
+}
+
+.admin-cache-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+  font-size: 0.86rem;
+}
+
+.admin-cache-table th,
+.admin-cache-table td {
+  border-bottom: 1px solid var(--border);
+  padding: 8px 6px;
+  text-align: left;
+  vertical-align: top;
+}
+
+.admin-cache-table th {
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.admin-cache-query {
+  font-weight: 700;
+}
+
+.admin-cache-muted {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
   </style>
 </head>
 <body>
@@ -1141,7 +1262,7 @@
         <button id="tabListBtn" class="tab-btn" type="button">List of Songs</button>
         <button id="tabFavoritesBtn" class="tab-btn" type="button">Favorites</button>
         <button id="toggleAddBtn" class="tab-btn add-tab-btn hidden" type="button">+ Add Song</button>
-        <button id="tabAdminBtn" class="tab-btn hidden" type="button">Users</button>
+        <button id="tabAdminBtn" class="tab-btn hidden" type="button">Admin</button>
       </div>
 
       <section id="songEditorCard" class="card hidden">
@@ -1277,7 +1398,7 @@
   <div class="card">
     <div class="toolbar">
       <div class="toolbar-left">
-        <strong>Users</strong>
+        <strong>Admin</strong>
         <span class="tiny">Manage access, signup verification, and registered members</span>
       </div>
       <div class="toolbar-right">
@@ -1286,9 +1407,10 @@
     </div>
 
     <div class="tabs" style="margin-top:8px;">
-      <button id="adminPendingSubtabBtn" class="tab-btn active" type="button">Pending requests</button>
-      <button id="adminRegisteredSubtabBtn" class="tab-btn" type="button">Registered users</button>
-    </div>
+  <button id="adminPendingSubtabBtn" class="tab-btn active" type="button">Pending requests</button>
+  <button id="adminRegisteredSubtabBtn" class="tab-btn" type="button">Registered users</button>
+  <button id="adminWarmupSubtabBtn" class="tab-btn" type="button">Cache Warmup</button>
+</div>
 
     <div id="adminPendingPanel">
       <div id="pendingUsersList"></div>
@@ -1297,6 +1419,67 @@
     <div id="adminRegisteredPanel" class="hidden">
       <div id="registeredUsersList"></div>
     </div>
+    <div id="adminWarmupPanel" class="hidden">
+  <div class="admin-warmup-grid">
+    <div class="status-box show">
+      Paste one song per line. This warms Cloudflare/LRCLIB + Supabase online cache so future searches are faster.
+    </div>
+
+    <div class="field">
+      <label for="adminWarmupInput">Songs to warm</label>
+      <textarea
+        id="adminWarmupInput"
+        class="textarea admin-warmup-textarea"
+        placeholder="kajra re&#10;o rangrez&#10;aaoge jab tum&#10;tum hi ho&#10;channa mereya"
+      ></textarea>
+    </div>
+
+    <div class="admin-warmup-options">
+      <label class="admin-warmup-option">
+        <input id="adminWarmupForceRefresh" type="checkbox" />
+        Force refresh existing cache
+      </label>
+
+      <label class="admin-warmup-option">
+        Delay:
+        <input id="adminWarmupDelayMs" class="input input-thin" type="number" value="1200" min="500" max="10000" step="100" style="width:100px;" />
+        ms
+      </label>
+
+      <button id="adminWarmupStartBtn" class="btn" type="button">Start Warmup</button>
+<button id="adminWarmupStopBtn" class="btn-secondary" type="button" disabled>Stop</button>
+<button id="adminWarmupClearBtn" class="btn-secondary" type="button">Clear Results</button>
+
+<input id="adminWarmupCsvInput" type="file" accept=".csv,text/csv" class="hidden" />
+<button id="adminWarmupImportCsvBtn" class="btn-secondary" type="button">Import CSV</button>
+<button id="adminWarmupExportTemplateBtn" class="btn-secondary" type="button">Export Template</button>
+<button id="adminWarmupExportResultsBtn" class="btn-secondary" type="button">Export Results</button>
+    </div>
+
+    <div id="adminWarmupStatus" class="status-box"></div>
+
+    <div class="admin-warmup-progress">
+      <div class="tiny" id="adminWarmupSummary">No warmup running.</div>
+      <div id="adminWarmupResults"></div>
+      <div class="admin-cache-dashboard">
+  <div class="admin-cache-dashboard-head">
+    <div>
+      <div class="admin-cache-dashboard-title">Online Cache Dashboard</div>
+      <div class="admin-cache-muted">Recently warmed songs saved in Supabase online_song_cache.</div>
+    </div>
+
+    <div class="admin-cache-toolbar">
+      <button id="adminCacheDashboardRefreshBtn" class="btn-secondary" type="button">Refresh Cache Dashboard</button>
+      <button id="adminCacheDashboardExportBtn" class="btn-secondary" type="button">Export Cache CSV</button>
+    </div>
+  </div>
+
+  <div id="adminCacheDashboardStatus" class="status-box"></div>
+  <div id="adminCacheDashboardResults"></div>
+</div>
+    </div>
+  </div>
+</div>
   </div>
 </section>
     </section>
@@ -1337,6 +1520,9 @@
     const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZwcHlyaHNucWdpc2Z4a2Ria2thIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM1MzAxMjMsImV4cCI6MjA4OTEwNjEyM30.pXf_6qzEVw_fQpalyWsfxXgHrlbs1IA9BBmwfqmurDo";
     const REDIRECT_URL = "https://contactgohil-sudo.github.io/Mehfil-Songs/";
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    // Cloudflare Worker LRCLIB proxy. Do not add a trailing slash.
+    const MEHFIL_LRCLIB_PROXY_URL = "https://mehfil-lrclib-proxy.contact-gohil.workers.dev";
 
     window.addEventListener("error", (event) => {
       console.error("GLOBAL ERROR:", event.error || event.message);
@@ -2252,6 +2438,812 @@ async function invokeEdgeFunction(functionName, body = {}) {
   return parsed;
 }
 
+const DIRECT_LRCLIB_CACHE_TTL_MS = 5 * 60 * 1000;
+const directLrclibLookupCache = new Map();
+
+function getDirectLrclibCacheKey(payload = {}) {
+  return JSON.stringify({
+    query: normalizeText(payload.query || ""),
+    title: normalizeText(payload.title || ""),
+    singer: normalizeText(payload.singer || ""),
+    limit: Number(payload.limit || 6),
+    deep: !!payload.deep
+  });
+}
+
+function getCachedDirectLrclibLookup(payload = {}) {
+  const key = getDirectLrclibCacheKey(payload);
+  const cached = directLrclibLookupCache.get(key);
+
+  if (!cached) return null;
+
+  if (Date.now() - cached.at > DIRECT_LRCLIB_CACHE_TTL_MS) {
+    directLrclibLookupCache.delete(key);
+    return null;
+  }
+
+  return Array.isArray(cached.candidates) ? cached.candidates.slice() : [];
+}
+
+function stripLrclibSyncedTimestamps(text) {
+  return String(text || "")
+    .replace(/\[[0-9:.]+\]/g, "")
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+function getDirectLrclibLyrics(row) {
+  return cleanLyricsText(
+    row?.plainLyrics ||
+    row?.plain_lyrics ||
+    stripLrclibSyncedTimestamps(row?.syncedLyrics || row?.synced_lyrics || "") ||
+    ""
+  );
+}
+
+function detectDirectLrclibScript(text) {
+  const value = String(text || "");
+  const hasGujarati = /[\u0A80-\u0AFF]/.test(value);
+  const hasDevanagari = /[\u0900-\u097F]/.test(value);
+  const hasLatin = /[A-Za-z]/.test(value);
+
+  if (hasGujarati && !hasDevanagari && !hasLatin) return "gujarati";
+  if (hasDevanagari && !hasGujarati && !hasLatin) return "devanagari";
+  if ((hasGujarati || hasDevanagari) && hasLatin) return "mixed";
+
+  if (hasLatin) {
+    const norm = normalizeText(value);
+    const hints = [
+      "hai", "ho", "dil", "tum", "tere", "meri", "mera", "koi", "jaise",
+      "chhe", "che", "mane", "mara", "tari", "nathi", "shu", "kem"
+    ];
+
+    const hits = hints.filter(word => norm.includes(word)).length;
+    return hits >= 2 ? "romanized" : "english";
+  }
+
+  return "unknown";
+}
+
+function scoreDirectLrclibTitle(rowTitle, queryTitle) {
+  const rowNorm = normalizeText(rowTitle || "");
+  const queryNorm = normalizeText(queryTitle || "");
+
+  if (!rowNorm || !queryNorm) return 0;
+
+  let score = 0;
+
+  if (rowNorm === queryNorm) score += 65;
+
+  if (rowNorm.includes(queryNorm) || queryNorm.includes(rowNorm)) {
+    score += 30;
+  }
+
+  const rowWords = new Set(rowNorm.split(/\s+/).filter(Boolean));
+  const queryWords = queryNorm.split(/\s+/).filter(Boolean);
+
+  let hits = 0;
+
+  for (const word of queryWords) {
+    if (rowWords.has(word)) hits++;
+  }
+
+  if (queryWords.length) {
+    score += Math.round((hits / queryWords.length) * 35);
+  }
+
+  return Math.min(score, 100);
+}
+
+function scoreDirectLrclibCandidate(row, payload = {}) {
+  const queryTitle = payload.title || payload.query || "";
+  const rowTitle = row?.trackName || row?.track_name || row?.name || "";
+  const lyrics = getDirectLrclibLyrics(row);
+
+  let score = scoreDirectLrclibTitle(rowTitle, queryTitle);
+
+  if (lyrics.length >= 80) score += 10;
+  if (lyrics.length >= 250) score += 8;
+  if (lyrics.length >= 600) score += 8;
+  if (lyrics.length >= 1000) score += 4;
+
+  const wantedSinger = normalizeText(payload.singer || "");
+  const rowSinger = normalizeText(row?.artistName || row?.artist_name || "");
+
+  if (wantedSinger && rowSinger) {
+    if (rowSinger.includes(wantedSinger) || wantedSinger.includes(rowSinger)) {
+      score += 12;
+    }
+  }
+
+  if (/\b(karaoke|instrumental|slowed|reverb)\b/i.test(rowTitle)) {
+    score -= 25;
+  }
+
+  return Math.max(0, Math.min(score, 100));
+}
+
+function makeDirectLrclibLookupKey(candidate) {
+  return JSON.stringify({
+    provider: candidate.provider,
+    title: candidate.title,
+    singer: candidate.singer,
+    movie: candidate.movie,
+    source_name: candidate.source_name,
+    source_url: candidate.source_url,
+    preview: candidate.preview,
+    lyrics: candidate.lyrics || "",
+    script: candidate.script,
+    status: candidate.status
+  });
+}
+
+function directLrclibRowToCandidate(row, payload = {}) {
+  const lyrics = getDirectLrclibLyrics(row);
+
+  if (!lyrics || lyrics.length < 20) return null;
+
+  const title = String(row?.trackName || row?.track_name || row?.name || "").trim();
+  const singer = String(row?.artistName || row?.artist_name || "").trim();
+  const movie = String(row?.albumName || row?.album_name || "").trim();
+
+  if (!title) return null;
+
+  const confidence = scoreDirectLrclibCandidate(row, payload);
+
+  if (confidence < 20) return null;
+
+  const candidate = {
+    provider: "lrclib",
+    title,
+    singer,
+    movie,
+    source_name: "LRCLIB",
+    source_url: "https://lrclib.net/",
+    script: detectDirectLrclibScript(lyrics),
+    preview: cleanLyricsText(lyrics).slice(0, 520),
+    lyrics: cleanLyricsText(lyrics).slice(0, 18000),
+    status: "lyrics_ready",
+    confidence,
+    lookup_key: ""
+  };
+
+  candidate.lookup_key = makeDirectLrclibLookupKey(candidate);
+
+  return candidate;
+}
+
+async function fetchDirectLrclibJson(url, timeoutMs = 7000) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  const started = performance.now();
+
+  try {
+    const response = await fetch(url, {
+      signal: controller.signal,
+      headers: {
+        Accept: "application/json"
+      }
+    });
+
+    const text = await response.text();
+    let data = null;
+
+    try {
+      data = text ? JSON.parse(text) : null;
+    } catch {
+      data = null;
+    }
+
+    return {
+      url,
+      ok: response.ok,
+      status: response.status,
+      ms: Math.round(performance.now() - started),
+      data: Array.isArray(data) ? data : [],
+      error: response.ok ? "" : response.statusText || "LRCLIB HTTP error"
+    };
+  } catch (error) {
+    return {
+      url,
+      ok: false,
+      status: 0,
+      ms: Math.round(performance.now() - started),
+      data: [],
+      error: String(error?.message || error || "Direct LRCLIB fetch failed")
+    };
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+function buildDirectLrclibUrls(payload = {}) {
+  const query = normalizeText(payload.query || payload.title || "");
+  const title = normalizeText(payload.title || payload.query || "");
+  const singer = normalizeText(payload.singer || "");
+
+  const urls = [];
+
+  function addUrl(params) {
+    const search = new URLSearchParams();
+
+    Object.entries(params).forEach(([key, value]) => {
+      if (value) search.set(key, value);
+    });
+
+    const url = `https://lrclib.net/api/search?${search.toString()}`;
+
+    if (!urls.includes(url)) {
+      urls.push(url);
+    }
+  }
+
+  if (title) {
+    addUrl({
+      track_name: title,
+      artist_name: singer
+    });
+  }
+
+  if (query) {
+    addUrl({
+      q: query
+    });
+  }
+
+  const variants = [
+    query,
+    query.replace(/\bmohabbat\b/g, "mahobbat"),
+    query.replace(/\bmohabbat\b/g, "mohobbat"),
+    query.replace(/\bmohabbat\b/g, "muhabbat"),
+    query.replace(/\bwala\b/g, "waala"),
+    query.replace(/\bwala\b/g, "vala"),
+    query.replace(/\bwala\b/g, "vaala")
+  ]
+    .map(value => normalizeText(value))
+    .filter(Boolean);
+
+  for (const variant of variants) {
+    addUrl({ q: variant });
+  }
+
+  return Array.from(new Set(urls)).slice(0, payload.deep ? 5 : 2);
+}
+
+async function raceDirectLrclibUrls(urls = [], timeoutMs = 8500) {
+  const cleanUrls = Array.from(new Set(urls)).filter(Boolean);
+  const diagnostics = [];
+
+  if (!cleanUrls.length) {
+    return {
+      rows: [],
+      diagnostics,
+      winner: null
+    };
+  }
+
+  const wrappedRequests = cleanUrls.map(url =>
+    fetchDirectLrclibJson(url, timeoutMs)
+      .then(result => {
+        diagnostics.push(result);
+
+        const rows = Array.isArray(result.data) ? result.data : [];
+
+        if (result.ok && rows.length > 0) {
+          return {
+            rows,
+            diagnostics: diagnostics.slice(),
+            winner: result
+          };
+        }
+
+        throw result;
+      })
+  );
+
+  try {
+    return await Promise.any(wrappedRequests);
+  } catch {
+    await Promise.allSettled(wrappedRequests);
+
+    return {
+      rows: [],
+      diagnostics: diagnostics.slice(),
+      winner: null
+    };
+  }
+}
+
+const ONLINE_SONG_CACHE_PREFIX = "mehfil_online_song_cache_v1:";
+
+function getOnlineCacheQueryNorm(query) {
+  return normalizeText(query || "")
+    .replace(/\blyrics?\b/g, " ")
+    .replace(/\bsong\b/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function sanitizeOnlineCacheCandidates(candidates = []) {
+  return (Array.isArray(candidates) ? candidates : [])
+    .filter(candidate => candidate && candidate.status === "lyrics_ready")
+    .map(candidate => ({
+      provider: candidate.provider || "lrclib",
+      title: candidate.title || "",
+      singer: candidate.singer || "",
+      movie: candidate.movie || "",
+      source_name: candidate.source_name || "LRCLIB",
+      source_url: candidate.source_url || "https://lrclib.net/",
+      script: candidate.script || "unknown",
+      preview: candidate.preview || "",
+      lyrics: candidate.lyrics || "",
+      status: "lyrics_ready",
+      confidence: Number(candidate.confidence || 0),
+      lookup_key: candidate.lookup_key || ""
+    }))
+    .filter(candidate => {
+      const lyrics = cleanLyricsText(candidate.lyrics || candidate.preview || "");
+      return candidate.title && lyrics.length >= 20;
+    })
+    .sort((a, b) => {
+      const scriptRank = {
+        devanagari: 5,
+        gujarati: 4,
+        mixed: 3,
+        romanized: 2,
+        english: 1,
+        unknown: 0
+      };
+
+      const scriptDiff =
+        (scriptRank[b.script] || 0) - (scriptRank[a.script] || 0);
+
+      if (scriptDiff !== 0) return scriptDiff;
+
+      const aNoisy = /\b(lofi|lo-fi|flip|cover|remix|version|single|unplugged|karaoke|instrumental)\b/i.test(
+        `${a.title || ""} ${a.movie || ""}`
+      );
+
+      const bNoisy = /\b(lofi|lo-fi|flip|cover|remix|version|single|unplugged|karaoke|instrumental)\b/i.test(
+        `${b.title || ""} ${b.movie || ""}`
+      );
+
+      if (aNoisy !== bNoisy) return aNoisy ? 1 : -1;
+
+      const confidenceDiff = Number(b.confidence || 0) - Number(a.confidence || 0);
+
+      if (confidenceDiff !== 0) return confidenceDiff;
+
+      return (
+        cleanLyricsText(b.lyrics || b.preview || "").length -
+        cleanLyricsText(a.lyrics || a.preview || "").length
+      );
+    })
+    .slice(0, 6);
+}
+
+function readOnlineSongBrowserCache(query) {
+  const queryNorm = getOnlineCacheQueryNorm(query);
+
+  if (!queryNorm) return [];
+
+  try {
+    const raw = localStorage.getItem(`${ONLINE_SONG_CACHE_PREFIX}${queryNorm}`);
+    if (!raw) return [];
+
+    const parsed = JSON.parse(raw);
+    const maxAgeMs = 14 * 24 * 60 * 60 * 1000;
+
+    if (!parsed?.at || Date.now() - parsed.at > maxAgeMs) {
+      localStorage.removeItem(`${ONLINE_SONG_CACHE_PREFIX}${queryNorm}`);
+      return [];
+    }
+
+    return sanitizeOnlineCacheCandidates(parsed.candidates || []);
+  } catch {
+    return [];
+  }
+}
+
+function writeOnlineSongBrowserCache(query, candidates = []) {
+  const queryNorm = getOnlineCacheQueryNorm(query);
+  const safeCandidates = sanitizeOnlineCacheCandidates(candidates);
+
+  if (!queryNorm || !safeCandidates.length) return;
+
+  try {
+    localStorage.setItem(
+      `${ONLINE_SONG_CACHE_PREFIX}${queryNorm}`,
+      JSON.stringify({
+        at: Date.now(),
+        candidates: safeCandidates
+      })
+    );
+  } catch {
+    // localStorage can fail if browser storage is full. Ignore safely.
+  }
+}
+
+async function readOnlineSongSupabaseCache(query) {
+  const queryNorm = getOnlineCacheQueryNorm(query);
+
+  if (!queryNorm || !supabaseClient) return [];
+
+  const browserCached = readOnlineSongBrowserCache(queryNorm);
+
+  if (browserCached.length) {
+    return browserCached;
+  }
+
+  try {
+    const { data, error } = await supabaseClient
+      .from("online_song_cache")
+      .select("candidates")
+      .eq("query_norm", queryNorm)
+      .maybeSingle();
+
+    if (error || !data) return [];
+
+    const candidates = sanitizeOnlineCacheCandidates(data.candidates || []);
+
+    if (candidates.length) {
+      writeOnlineSongBrowserCache(queryNorm, candidates);
+
+      supabaseClient
+        .from("online_song_cache")
+        .update({
+          last_hit_at: new Date().toISOString(),
+          hit_count: 1
+        })
+        .eq("query_norm", queryNorm)
+        .then(() => {});
+    }
+
+    return candidates;
+  } catch {
+    return [];
+  }
+}
+
+async function saveOnlineSongSupabaseCache(query, candidates = []) {
+  const queryNorm = getOnlineCacheQueryNorm(query);
+  const safeCandidates = sanitizeOnlineCacheCandidates(candidates);
+
+  if (!queryNorm || !safeCandidates.length) return;
+
+  // Always save browser cache first.
+  // This works even when Supabase auth/cache write is unavailable.
+  writeOnlineSongBrowserCache(queryNorm, safeCandidates);
+
+  if (!supabaseClient) return;
+
+  try {
+    const { data: sessionData } = await supabaseClient.auth.getSession();
+    const hasSession = !!sessionData?.session?.access_token;
+
+    // Avoid 401 spam when testing from file:// or when user is logged out.
+    if (!hasSession) {
+      console.warn("Skipping Supabase online cache save: no active auth session.");
+      return;
+    }
+
+    const { error } = await supabaseClient
+      .from("online_song_cache")
+      .upsert(
+        {
+          query_norm: queryNorm,
+          display_query: String(query || "").trim(),
+          candidates: safeCandidates,
+          provider: "lrclib_direct",
+          updated_at: new Date().toISOString(),
+          last_hit_at: new Date().toISOString()
+        },
+        {
+          onConflict: "query_norm"
+        }
+      );
+
+    if (error) {
+      console.warn("Supabase online cache save skipped:", error.message || error);
+    }
+  } catch (error) {
+    console.warn("Supabase online cache save failed:", error?.message || error);
+  }
+}
+
+function setCachedDirectLrclibLookup(payload = {}, candidates = []) {
+  const list = sanitizeOnlineCacheCandidates(candidates);
+
+  if (!list.length) return;
+
+  const key = getDirectLrclibCacheKey(payload);
+
+  directLrclibLookupCache.set(key, {
+    at: Date.now(),
+    candidates: list
+  });
+
+  writeOnlineSongBrowserCache(payload.query || payload.title || "", list);
+}
+
+async function raceDirectLrclibUrls(urls = [], timeoutMs = 11500) {
+  const cleanUrls = Array.from(new Set(urls)).filter(Boolean);
+  const diagnostics = [];
+
+  if (!cleanUrls.length) {
+    return {
+      rows: [],
+      diagnostics,
+      winner: null
+    };
+  }
+
+  const wrappedRequests = cleanUrls.map(url =>
+    fetchDirectLrclibJson(url, timeoutMs)
+      .then(result => {
+        diagnostics.push(result);
+
+        const rows = Array.isArray(result.data) ? result.data : [];
+
+        if (result.ok && rows.length > 0) {
+          return {
+            rows,
+            diagnostics: diagnostics.slice(),
+            winner: result
+          };
+        }
+
+        throw result;
+      })
+  );
+
+  try {
+    return await Promise.any(wrappedRequests);
+  } catch {
+    await Promise.allSettled(wrappedRequests);
+
+    return {
+      rows: [],
+      diagnostics: diagnostics.slice(),
+      winner: null
+    };
+  }
+}
+
+function normalizeLrclibProxyBaseUrl(value) {
+  return String(value || "")
+    .trim()
+    .replace(/\/+$/g, "");
+}
+
+function buildLrclibProxySearchUrl(payload = {}) {
+  const base = normalizeLrclibProxyBaseUrl(MEHFIL_LRCLIB_PROXY_URL);
+
+  if (!base) return "";
+
+  const query = String(payload.query || payload.title || "").trim();
+  if (!query) return "";
+
+  const params = new URLSearchParams();
+  params.set("q", query);
+  params.set("limit", String(Math.max(1, Math.min(Number(payload.limit || 6), 8))));
+  params.set("deep", payload.deep === false ? "0" : "1");
+
+  if (payload.singer) params.set("singer", String(payload.singer));
+  if (payload.movie) params.set("movie", String(payload.movie));
+  if (payload.forceRefresh) params.set("refresh", "1");
+
+  return `${base}/search?${params.toString()}`;
+}
+
+async function lookupLrclibViaWorker(payload = {}) {
+  const url = buildLrclibProxySearchUrl(payload);
+
+  if (!url) return [];
+
+  const started = performance.now();
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 12500);
+
+  try {
+    const response = await fetch(url, {
+      signal: controller.signal,
+      headers: {
+        Accept: "application/json"
+      }
+    });
+
+    const data = await response.json().catch(() => null);
+
+    console.log("LRCLIB WORKER LOOKUP DEBUG:", {
+      url,
+      status: response.status,
+      ok: response.ok,
+      ms: Math.round(performance.now() - started),
+      cached: !!data?.cached,
+      worker_ms: data?.ms,
+      count: Array.isArray(data?.candidates) ? data.candidates.length : 0,
+      source: data?.source || "worker"
+    });
+
+    if (!response.ok || !data || !Array.isArray(data.candidates)) {
+      return [];
+    }
+
+    return sanitizeOnlineCacheCandidates(data.candidates);
+  } catch (error) {
+    console.warn("LRCLIB Worker lookup skipped:", String(error?.message || error || "unknown error"));
+    return [];
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function lookupLrclibBrowserDirectFresh(payload = {}) {
+  const requestBody = {
+    limit: 6,
+    deep: true,
+    ...payload
+  };
+
+  const urls = buildDirectLrclibUrls(requestBody);
+  const limit = Math.max(1, Math.min(Number(requestBody.limit || 6), 8));
+
+  if (!urls.length) {
+    return [];
+  }
+
+  const primaryUrls = urls.slice(0, 2);
+  const primaryResult = await raceDirectLrclibUrls(primaryUrls, 11500);
+
+  const rows = Array.isArray(primaryResult.rows)
+    ? primaryResult.rows.slice()
+    : [];
+
+  const diagnostics = Array.isArray(primaryResult.diagnostics)
+    ? primaryResult.diagnostics.slice()
+    : [];
+
+  const bestByKey = new Map();
+
+  for (const row of rows) {
+    const candidate = directLrclibRowToCandidate(row, requestBody);
+
+    if (!candidate) continue;
+
+    const lyrics = cleanLyricsText(candidate.lyrics || candidate.preview || "");
+    const lyricsLength = lyrics.length;
+
+    const key = [
+      normalizeText(candidate.title || ""),
+      lyrics.slice(0, 240).toLowerCase()
+    ].join("::");
+
+    const existing = bestByKey.get(key);
+
+    if (
+      !existing ||
+      Number(candidate.confidence || 0) > Number(existing.confidence || 0) ||
+      lyricsLength > cleanLyricsText(existing.lyrics || existing.preview || "").length
+    ) {
+      bestByKey.set(key, candidate);
+    }
+  }
+
+  const candidates = Array.from(bestByKey.values())
+    .sort((a, b) => {
+      const scriptRank = {
+        devanagari: 5,
+        gujarati: 4,
+        mixed: 3,
+        romanized: 2,
+        english: 1,
+        unknown: 0
+      };
+
+      const scriptDiff =
+        (scriptRank[b.script] || 0) - (scriptRank[a.script] || 0);
+
+      if (scriptDiff !== 0) return scriptDiff;
+
+      const confidenceDiff =
+        Number(b.confidence || 0) - Number(a.confidence || 0);
+
+      if (confidenceDiff !== 0) return confidenceDiff;
+
+      return (
+        cleanLyricsText(b.lyrics || b.preview || "").length -
+        cleanLyricsText(a.lyrics || a.preview || "").length
+      );
+    })
+    .slice(0, limit);
+
+  console.log("DIRECT LRCLIB LOOKUP DEBUG:", {
+    urls,
+    primary_urls: primaryUrls,
+    winner_url: primaryResult.winner?.url || null,
+    diagnostics: diagnostics.map(item => ({
+      url: item.url,
+      status: item.status,
+      ok: item.ok,
+      ms: item.ms,
+      count: Array.isArray(item.data) ? item.data.length : 0,
+      error: item.error
+    })),
+    raw_rows: rows.length,
+    returned_count: candidates.length
+  });
+
+  return sanitizeOnlineCacheCandidates(candidates);
+}
+
+async function lookupLrclibDirect(payload = {}) {
+  const requestBody = {
+    limit: 6,
+    deep: true,
+    forceRefresh: false,
+    ...payload
+  };
+
+  const query = requestBody.query || requestBody.title || "";
+  const limit = Math.max(1, Math.min(Number(requestBody.limit || 6), 8));
+  const shouldForceRefresh = requestBody.forceRefresh === true;
+
+  let cachedCandidates = [];
+
+  if (!shouldForceRefresh) {
+    const memoryCached = getCachedDirectLrclibLookup(requestBody);
+    if (Array.isArray(memoryCached) && memoryCached.length >= limit) {
+      return memoryCached.slice(0, limit);
+    }
+
+    const persistentCached = await readOnlineSongSupabaseCache(query);
+
+    cachedCandidates = mergeOnlineCandidates(
+      Array.isArray(memoryCached) ? memoryCached : [],
+      Array.isArray(persistentCached) ? persistentCached : []
+    ).slice(0, limit);
+
+    /*
+      Important:
+      If cache has full results, return immediately.
+      If cache has only 1–5 results, do NOT stop.
+      Continue fresh lookup to improve the cache.
+    */
+    if (cachedCandidates.length >= limit) {
+      setCachedDirectLrclibLookup(requestBody, cachedCandidates);
+      return cachedCandidates;
+    }
+  }
+
+  let freshCandidates = [];
+
+  const workerCandidates = await lookupLrclibViaWorker({
+    ...requestBody,
+    forceRefresh: shouldForceRefresh
+  });
+
+  if (Array.isArray(workerCandidates) && workerCandidates.length) {
+    freshCandidates = workerCandidates;
+  } else {
+    freshCandidates = await lookupLrclibBrowserDirectFresh(requestBody);
+  }
+
+  const merged = mergeOnlineCandidates(
+    cachedCandidates,
+    Array.isArray(freshCandidates) ? freshCandidates : []
+  ).slice(0, limit);
+
+  if (merged.length) {
+    setCachedDirectLrclibLookup(requestBody, merged);
+    saveOnlineSongSupabaseCache(query, merged);
+    return merged;
+  }
+
+  return cachedCandidates.slice(0, limit);
+}
+
 async function lookupSongOnline(payload = {}) {
   const requestBody = {
     preferredScripts: ["gujarati", "devanagari", "romanized", "english"],
@@ -2428,27 +3420,39 @@ function normalizeOnlineCandidates(candidates) {
       return Number(b.confidence || 0) - Number(a.confidence || 0);
     });
 }
-
 function mergeOnlineCandidates(primary = [], secondary = []) {
   const map = new Map();
-
-  function getCandidateKey(candidate) {
-    return [
-      normalizeText(candidate?.provider || ""),
-      normalizeText(candidate?.title || ""),
-      normalizeText(candidate?.singer || ""),
-      normalizeText(candidate?.movie || ""),
-      normalizeText(candidate?.script || "")
-    ].join("::");
-  }
 
   function getCandidateLyricsLength(candidate) {
     try {
       const parsed = JSON.parse(candidate?.lookup_key || "{}");
-      return cleanLyricsText(parsed.lyrics || candidate.preview || "").length;
+      return cleanLyricsText(parsed.lyrics || candidate?.lyrics || candidate?.preview || "").length;
     } catch {
-      return cleanLyricsText(candidate?.preview || "").length;
+      return cleanLyricsText(candidate?.lyrics || candidate?.preview || "").length;
     }
+  }
+
+  function getCandidateKey(candidate) {
+    let lyricsKey = "";
+
+    try {
+      const parsed = JSON.parse(candidate?.lookup_key || "{}");
+      lyricsKey = cleanLyricsText(parsed.lyrics || candidate?.lyrics || candidate?.preview || "")
+        .slice(0, 140)
+        .toLowerCase();
+    } catch {
+      lyricsKey = cleanLyricsText(candidate?.lyrics || candidate?.preview || "")
+        .slice(0, 140)
+        .toLowerCase();
+    }
+
+    return [
+      normalizeText(candidate?.title || ""),
+      normalizeText(candidate?.singer || ""),
+      normalizeText(candidate?.movie || ""),
+      normalizeText(candidate?.provider || ""),
+      lyricsKey
+    ].join("::");
   }
 
   function add(candidate) {
@@ -2466,12 +3470,9 @@ function mergeOnlineCandidates(primary = [], secondary = []) {
     const candidateLength = getCandidateLyricsLength(candidate);
 
     const candidateBetter =
+      (candidate.status === "lyrics_ready" && existing.status !== "lyrics_ready") ||
       Number(candidate.confidence || 0) > Number(existing.confidence || 0) ||
-      candidateLength > existingLength ||
-      (
-        candidate.status === "lyrics_ready" &&
-        existing.status !== "lyrics_ready"
-      );
+      candidateLength > existingLength;
 
     if (candidateBetter) {
       map.set(key, candidate);
@@ -2497,13 +3498,14 @@ function mergeOnlineCandidates(primary = [], secondary = []) {
     if (scriptDiff !== 0) return scriptDiff;
 
     const confidenceDiff = Number(b.confidence || 0) - Number(a.confidence || 0);
+
     if (confidenceDiff !== 0) return confidenceDiff;
 
     return getCandidateLyricsLength(b) - getCandidateLyricsLength(a);
   });
 }
 
-  async function runOnlineLookupForSearch(query, options = {}) {
+async function runOnlineLookupForSearch(query, options = {}) {
   const safeQuery = String(query || "").trim();
   const force = !!options.force;
 
@@ -2518,127 +3520,191 @@ function mergeOnlineCandidates(primary = [], secondary = []) {
   renderSearchOnlineCandidates([]);
 
   setSearchOnlineState(
-    force ? "Searching online..." : "Not in library. Checking online...",
+    force
+      ? "Searching online..."
+      : "Not in library. Checking online...",
     "pending"
   );
 
   let shownCandidates = [];
-  let fastFinished = false;
-  let deepFinished = false;
+  let directDone = false;
+  let edgeDone = false;
 
-  const showCandidates = (candidates, message) => {
-    if (runId !== onlineLookupRunId) return;
+  function isCurrentRun() {
+    return runId === onlineLookupRunId;
+  }
 
-    const merged = mergeOnlineCandidates(shownCandidates, candidates).slice(0, 6);
-    shownCandidates = merged;
+  function showMergedCandidates(candidates, message) {
+    if (!isCurrentRun()) return;
 
-    if (merged.length > 0) {
-      renderResults([], safeQuery, { suppressEmptyState: true });
-      renderSearchOnlineCandidates(merged);
-      setSearchOnlineState(message, "success");
-      prefetchOnlineCandidateDetails(merged, 3);
+    const list = sanitizeOnlineCacheCandidates(candidates);
+
+    if (!list.length) return;
+
+    shownCandidates = mergeOnlineCandidates(shownCandidates, list).slice(0, 6);
+
+    renderResults([], safeQuery, { suppressEmptyState: true });
+    renderSearchOnlineCandidates(shownCandidates);
+    setSearchOnlineState(message, "success");
+    prefetchOnlineCandidateDetails(shownCandidates, 3);
+  }
+
+  function finishIfBothDone() {
+    if (!isCurrentRun()) return;
+    if (!directDone || !edgeDone) return;
+
+    if (shownCandidates.length > 0) {
+      setSearchOnlineState(
+        `${shownCandidates.length} online match(es) found.`,
+        "success"
+      );
+      return;
     }
-  };
 
-  const fastPromise = lookupSongOnline({
+    setSearchOnlineState("Nothing found online.", "error");
+    renderSearchOnlineCandidates([]);
+  }
+
+  const cachedCandidates = await readOnlineSongSupabaseCache(safeQuery);
+const desiredOnlineCount = 6;
+
+if (cachedCandidates.length) {
+  showMergedCandidates(
+    cachedCandidates,
+    `${cachedCandidates.length} cached online match(es) found. Refreshing for more...`
+  );
+
+  /*
+    Full cache is enough.
+    Partial cache is NOT enough.
+
+    If cache has 6+ results, stop.
+    If cache has only 1–5 results, keep searching in background.
+  */
+  if (!force && cachedCandidates.length >= desiredOnlineCount) {
+    directDone = true;
+    edgeDone = true;
+    finishIfBothDone();
+    return;
+  }
+
+  setSearchOnlineState(
+    `${cachedCandidates.length} cached result(s) shown. Checking for more/better matches...`,
+    "success"
+  );
+}
+
+  const edgePromise = lookupSongOnline({
     query: safeQuery,
+    title: safeQuery,
     limit: 6,
-    deep: false
+    deep: true,
+    skipLrclib: true
   })
     .then(candidates => {
-      fastFinished = true;
-
-      if (runId !== onlineLookupRunId) return;
+      edgeDone = true;
 
       const list = Array.isArray(candidates) ? candidates : [];
 
+      console.log("MEHFIL NORMAL SEARCH EDGE ONLINE:", {
+        query: safeQuery,
+        count: list.length,
+        first: list[0] || null
+      });
+
+      if (!isCurrentRun()) return;
+
       if (list.length > 0) {
-        showCandidates(
+        showMergedCandidates(
           list,
-          `${list.length} quick online match(es) found. Still checking for better results...`
+          `${list.length} fallback match(es) found. Checking LRCLIB direct...`
         );
-      } else if (!deepFinished) {
-        setSearchOnlineState("Quick search found nothing. Checking deeper...", "pending");
       }
+
+      finishIfBothDone();
     })
     .catch(error => {
-      fastFinished = true;
-      console.error("FAST ONLINE LOOKUP ERROR:", error);
+      edgeDone = true;
 
-      if (runId !== onlineLookupRunId) return;
+      console.error("MEHFIL NORMAL SEARCH EDGE ONLINE ERROR:", error);
 
-      if (!deepFinished) {
-        setSearchOnlineState("Quick search was slow. Checking deeper...", "pending");
-      }
+      if (!isCurrentRun()) return;
+
+      finishIfBothDone();
     });
 
-  const deepPromise = lookupSongOnline({
+  const directPromise = lookupLrclibDirect({
     query: safeQuery,
+    title: safeQuery,
     limit: 6,
-    deep: true
+    deep: true,
+    forceRefresh: force
   })
     .then(candidates => {
-      deepFinished = true;
-
-      if (runId !== onlineLookupRunId) return;
+      directDone = true;
 
       const list = Array.isArray(candidates) ? candidates : [];
 
+      console.log("MEHFIL NORMAL SEARCH DIRECT LRCLIB:", {
+        query: safeQuery,
+        count: list.length,
+        first: list[0] || null
+      });
+
+      if (!isCurrentRun()) return;
+
       if (list.length > 0) {
-        const finalList = mergeOnlineCandidates(shownCandidates, list).slice(0, 6);
+  showMergedCandidates(
+    list,
+    `${list.length} LRCLIB match(es) found.`
+  );
+}
 
-        shownCandidates = finalList;
-
-        renderResults([], safeQuery, { suppressEmptyState: true });
-        renderSearchOnlineCandidates(finalList);
-
-        setSearchOnlineState(
-          `${finalList.length} online match(es) found.`,
-          "success"
-        );
-
-        prefetchOnlineCandidateDetails(finalList, 3);
-        return;
-      }
-
-      if (!shownCandidates.length && fastFinished) {
-        setSearchOnlineState("Nothing found online.", "error");
-        renderSearchOnlineCandidates([]);
-      }
+      finishIfBothDone();
     })
     .catch(error => {
-      deepFinished = true;
-      console.error("DEEP ONLINE LOOKUP ERROR:", error);
+      directDone = true;
 
-      if (runId !== onlineLookupRunId) return;
+      console.error("MEHFIL NORMAL SEARCH DIRECT LRCLIB ERROR:", error);
 
-      if (shownCandidates.length > 0) {
-        setSearchOnlineState(
-          `${shownCandidates.length} online match(es) found. Deeper search could not improve it.`,
-          "success"
-        );
-        return;
-      }
+      if (!isCurrentRun()) return;
 
-      const visibleMessage = shortenErrorText(error?.message || error || "Unknown error");
-
-      setSearchOnlineState(
-        `Online lookup failed: ${visibleMessage}`,
-        "error"
-      );
-
-      renderSearchOnlineCandidates([]);
+      finishIfBothDone();
     });
 
   setTimeout(() => {
-    if (runId !== onlineLookupRunId) return;
+    if (!isCurrentRun()) return;
 
-    if (!shownCandidates.length && !fastFinished) {
-      setSearchOnlineState("Still checking LRCLIB. This title is taking longer than usual...", "pending");
+    if (shownCandidates.length > 0) {
+      return;
     }
+
+    setSearchOnlineState("Checking LRCLIB directly...", "pending");
   }, 2500);
 
-  await Promise.allSettled([fastPromise, deepPromise]);
+  setTimeout(() => {
+    if (!isCurrentRun()) return;
+
+    if (shownCandidates.length > 0) {
+      return;
+    }
+
+    setSearchOnlineState("LRCLIB is slow today. Still waiting for first online result...", "pending");
+  }, 7000);
+
+  setTimeout(() => {
+    if (!isCurrentRun()) return;
+
+    if (shownCandidates.length > 0) {
+      return;
+    }
+
+    setSearchOnlineState("Still checking. First lookup can take 8–10 seconds, then it will be cached.", "pending");
+  }, 10000);
+
+  await Promise.allSettled([edgePromise, directPromise]);
+
+  finishIfBothDone();
 }
 
 async function runForcedOnlineSearch() {
@@ -6054,6 +7120,10 @@ showTemporaryStatus("appStatus", "Song deleted.", "success", 4500);
 };
 
 let adminUsersActiveSubtab = "pending";
+let adminWarmupStopRequested = false;
+let adminWarmupRunning = false;
+let adminWarmupRows = [];
+let adminCacheDashboardRows = [];
 
 async function loadPendingUsers() {
   return await loadUsersAdminData();
@@ -6098,15 +7168,526 @@ async function loadUsersAdminData() {
 }
 
 function setAdminUsersSubtab(tabName) {
-  adminUsersActiveSubtab = tabName === "registered" ? "registered" : "pending";
+  if (tabName === "registered") {
+    adminUsersActiveSubtab = "registered";
+  } else if (tabName === "warmup") {
+    adminUsersActiveSubtab = "warmup";
+  } else {
+    adminUsersActiveSubtab = "pending";
+  }
 
   document.getElementById("adminPendingSubtabBtn").classList.toggle("active", adminUsersActiveSubtab === "pending");
   document.getElementById("adminRegisteredSubtabBtn").classList.toggle("active", adminUsersActiveSubtab === "registered");
+  document.getElementById("adminWarmupSubtabBtn").classList.toggle("active", adminUsersActiveSubtab === "warmup");
 
   document.getElementById("adminPendingPanel").classList.toggle("hidden", adminUsersActiveSubtab !== "pending");
   document.getElementById("adminRegisteredPanel").classList.toggle("hidden", adminUsersActiveSubtab !== "registered");
+  document.getElementById("adminWarmupPanel").classList.toggle("hidden", adminUsersActiveSubtab !== "warmup");
+
+  if (adminUsersActiveSubtab === "warmup") {
+  renderAdminWarmupRows();
+  loadOnlineCacheDashboard();
+  return;
+}
 
   renderAdminUsers();
+}
+
+function parseAdminWarmupQueries() {
+  const input = document.getElementById("adminWarmupInput");
+
+  const raw = String(input?.value || "");
+
+  return Array.from(
+    new Set(
+      raw
+        .split(/\n|,/)
+        .map(value => value.trim())
+        .filter(value => value.length >= 3)
+    )
+  );
+}
+
+function setAdminWarmupStatus(message, type = "info") {
+  const el = document.getElementById("adminWarmupStatus");
+  if (!el) return;
+
+  if (!message) {
+    el.className = "status-box";
+    el.textContent = "";
+    return;
+  }
+
+  const cls =
+    type === "success"
+      ? "status-success"
+      : type === "error"
+        ? "status-error"
+        : type === "warn"
+          ? "status-warn"
+          : "";
+
+  el.className = `status-box show ${cls}`;
+  el.textContent = message;
+}
+
+function renderAdminWarmupRows() {
+  const summary = document.getElementById("adminWarmupSummary");
+  const root = document.getElementById("adminWarmupResults");
+
+  if (!summary || !root) return;
+
+  const rows = Array.isArray(adminWarmupRows) ? adminWarmupRows : [];
+
+  if (!rows.length) {
+    summary.textContent = adminWarmupRunning
+      ? "Warmup running..."
+      : "No warmup results yet.";
+
+    root.innerHTML = "";
+    return;
+  }
+
+  const okCount = rows.filter(row => row.status === "cached").length;
+  const emptyCount = rows.filter(row => row.status === "no_results").length;
+  const errorCount = rows.filter(row => row.status === "error").length;
+
+  summary.textContent = `${rows.length} processed • ${okCount} cached • ${emptyCount} no results • ${errorCount} error(s)`;
+
+  root.innerHTML = `
+    <table class="admin-warmup-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Query</th>
+          <th>Status</th>
+          <th>Results</th>
+          <th>Time</th>
+          <th>Top match</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rows.map((row, index) => {
+          const statusClass =
+            row.status === "cached"
+              ? "admin-warmup-status-ok"
+              : row.status === "error"
+                ? "admin-warmup-status-error"
+                : "admin-warmup-status-empty";
+
+          const statusText =
+            row.status === "cached"
+              ? "Cached"
+              : row.status === "error"
+                ? "Error"
+                : "No results";
+
+          return `
+            <tr>
+              <td>${index + 1}</td>
+              <td>${escapeHtml(row.query || "")}</td>
+              <td class="${statusClass}">${escapeHtml(statusText)}</td>
+              <td>${Number(row.count || 0)}</td>
+              <td>${Number(row.ms || 0)}ms</td>
+              <td>${escapeHtml(row.first || row.error || "")}</td>
+            </tr>
+          `;
+        }).join("")}
+      </tbody>
+    </table>
+  `;
+}
+
+async function warmSingleAdminQuery(query, options = {}) {
+  const started = performance.now();
+
+  const candidates = await lookupLrclibDirect({
+    query,
+    title: query,
+    limit: 6,
+    deep: true,
+    forceRefresh: !!options.forceRefresh
+  });
+
+  const safeCandidates = sanitizeOnlineCacheCandidates(candidates);
+  const count = safeCandidates.length;
+
+  if (count > 0) {
+    await saveOnlineSongSupabaseCache(query, safeCandidates);
+  }
+
+  return {
+    query,
+    count,
+    ms: Math.round(performance.now() - started),
+    first: safeCandidates?.[0]?.title || null,
+    status: count > 0 ? "cached" : "no_results"
+  };
+}
+
+async function startAdminCacheWarmup() {
+  if (!isAdmin()) {
+    setAdminWarmupStatus("Only admins can warm cache.", "error");
+    return;
+  }
+
+  if (adminWarmupRunning) {
+    setAdminWarmupStatus("Warmup is already running.", "warn");
+    return;
+  }
+
+  const queries = parseAdminWarmupQueries();
+
+  if (!queries.length) {
+    setAdminWarmupStatus("Paste at least one song title.", "warn");
+    return;
+  }
+
+  const forceRefresh = !!document.getElementById("adminWarmupForceRefresh")?.checked;
+  const delayMs = Math.max(
+    500,
+    Math.min(Number(document.getElementById("adminWarmupDelayMs")?.value || 1200), 10000)
+  );
+
+  adminWarmupRows = [];
+  adminWarmupRunning = true;
+  adminWarmupStopRequested = false;
+
+  document.getElementById("adminWarmupStartBtn").disabled = true;
+  document.getElementById("adminWarmupStopBtn").disabled = false;
+
+  setAdminWarmupStatus(`Starting warmup for ${queries.length} song(s)...`, "info");
+  renderAdminWarmupRows();
+
+  for (let index = 0; index < queries.length; index++) {
+    if (adminWarmupStopRequested) {
+      setAdminWarmupStatus(`Stopped after ${adminWarmupRows.length}/${queries.length} song(s).`, "warn");
+      break;
+    }
+
+    const query = queries[index];
+
+    setAdminWarmupStatus(`Warming ${index + 1}/${queries.length}: ${query}`, "info");
+
+    try {
+      const row = await warmSingleAdminQuery(query, { forceRefresh });
+      adminWarmupRows.push(row);
+    } catch (error) {
+      adminWarmupRows.push({
+        query,
+        count: 0,
+        ms: 0,
+        first: null,
+        status: "error",
+        error: String(error?.message || error || "Unknown error")
+      });
+    }
+
+    renderAdminWarmupRows();
+
+    if (index < queries.length - 1) {
+      await new Promise(resolve => setTimeout(resolve, delayMs));
+    }
+  }
+
+  adminWarmupRunning = false;
+  adminWarmupStopRequested = false;
+
+  document.getElementById("adminWarmupStartBtn").disabled = false;
+  document.getElementById("adminWarmupStopBtn").disabled = true;
+
+  const okCount = adminWarmupRows.filter(row => row.status === "cached").length;
+  const errorCount = adminWarmupRows.filter(row => row.status === "error").length;
+
+  setAdminWarmupStatus(
+    `Warmup finished. ${okCount} cached, ${errorCount} error(s).`,
+    errorCount ? "warn" : "success"
+  );
+
+  renderAdminWarmupRows();
+}
+
+function stopAdminCacheWarmup() {
+  if (!adminWarmupRunning) return;
+
+  adminWarmupStopRequested = true;
+  setAdminWarmupStatus("Stopping after the current song finishes...", "warn");
+}
+
+function clearAdminWarmupResults() {
+  if (adminWarmupRunning) {
+    setAdminWarmupStatus("Stop the running warmup before clearing results.", "warn");
+    return;
+  }
+
+  adminWarmupRows = [];
+  setAdminWarmupStatus("");
+  renderAdminWarmupRows();
+}
+
+function downloadAdminTextFile(filename, content, mimeType = "text/plain;charset=utf-8") {
+  const blob = new Blob([content], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+
+  setTimeout(() => {
+    URL.revokeObjectURL(url);
+    link.remove();
+  }, 0);
+}
+
+function parseWarmupCsvText(text) {
+  const raw = String(text || "").trim();
+
+  if (!raw) return [];
+
+  return Array.from(
+    new Set(
+      raw
+        .split(/\r?\n/)
+        .map(line => line.trim())
+        .filter(Boolean)
+        .map(line => {
+          // Simple CSV support: use first column only.
+          // Accepts:
+          // query
+          // "query"
+          // query,notes
+          const firstColumn = line.split(",")[0] || "";
+          return firstColumn
+            .replace(/^"|"$/g, "")
+            .trim();
+        })
+        .filter(value => value.length >= 3)
+        .filter(value => !/^query$/i.test(value))
+    )
+  );
+}
+
+function exportAdminWarmupTemplateCsv() {
+  const csv = [
+    "query",
+    "kajra re",
+    "o rangrez",
+    "aaoge jab tum",
+    "tum hi ho",
+    "channa mereya",
+    "agar tum saath ho"
+  ].join("\n");
+
+  downloadAdminTextFile("mehfil-cache-warmup-template.csv", csv, "text/csv;charset=utf-8");
+}
+
+function exportAdminWarmupResultsCsv() {
+  const rows = Array.isArray(adminWarmupRows) ? adminWarmupRows : [];
+
+  const header = [
+    "query",
+    "status",
+    "count",
+    "ms",
+    "top_match",
+    "error"
+  ];
+
+  const csvRows = rows.map(row => [
+    row.query || "",
+    row.status || "",
+    Number(row.count || 0),
+    Number(row.ms || 0),
+    row.first || "",
+    row.error || ""
+  ]);
+
+  const csv = [header, ...csvRows]
+    .map(cols => cols.map(value => `"${String(value).replace(/"/g, '""')}"`).join(","))
+    .join("\n");
+
+  downloadAdminTextFile("mehfil-cache-warmup-results.csv", csv, "text/csv;charset=utf-8");
+}
+
+async function handleAdminWarmupCsvImport(event) {
+  const file = event?.target?.files?.[0];
+
+  if (!file) return;
+
+  try {
+    const text = await file.text();
+    const queries = parseWarmupCsvText(text);
+
+    if (!queries.length) {
+      setAdminWarmupStatus("CSV did not contain any valid song titles.", "warn");
+      return;
+    }
+
+    const input = document.getElementById("adminWarmupInput");
+    const existing = parseAdminWarmupQueries();
+
+    const merged = Array.from(new Set([...existing, ...queries]));
+
+    input.value = merged.join("\n");
+
+    setAdminWarmupStatus(`Imported ${queries.length} song(s) from CSV. Total list: ${merged.length}.`, "success");
+  } catch (error) {
+    setAdminWarmupStatus(`CSV import failed: ${error?.message || error}`, "error");
+  } finally {
+    event.target.value = "";
+  }
+}
+
+function setAdminCacheDashboardStatus(message, type = "info") {
+  const el = document.getElementById("adminCacheDashboardStatus");
+
+  if (!el) return;
+
+  if (!message) {
+    el.className = "status-box";
+    el.textContent = "";
+    return;
+  }
+
+  const cls =
+    type === "success"
+      ? "status-success"
+      : type === "error"
+        ? "status-error"
+        : type === "warn"
+          ? "status-warn"
+          : "";
+
+  el.className = `status-box show ${cls}`;
+  el.textContent = message;
+}
+
+async function loadOnlineCacheDashboard() {
+  if (!isAdmin()) return;
+
+  const root = document.getElementById("adminCacheDashboardResults");
+
+  if (!root) return;
+
+  setAdminCacheDashboardStatus("Loading online cache dashboard...", "info");
+
+  try {
+    const { data, error } = await supabaseClient
+      .from("online_song_cache")
+      .select("query_norm, display_query, provider, candidates, hit_count, last_hit_at, updated_at, created_at")
+      .order("updated_at", { ascending: false })
+      .limit(50);
+
+    if (error) throw error;
+
+    adminCacheDashboardRows = Array.isArray(data) ? data : [];
+
+    renderOnlineCacheDashboard();
+
+    setAdminCacheDashboardStatus(
+      `${adminCacheDashboardRows.length} cached query row(s) loaded.`,
+      "success"
+    );
+  } catch (error) {
+    adminCacheDashboardRows = [];
+    renderOnlineCacheDashboard();
+    setAdminCacheDashboardStatus(`Could not load cache dashboard: ${error?.message || error}`, "error");
+  }
+}
+
+function renderOnlineCacheDashboard() {
+  const root = document.getElementById("adminCacheDashboardResults");
+
+  if (!root) return;
+
+  const rows = Array.isArray(adminCacheDashboardRows) ? adminCacheDashboardRows : [];
+
+  if (!rows.length) {
+    root.innerHTML = `<div class="empty">No cached online songs yet.</div>`;
+    return;
+  }
+
+  root.innerHTML = `
+    <table class="admin-cache-table">
+      <thead>
+        <tr>
+          <th>Query</th>
+          <th>Results</th>
+          <th>Top Match</th>
+          <th>Provider</th>
+          <th>Hits</th>
+          <th>Updated</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rows.map(row => {
+          const candidates = Array.isArray(row.candidates) ? row.candidates : [];
+          const top = candidates[0] || {};
+          const updated = row.updated_at
+            ? new Date(row.updated_at).toLocaleString()
+            : "";
+
+          return `
+            <tr>
+              <td>
+                <div class="admin-cache-query">${escapeHtml(row.display_query || row.query_norm || "")}</div>
+                <div class="admin-cache-muted">${escapeHtml(row.query_norm || "")}</div>
+              </td>
+              <td>${candidates.length}</td>
+              <td>
+                <div>${escapeHtml(top.title || "")}</div>
+                <div class="admin-cache-muted">${escapeHtml([top.singer, top.movie].filter(Boolean).join(" • "))}</div>
+              </td>
+              <td>${escapeHtml(row.provider || "")}</td>
+              <td>${Number(row.hit_count || 0)}</td>
+              <td>${escapeHtml(updated)}</td>
+            </tr>
+          `;
+        }).join("")}
+      </tbody>
+    </table>
+  `;
+}
+
+function exportOnlineCacheDashboardCsv() {
+  const rows = Array.isArray(adminCacheDashboardRows) ? adminCacheDashboardRows : [];
+
+  const header = [
+    "display_query",
+    "query_norm",
+    "result_count",
+    "top_title",
+    "top_singer",
+    "top_movie",
+    "provider",
+    "hit_count",
+    "updated_at"
+  ];
+
+  const csvRows = rows.map(row => {
+    const candidates = Array.isArray(row.candidates) ? row.candidates : [];
+    const top = candidates[0] || {};
+
+    return [
+      row.display_query || "",
+      row.query_norm || "",
+      candidates.length,
+      top.title || "",
+      top.singer || "",
+      top.movie || "",
+      row.provider || "",
+      Number(row.hit_count || 0),
+      row.updated_at || ""
+    ];
+  });
+
+  const csv = [header, ...csvRows]
+    .map(cols => cols.map(value => `"${String(value).replace(/"/g, '""')}"`).join(","))
+    .join("\n");
+
+  downloadAdminTextFile("mehfil-online-cache-dashboard.csv", csv, "text/csv;charset=utf-8");
 }
 
 function renderAdminUsers() {
@@ -7158,6 +8739,24 @@ document.getElementById("adminPendingSubtabBtn").addEventListener("click", () =>
 document.getElementById("adminRegisteredSubtabBtn").addEventListener("click", () => {
   setAdminUsersSubtab("registered");
 });
+
+document.getElementById("adminWarmupSubtabBtn").addEventListener("click", () => {
+  setAdminUsersSubtab("warmup");
+});
+
+document.getElementById("adminWarmupStartBtn").addEventListener("click", startAdminCacheWarmup);
+document.getElementById("adminWarmupStopBtn").addEventListener("click", stopAdminCacheWarmup);
+document.getElementById("adminWarmupClearBtn").addEventListener("click", clearAdminWarmupResults);
+document.getElementById("adminWarmupImportCsvBtn").addEventListener("click", () => {
+  document.getElementById("adminWarmupCsvInput").click();
+});
+
+document.getElementById("adminWarmupCsvInput").addEventListener("change", handleAdminWarmupCsvImport);
+document.getElementById("adminWarmupExportTemplateBtn").addEventListener("click", exportAdminWarmupTemplateCsv);
+document.getElementById("adminWarmupExportResultsBtn").addEventListener("click", exportAdminWarmupResultsCsv);
+document.getElementById("adminCacheDashboardRefreshBtn").addEventListener("click", loadOnlineCacheDashboard);
+document.getElementById("adminCacheDashboardExportBtn").addEventListener("click", exportOnlineCacheDashboardCsv);
+
       document.getElementById("liveNowOpenBtn").addEventListener("click", openPendingLiveSong);
 document.getElementById("liveNowDismissBtn").addEventListener("click", dismissPendingLiveSong);
       document.getElementById("liveMiniBtn").addEventListener("click", openPendingLiveSong);
