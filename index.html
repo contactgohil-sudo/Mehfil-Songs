@@ -1608,7 +1608,7 @@ let openOnlineCandidateData = null;
 let onlineLookupRunId = 0;
 let searchOnlineCandidatesState = [];
 let editorLookupCandidatesState = [];
-
+let passwordRecoveryMode = false;
 
 const ONLINE_LOOKUP_CACHE_TTL_MS = 3 * 60 * 1000;
 let onlineLookupCache = new Map();
@@ -6400,20 +6400,36 @@ const best = candidates[0] || null;
   }
 }
 
-function showPasswordResetBox(message = "") {
-  const box = document.getElementById("passwordResetBox");
+function urlLooksLikePasswordRecovery() {
+  const hash = window.location.hash || "";
+  const search = window.location.search || "";
+
+  return (
+    hash.includes("type=recovery") ||
+    search.includes("type=recovery") ||
+    hash.includes("recovery") ||
+    search.includes("recovery")
+  );
+}
+
+function forcePasswordRecoveryMode(message = "Password recovery mode. Enter your new password below.") {
+  passwordRecoveryMode = true;
+
   const authScreen = document.getElementById("authScreen");
   const pendingScreen = document.getElementById("pendingScreen");
   const appScreen = document.getElementById("appScreen");
+  const box = document.getElementById("passwordResetBox");
 
   if (authScreen) authScreen.classList.remove("hidden");
   if (pendingScreen) pendingScreen.classList.add("hidden");
   if (appScreen) appScreen.classList.add("hidden");
   if (box) box.classList.remove("hidden");
 
-  if (message) {
-    showStatus("authStatus", message, "info");
-  }
+  showStatus("authStatus", message, "info");
+}
+
+function showPasswordResetBox(message = "") {
+  forcePasswordRecoveryMode(message || "Password recovery mode. Enter your new password below.");
 }
 
 function hidePasswordResetBox() {
@@ -6491,6 +6507,12 @@ async function updateRecoveredPassword() {
       showStatus("authStatus", error.message || "Could not update password.", "error");
       return;
     }
+
+    passwordRecoveryMode = false;
+
+if (window.history && window.history.replaceState) {
+  window.history.replaceState({}, document.title, REDIRECT_URL);
+}
 
     await supabaseClient.auth.signOut();
 
@@ -8714,6 +8736,11 @@ if (tabName !== "search") {
 
       if (!authScreen || !pendingScreen || !appScreen) return;
 
+        if (passwordRecoveryMode || urlLooksLikePasswordRecovery()) {
+    forcePasswordRecoveryMode("Password recovery mode. Enter your new password below.");
+    return;
+  }
+
       if (!session?.user) {
         authScreen.classList.remove("hidden");
         pendingScreen.classList.add("hidden");
@@ -8757,7 +8784,25 @@ if (tabName !== "search") {
       session = nextSession || null;
       profile = null;
 
-      showPasswordResetBox("Password recovery mode. Enter your new password below.");
+      forcePasswordRecoveryMode("Password recovery mode. Enter your new password below.");
+      return;
+    }
+
+    if (passwordRecoveryMode) {
+      return;
+    }
+
+    session = nextSession || null;
+
+    if (!session?.user) {
+      unsubscribeFromSongsRealtime();
+      unsubscribeFromLiveSongChannel();
+      showLiveNowBar("");
+      lastLiveEventId = null;
+      pendingLiveSongId = null;
+      pendingLiveEventByMe = false;
+      currentLiveSongId = null;
+      updateLiveMiniButton();
     }
   });
 }
@@ -8772,15 +8817,23 @@ if (tabName !== "search") {
 
         session = data.session || null;
 
-        if (session?.user) {
-          await loadProfile();
-        } else {
-          profile = null;
-        }
+if (urlLooksLikePasswordRecovery()) {
+  passwordRecoveryMode = true;
+  profile = null;
+  forcePasswordRecoveryMode("Password recovery mode. Enter your new password below.");
+  return;
+}
 
-        renderScreens();
+if (session?.user) {
+  await loadProfile();
+} else {
+  profile = null;
+}
 
-        if (!session?.user) return;
+renderScreens();
+
+if (passwordRecoveryMode) return;
+if (!session?.user) return;
 
         if (!profile) {
           showStatus("authStatus", "Logged in, but profile could not be loaded.", "error");
@@ -9199,21 +9252,7 @@ document.getElementById("registeredUsersList").addEventListener("click", handleA
         if (e.key === "Escape") closeSongModal();
       });
 
-     supabaseClient.auth.onAuthStateChange((_event, newSession) => {
-  session = newSession || null;
-
-  if (!session?.user) {
-    unsubscribeFromSongsRealtime();
-   unsubscribeFromLiveSongChannel();
-showLiveNowBar("");
-lastLiveEventId = null;
-pendingLiveSongId = null;
-pendingLiveEventByMe = false;
-currentLiveSongId = null;
-updateLiveMiniButton();
-  }
-});
-    }
+     }
 
     document.addEventListener("DOMContentLoaded", () => {
       bindEvents();
