@@ -1206,13 +1206,39 @@
       </div>
 
       <div class="stack-actions">
-        <button id="loginBtn" class="btn" type="button">Login</button>
-        <button id="signupBtn" class="btn-secondary" type="button">Request Access</button>
-      </div>
+  <button id="loginBtn" class="btn" type="button">Login</button>
+  <button id="signupBtn" class="btn-secondary" type="button">Request Access</button>
+  <button id="forgotPasswordBtn" class="btn-secondary" type="button">Forgot Password?</button>
+</div>
 
-      <div class="tiny" style="margin-top:10px;">
-        Request Access creates your account. An admin must approve it before you can enter.
-      </div>
+<div id="passwordResetBox" class="hidden" style="margin-top:14px;">
+  <div class="status-box show status-info">
+    Enter a new password after opening the reset link from your email.
+  </div>
+
+  <div class="row">
+    <div class="field">
+      <label for="newPassword">New password</label>
+      <input id="newPassword" class="input" type="password" placeholder="New password" />
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="field">
+      <label for="confirmNewPassword">Confirm new password</label>
+      <input id="confirmNewPassword" class="input" type="password" placeholder="Confirm new password" />
+    </div>
+  </div>
+
+  <div class="stack-actions">
+    <button id="updatePasswordBtn" class="btn" type="button">Update Password</button>
+    <button id="cancelPasswordResetBtn" class="btn-secondary" type="button">Cancel</button>
+  </div>
+</div>
+
+<div class="tiny" style="margin-top:10px;">
+  Request Access creates your account. An admin must approve it before you can enter.
+</div>
     </section>
 
     <section id="pendingScreen" class="screen-card hidden">
@@ -1445,6 +1471,11 @@
         <input id="adminWarmupDelayMs" class="input input-thin" type="number" value="1200" min="500" max="10000" step="100" style="width:100px;" />
         ms
       </label>
+      <label class="admin-warmup-option">
+  Parallel:
+  <input id="adminWarmupParallelCount" class="input input-thin" type="number" value="3" min="1" max="5" step="1" style="width:70px;" />
+  songs
+</label>
 
       <button id="adminWarmupStartBtn" class="btn" type="button">Start Warmup</button>
 <button id="adminWarmupStopBtn" class="btn-secondary" type="button" disabled>Stop</button>
@@ -1577,6 +1608,7 @@ let openOnlineCandidateData = null;
 let onlineLookupRunId = 0;
 let searchOnlineCandidatesState = [];
 let editorLookupCandidatesState = [];
+
 
 const ONLINE_LOOKUP_CACHE_TTL_MS = 3 * 60 * 1000;
 let onlineLookupCache = new Map();
@@ -6368,6 +6400,116 @@ const best = candidates[0] || null;
   }
 }
 
+function showPasswordResetBox(message = "") {
+  const box = document.getElementById("passwordResetBox");
+  const authScreen = document.getElementById("authScreen");
+  const pendingScreen = document.getElementById("pendingScreen");
+  const appScreen = document.getElementById("appScreen");
+
+  if (authScreen) authScreen.classList.remove("hidden");
+  if (pendingScreen) pendingScreen.classList.add("hidden");
+  if (appScreen) appScreen.classList.add("hidden");
+  if (box) box.classList.remove("hidden");
+
+  if (message) {
+    showStatus("authStatus", message, "info");
+  }
+}
+
+function hidePasswordResetBox() {
+  passwordRecoveryMode = false;
+
+  const box = document.getElementById("passwordResetBox");
+  if (box) box.classList.add("hidden");
+
+  const newPassword = document.getElementById("newPassword");
+  const confirmNewPassword = document.getElementById("confirmNewPassword");
+
+  if (newPassword) newPassword.value = "";
+  if (confirmNewPassword) confirmNewPassword.value = "";
+}
+
+async function sendPasswordResetEmail() {
+  const email = document.getElementById("authEmail").value.trim();
+
+  if (!email) {
+    showStatus("authStatus", "Enter your email first, then click Forgot Password.", "error");
+    document.getElementById("authEmail").focus();
+    return;
+  }
+
+  showStatus("authStatus", "Sending password reset email...", "info");
+
+  try {
+    const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
+      redirectTo: REDIRECT_URL
+    });
+
+    if (error) {
+      showStatus("authStatus", error.message || "Could not send reset email.", "error");
+      return;
+    }
+
+    showStatus(
+      "authStatus",
+      "Password reset email sent. Open the email link, then set your new password here.",
+      "success"
+    );
+  } catch (error) {
+    console.error("PASSWORD RESET EMAIL ERROR:", error);
+    showStatus("authStatus", error?.message || "Could not send reset email.", "error");
+  }
+}
+
+async function updateRecoveredPassword() {
+  const newPassword = document.getElementById("newPassword").value;
+  const confirmNewPassword = document.getElementById("confirmNewPassword").value;
+
+  if (!newPassword || !confirmNewPassword) {
+    showStatus("authStatus", "Enter and confirm your new password.", "error");
+    return;
+  }
+
+  if (newPassword.length < 6) {
+    showStatus("authStatus", "Password must be at least 6 characters.", "error");
+    return;
+  }
+
+  if (newPassword !== confirmNewPassword) {
+    showStatus("authStatus", "Passwords do not match.", "error");
+    return;
+  }
+
+  showStatus("authStatus", "Updating password...", "info");
+
+  try {
+    const { error } = await supabaseClient.auth.updateUser({
+      password: newPassword
+    });
+
+    if (error) {
+      showStatus("authStatus", error.message || "Could not update password.", "error");
+      return;
+    }
+
+    await supabaseClient.auth.signOut();
+
+    session = null;
+    profile = null;
+    hidePasswordResetBox();
+    renderScreens();
+
+    showStatus(
+      "authStatus",
+      "Password updated. Log in with your new password.",
+      "success"
+    );
+  } catch (error) {
+    console.error("UPDATE RECOVERED PASSWORD ERROR:", error);
+    showStatus("authStatus", error?.message || "Could not update password.", "error");
+  }
+}
+
     async function loginUser() {
       const email = document.getElementById("authEmail").value.trim();
       const password = document.getElementById("authPassword").value;
@@ -7344,9 +7486,15 @@ async function startAdminCacheWarmup() {
   }
 
   const forceRefresh = !!document.getElementById("adminWarmupForceRefresh")?.checked;
+
   const delayMs = Math.max(
     500,
     Math.min(Number(document.getElementById("adminWarmupDelayMs")?.value || 1200), 10000)
+  );
+
+  const parallelCount = Math.max(
+    1,
+    Math.min(Number(document.getElementById("adminWarmupParallelCount")?.value || 3), 5)
   );
 
   adminWarmupRows = [];
@@ -7356,36 +7504,68 @@ async function startAdminCacheWarmup() {
   document.getElementById("adminWarmupStartBtn").disabled = true;
   document.getElementById("adminWarmupStopBtn").disabled = false;
 
-  setAdminWarmupStatus(`Starting warmup for ${queries.length} song(s)...`, "info");
+  setAdminWarmupStatus(
+    `Starting warmup for ${queries.length} song(s), ${parallelCount} at a time...`,
+    "info"
+  );
+
   renderAdminWarmupRows();
 
-  for (let index = 0; index < queries.length; index++) {
+  let processed = 0;
+
+  for (let batchStart = 0; batchStart < queries.length; batchStart += parallelCount) {
     if (adminWarmupStopRequested) {
       setAdminWarmupStatus(`Stopped after ${adminWarmupRows.length}/${queries.length} song(s).`, "warn");
       break;
     }
 
-    const query = queries[index];
+    const batch = queries.slice(batchStart, batchStart + parallelCount);
 
-    setAdminWarmupStatus(`Warming ${index + 1}/${queries.length}: ${query}`, "info");
+    setAdminWarmupStatus(
+      `Warming ${batchStart + 1}-${batchStart + batch.length}/${queries.length}: ${batch.join(", ")}`,
+      "info"
+    );
 
-    try {
-      const row = await warmSingleAdminQuery(query, { forceRefresh });
-      adminWarmupRows.push(row);
-    } catch (error) {
-      adminWarmupRows.push({
-        query,
-        count: 0,
-        ms: 0,
-        first: null,
-        status: "error",
-        error: String(error?.message || error || "Unknown error")
-      });
+    const batchResults = await Promise.allSettled(
+      batch.map(async query => {
+        const row = await warmSingleAdminQuery(query, { forceRefresh });
+        return row;
+      })
+    );
+
+    for (let index = 0; index < batchResults.length; index++) {
+      const result = batchResults[index];
+      const query = batch[index];
+
+      processed++;
+
+      if (result.status === "fulfilled") {
+        adminWarmupRows.push(result.value);
+      } else {
+        adminWarmupRows.push({
+          query,
+          count: 0,
+          ms: 0,
+          first: null,
+          status: "error",
+          error: String(result.reason?.message || result.reason || "Unknown error")
+        });
+      }
     }
 
     renderAdminWarmupRows();
 
-    if (index < queries.length - 1) {
+    if (adminWarmupStopRequested) {
+      setAdminWarmupStatus(`Stopped after ${adminWarmupRows.length}/${queries.length} song(s).`, "warn");
+      break;
+    }
+
+    if (batchStart + parallelCount < queries.length) {
+      setAdminWarmupStatus(
+        `Processed ${processed}/${queries.length}. Waiting ${delayMs}ms before next batch...`,
+        "info"
+      );
+
       await new Promise(resolve => setTimeout(resolve, delayMs));
     }
   }
@@ -7397,14 +7577,16 @@ async function startAdminCacheWarmup() {
   document.getElementById("adminWarmupStopBtn").disabled = true;
 
   const okCount = adminWarmupRows.filter(row => row.status === "cached").length;
+  const emptyCount = adminWarmupRows.filter(row => row.status === "no_results").length;
   const errorCount = adminWarmupRows.filter(row => row.status === "error").length;
 
   setAdminWarmupStatus(
-    `Warmup finished. ${okCount} cached, ${errorCount} error(s).`,
+    `Warmup finished. ${okCount} cached, ${emptyCount} no result(s), ${errorCount} error(s).`,
     errorCount ? "warn" : "success"
   );
 
   renderAdminWarmupRows();
+  loadOnlineCacheDashboard();
 }
 
 function stopAdminCacheWarmup() {
@@ -8568,6 +8750,18 @@ if (tabName !== "search") {
       document.getElementById("libraryCountText").textContent = `${songs.length} songs`;
     }
 
+    function setupAuthRecoveryListener() {
+  supabaseClient.auth.onAuthStateChange((event, nextSession) => {
+    if (event === "PASSWORD_RECOVERY") {
+      passwordRecoveryMode = true;
+      session = nextSession || null;
+      profile = null;
+
+      showPasswordResetBox("Password recovery mode. Enter your new password below.");
+    }
+  });
+}
+
     async function bootstrap() {
       try {
         showStatus("authStatus", "", "info");
@@ -8613,6 +8807,12 @@ if (tabName !== "search") {
       document.getElementById("logoutBtn").addEventListener("click", logoutUser);
       document.getElementById("pendingLogoutBtn").addEventListener("click", logoutUser);
       document.getElementById("pendingRefreshBtn").addEventListener("click", refreshApprovalStatus);
+      document.getElementById("forgotPasswordBtn").addEventListener("click", sendPasswordResetEmail);
+document.getElementById("updatePasswordBtn").addEventListener("click", updateRecoveredPassword);
+document.getElementById("cancelPasswordResetBtn").addEventListener("click", () => {
+  hidePasswordResetBox();
+  showStatus("authStatus", "", "info");
+});
 
       document.getElementById("toggleAddBtn").addEventListener("click", () => {
         resetSongForm();
@@ -9017,6 +9217,7 @@ updateLiveMiniButton();
 
     document.addEventListener("DOMContentLoaded", () => {
       bindEvents();
+      setupAuthRecoveryListener();
       bootstrap().catch(err => {
         console.error("INITIAL START ERROR:", err);
         document.getElementById("authScreen").classList.remove("hidden");
