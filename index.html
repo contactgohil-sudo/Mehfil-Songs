@@ -1339,6 +1339,250 @@
   font-size: 0.8rem;
 }
 
+.provider-lyrics-fallback {
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 14px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.03);
+}
+
+.provider-lyrics-title {
+  font-size: 17px;
+  font-weight: 800;
+  margin-bottom: 6px;
+}
+
+.provider-lyrics-message {
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.45;
+  margin-bottom: 12px;
+}
+
+.provider-lyrics-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.provider-link-grid {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.provider-link-card {
+  width: 100%;
+  border: 1px solid var(--line);
+  background: #ffffff;
+  color: var(--text);
+  border-radius: 16px;
+  padding: 12px;
+  cursor: pointer;
+  text-align: left;
+  display: grid;
+  gap: 6px;
+  transition: transform 0.12s ease, border-color 0.12s ease, box-shadow 0.12s ease;
+}
+
+.provider-link-card:hover {
+  transform: translateY(-1px);
+  border-color: #cbd5e1;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+}
+
+.provider-link-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.provider-link-name {
+  font-size: 15px;
+  font-weight: 900;
+}
+
+.provider-link-badge {
+  font-size: 11px;
+  font-weight: 800;
+  color: #166534;
+  background: #dcfce7;
+  border: 1px solid #bbf7d0;
+  border-radius: 999px;
+  padding: 4px 8px;
+  white-space: nowrap;
+}
+
+.provider-link-title {
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.35;
+  color: #111827;
+}
+
+.provider-link-description {
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--muted);
+}
+
+.provider-link-meta {
+  font-size: 11px;
+  color: var(--muted);
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.provider-manual-row {
+  margin-top: 10px;
+}
+
+.provider-manual-row .provider-lyrics-btn {
+  width: auto;
+}
+
+@media (max-width: 640px) {
+  .provider-link-card {
+    padding: 11px;
+  }
+
+  .provider-link-top {
+    align-items: flex-start;
+  }
+
+  .provider-link-name {
+    font-size: 14px;
+  }
+
+  .provider-link-title {
+    font-size: 13px;
+  }
+
+  .provider-manual-row .provider-lyrics-btn {
+    width: 100%;
+  }
+}
+
+.provider-lyrics-btn {
+  border: 1px solid var(--line);
+  background: var(--primary);
+  color: white;
+  border-radius: 12px;
+  padding: 10px 12px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 700;
+  min-height: 40px;
+}
+
+.provider-lyrics-btn.secondary {
+  background: white;
+  color: var(--text);
+}
+
+.provider-lyrics-note {
+  margin-top: 10px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.provider-lyrics-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 11000;
+  background: rgba(15, 23, 42, 0.62);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 10px;
+}
+
+.provider-lyrics-modal.show {
+  display: flex;
+}
+
+.provider-lyrics-modal-card {
+  width: 100%;
+  height: min(92vh, 860px);
+  max-width: 980px;
+  background: white;
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 0 22px 80px rgba(0,0,0,0.34);
+  display: flex;
+  flex-direction: column;
+}
+
+.provider-lyrics-modal-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px;
+  border-bottom: 1px solid var(--line);
+  background: #ffffff;
+}
+
+.provider-lyrics-modal-title {
+  font-weight: 800;
+  font-size: 14px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.provider-lyrics-modal-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.provider-lyrics-frame {
+  width: 100%;
+  flex: 1;
+  border: 0;
+  background: white;
+}
+
+.provider-lyrics-blocked-help {
+  padding: 8px 10px;
+  background: #fff7ed;
+  color: #9a3412;
+  border-bottom: 1px solid #fed7aa;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+@media (max-width: 640px) {
+  .provider-lyrics-modal {
+    padding: 0;
+  }
+
+  .provider-lyrics-modal-card {
+    height: 100dvh;
+    border-radius: 0;
+  }
+
+  .provider-lyrics-modal-actions .btn-secondary {
+    padding: 8px 9px;
+    font-size: 12px;
+  }
+
+  .provider-lyrics-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .provider-lyrics-btn {
+    width: 100%;
+  }
+}
+
   </style>
 </head>
 <body>
@@ -1741,6 +1985,8 @@
     <div class="footer">© 2026 Mehfil. All rights reserved.</div>
   </div>
 
+</div>
+
   <div id="songModal" class="modal">
     <div class="modal-card">
     <div class="modal-top">
@@ -1847,6 +2093,7 @@ let lastHiddenAt = 0;
 let lastResumeHandledAt = 0;
 
 let deferredInstallPrompt = null;
+let currentProviderLyricsUrl = "";
 
 const INSTALL_PROMPT_DISMISSED_KEY = "mehfil_install_prompt_dismissed_until_v1";
 
@@ -2753,6 +3000,297 @@ function renderSearchOnlineCandidates(candidates) {
 
   root.classList.remove("hidden");
   prefetchOnlineCandidateDetails(searchOnlineCandidatesState, 3);
+}
+
+async function lookupDirectProviderLinks(query) {
+  const base = normalizeLrclibProxyBaseUrl(MEHFIL_LRCLIB_PROXY_URL);
+  const safeQuery = String(query || "").trim();
+
+  if (!base || !safeQuery) return [];
+
+  /*
+    refresh=1 is temporary while we are testing direct provider links.
+    It bypasses old Worker cache that may contain empty results.
+    Later we can remove refresh=1 after Worker cache behavior is confirmed.
+  */
+  const url = `${base}/provider-links?q=${encodeURIComponent(safeQuery)}`;
+
+  try {
+    const response = await fetch(url, {
+      headers: {
+        Accept: "application/json"
+      }
+    });
+
+    const data = await response.json().catch(() => null);
+
+    console.log("DIRECT PROVIDER LINKS DEBUG:", {
+      request_url: url,
+      query: safeQuery,
+      status: response.status,
+      ok: response.ok,
+      count: Array.isArray(data?.links) ? data.links.length : 0,
+      links: data?.links || []
+    });
+
+    if (!response.ok || !data || !Array.isArray(data.links)) {
+      return [];
+    }
+
+    return data.links.filter(link =>
+      link &&
+      link.url &&
+      link.direct === true
+    );
+  } catch (error) {
+    console.warn("Provider direct-link lookup failed:", error);
+    return [];
+  }
+}
+
+
+function getProviderDisplayName(provider, label) {
+  const value = String(provider || "").toLowerCase();
+
+  if (value === "genius") return "Genius";
+  if (value === "shazam") return "Shazam";
+  if (value === "smule") return "Smule";
+  if (value === "gaana") return "Gaana";
+  if (value === "musixmatch") return "Musixmatch";
+
+  return String(label || "Open provider").replace(/^Open on\s+/i, "");
+}
+
+function getProviderDisplayName(provider, label) {
+  const value = String(provider || "").toLowerCase();
+
+  if (value === "genius") return "Genius";
+  if (value === "shazam") return "Shazam";
+  if (value === "smule") return "Smule";
+  if (value === "gaana") return "Gaana";
+  if (value === "musixmatch") return "Musixmatch";
+
+  return String(label || "Open provider").replace(/^Open on\s+/i, "");
+}
+
+function getProviderQualityLabel(link) {
+  const label = String(link?.quality_label || "").trim();
+  if (label) return label;
+
+  const score = Number(link?.quality_score || link?.confidence || 0);
+
+  if (score >= 90) return "Best match";
+  if (score >= 75) return "Strong match";
+  return "Direct page";
+}
+
+function cleanProviderCardTitle(value, fallback) {
+  const text = String(value || "")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (!text) return fallback;
+
+  if (text.length <= 130) return text;
+
+  return text.slice(0, 130).trim() + "...";
+}
+
+function cleanProviderCardDescription(value) {
+  const text = String(value || "")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (!text) {
+    return "Open the direct song page in a new tab.";
+  }
+
+  if (text.length <= 150) return text;
+
+  return text.slice(0, 150).trim() + "...";
+}
+
+function buildProviderLyricsFallbackHtml(query, links = [], isLoading = false) {
+  const safeQuery = String(query || "").trim();
+  const safeLinks = Array.isArray(links) ? links : [];
+
+  return `
+    <div class="provider-lyrics-fallback">
+      <div class="provider-lyrics-title">Lyrics not found in Mehfil</div>
+
+      <div class="provider-lyrics-message">
+        Mehfil checked the local library and LRCLIB but did not find usable lyrics.
+        ${
+          isLoading
+            ? "Finding strong direct song-page matches..."
+            : safeLinks.length
+              ? "Strong direct song-page matches are available below."
+              : "No strong direct song-page match was found yet."
+        }
+      </div>
+
+      ${
+        safeLinks.length
+          ? `
+            <div class="provider-link-grid">
+              ${safeLinks.map(link => {
+                const providerName = getProviderDisplayName(link.provider, link.label);
+                const qualityLabel = getProviderQualityLabel(link);
+                const score = Math.round(Number(link.quality_score || link.confidence || 0));
+                const title = cleanProviderCardTitle(
+                  link.title,
+                  `${providerName} song page`
+                );
+                const description = cleanProviderCardDescription(link.description);
+
+                return `
+                  <button
+                    class="provider-link-card"
+                    type="button"
+                    data-provider-url="${escapeHtml(link.url)}"
+                  >
+                    <div class="provider-link-top">
+                      <div class="provider-link-name">${escapeHtml(providerName)}</div>
+                      <div class="provider-link-badge">${escapeHtml(qualityLabel)}</div>
+                    </div>
+
+                    <div class="provider-link-title">${escapeHtml(title)}</div>
+
+                    <div class="provider-link-description">
+                      ${escapeHtml(description)}
+                    </div>
+
+                    <div class="provider-link-meta">
+                      <span class="provider-link-open">Open direct page ↗</span>
+                      ${score ? `<span>Quality ${escapeHtml(String(score))}%</span>` : ""}
+                    </div>
+                  </button>
+                `;
+              }).join("")}
+            </div>
+          `
+          : ""
+      }
+
+      <div class="provider-manual-row">
+        <button
+          class="provider-lyrics-btn secondary"
+          type="button"
+          data-provider-manual-query="${escapeHtml(safeQuery)}"
+        >
+          Paste lyrics manually
+        </button>
+      </div>
+
+      <div class="provider-lyrics-note">
+        Only strong direct song-page matches are shown.
+      </div>
+    </div>
+  `;
+}
+
+function renderProviderLyricsFallback(query) {
+  const root = document.getElementById("searchOnlineCandidates");
+  if (!root) return;
+
+  const safeQuery = String(query || "").trim();
+  const fallbackRunId = onlineLookupRunId;
+
+  searchOnlineCandidatesState = [];
+  root.innerHTML = buildProviderLyricsFallbackHtml(safeQuery, [], true);
+  root.classList.remove("hidden");
+
+  lookupDirectProviderLinks(safeQuery)
+    .then(links => {
+      if (fallbackRunId !== onlineLookupRunId) return;
+
+      root.innerHTML = buildProviderLyricsFallbackHtml(
+        safeQuery,
+        links,
+        false
+      );
+
+      root.classList.remove("hidden");
+    })
+    .catch(error => {
+      console.warn("Provider fallback render failed:", error);
+
+      if (fallbackRunId !== onlineLookupRunId) return;
+
+      root.innerHTML = buildProviderLyricsFallbackHtml(
+        safeQuery,
+        [],
+        false
+      );
+
+      root.classList.remove("hidden");
+    });
+}
+
+
+function openManualLyricsEntryFromMissing(query) {
+  const safeQuery = String(query || "").trim();
+
+  if (!isApproved()) {
+    showTemporaryStatus(
+      "appStatus",
+      "Only approved members can add lyrics manually.",
+      "warn",
+      4500
+    );
+    return;
+  }
+
+  resetSongForm();
+  activateTab("search");
+  openEditor();
+
+  const titleInput = document.getElementById("songTitle");
+  const lyricsBox = document.getElementById("songLyrics");
+  const status = document.getElementById("editorStatus");
+
+  if (titleInput) {
+    titleInput.value = safeQuery;
+    markInputAutofilled(titleInput, !!safeQuery);
+  }
+
+  if (lyricsBox) {
+    lyricsBox.value = "";
+    markTextareaAutofilled(lyricsBox, false);
+  }
+
+  if (status) {
+    status.style.color = "#6b7280";
+    status.textContent = "Paste lyrics manually, review song details, then save.";
+  }
+
+  checkEditorDuplicateState();
+}
+
+function setupProviderLyricsFallbackEvents() {
+  document.addEventListener("click", event => {
+    const providerButton = event.target.closest("[data-provider-url]");
+    if (providerButton) {
+      const url = providerButton.getAttribute("data-provider-url");
+
+      if (url) {
+        window.open(
+          url,
+          "_blank",
+          "noopener,noreferrer"
+        );
+      }
+
+      return;
+    }
+
+    const manualButton = event.target.closest("[data-provider-manual-query]");
+    if (manualButton) {
+      const query = manualButton.getAttribute("data-provider-manual-query") || "";
+      openManualLyricsEntryFromMissing(query);
+      return;
+    }
+  });
 }
 
 function renderEditorLookupCandidates(candidates) {
@@ -3938,9 +4476,25 @@ async function runOnlineLookupForSearch(query, options = {}) {
   let shownCandidates = [];
   let directDone = false;
   let edgeDone = false;
+  let providerFallbackVisible = false;
 
   function isCurrentRun() {
     return runId === onlineLookupRunId;
+  }
+
+  function showProviderFallback() {
+    if (!isCurrentRun()) return;
+    if (shownCandidates.length > 0) return;
+
+    providerFallbackVisible = true;
+
+    /*
+      Important:
+      Once provider options are visible, do not keep showing
+      the old red "still checking" banner.
+    */
+    setSearchOnlineState("");
+    renderProviderLyricsFallback(safeQuery);
   }
 
   function showMergedCandidates(candidates, message) {
@@ -3950,10 +4504,12 @@ async function runOnlineLookupForSearch(query, options = {}) {
 
     if (!list.length) return;
 
+    providerFallbackVisible = false;
     shownCandidates = mergeOnlineCandidates(shownCandidates, list).slice(0, 6);
 
     renderResults([], safeQuery, { suppressEmptyState: true });
     renderSearchOnlineCandidates(shownCandidates);
+
     setSearchOnlineState(message, "success");
     prefetchOnlineCandidateDetails(shownCandidates, 3);
   }
@@ -3963,45 +4519,47 @@ async function runOnlineLookupForSearch(query, options = {}) {
     if (!directDone || !edgeDone) return;
 
     if (shownCandidates.length > 0) {
+      providerFallbackVisible = false;
+
       setSearchOnlineState(
         `${shownCandidates.length} online match(es) found.`,
         "success"
       );
+
       return;
     }
 
-    setSearchOnlineState("Nothing found online.", "error");
-    renderSearchOnlineCandidates([]);
+    showProviderFallback();
   }
 
   const cachedCandidates = await readOnlineSongSupabaseCache(safeQuery);
-const desiredOnlineCount = 6;
+  const desiredOnlineCount = 6;
 
-if (cachedCandidates.length) {
-  showMergedCandidates(
-    cachedCandidates,
-    `${cachedCandidates.length} cached online match(es) found. Refreshing for more...`
-  );
+  if (cachedCandidates.length) {
+    showMergedCandidates(
+      cachedCandidates,
+      `${cachedCandidates.length} cached online match(es) found. Refreshing for more...`
+    );
 
-  /*
-    Full cache is enough.
-    Partial cache is NOT enough.
+    /*
+      Full cache is enough.
+      Partial cache is NOT enough.
 
-    If cache has 6+ results, stop.
-    If cache has only 1–5 results, keep searching in background.
-  */
-  if (!force && cachedCandidates.length >= desiredOnlineCount) {
-    directDone = true;
-    edgeDone = true;
-    finishIfBothDone();
-    return;
+      If cache has 6+ results, stop.
+      If cache has only 1–5 results, keep searching in background.
+    */
+    if (!force && cachedCandidates.length >= desiredOnlineCount) {
+      directDone = true;
+      edgeDone = true;
+      finishIfBothDone();
+      return;
+    }
+
+    setSearchOnlineState(
+      `${cachedCandidates.length} cached result(s) shown. Checking for more/better matches...`,
+      "success"
+    );
   }
-
-  setSearchOnlineState(
-    `${cachedCandidates.length} cached result(s) shown. Checking for more/better matches...`,
-    "success"
-  );
-}
 
   const edgePromise = lookupSongOnline({
     query: safeQuery,
@@ -4063,11 +4621,11 @@ if (cachedCandidates.length) {
       if (!isCurrentRun()) return;
 
       if (list.length > 0) {
-  showMergedCandidates(
-    list,
-    `${list.length} LRCLIB match(es) found.`
-  );
-}
+        showMergedCandidates(
+          list,
+          `${list.length} LRCLIB match(es) found.`
+        );
+      }
 
       finishIfBothDone();
     })
@@ -4083,32 +4641,31 @@ if (cachedCandidates.length) {
 
   setTimeout(() => {
     if (!isCurrentRun()) return;
-
-    if (shownCandidates.length > 0) {
-      return;
-    }
+    if (shownCandidates.length > 0) return;
+    if (providerFallbackVisible) return;
 
     setSearchOnlineState("Checking LRCLIB directly...", "pending");
   }, 2500);
 
   setTimeout(() => {
     if (!isCurrentRun()) return;
-
-    if (shownCandidates.length > 0) {
-      return;
-    }
+    if (shownCandidates.length > 0) return;
+    if (providerFallbackVisible) return;
 
     setSearchOnlineState("LRCLIB is slow today. Still waiting for first online result...", "pending");
   }, 7000);
 
   setTimeout(() => {
     if (!isCurrentRun()) return;
+    if (shownCandidates.length > 0) return;
+    if (providerFallbackVisible) return;
 
-    if (shownCandidates.length > 0) {
-      return;
-    }
-
-    setSearchOnlineState("Still checking. First lookup can take 8–10 seconds, then it will be cached.", "pending");
+    /*
+      After 10 seconds, stop showing an annoying spinner.
+      Show useful provider options instead, but keep LRCLIB running.
+      If LRCLIB returns later, showMergedCandidates() will replace this fallback.
+    */
+    showProviderFallback();
   }, 10000);
 
   await Promise.allSettled([edgePromise, directPromise]);
@@ -9632,11 +10189,12 @@ document.getElementById("registeredUsersList").addEventListener("click", handleA
      }
 
     document.addEventListener("DOMContentLoaded", () => {
-      bindEvents();
-      setupAuthRecoveryListener();
-      setupInstallAppPrompt();
+  bindEvents();
+  setupAuthRecoveryListener();
+  setupInstallAppPrompt();
+  setupProviderLyricsFallbackEvents();
 
-      bootstrap().catch(err => {
+  bootstrap().catch(err => {
         console.error("INITIAL START ERROR:", err);
         document.getElementById("authScreen").classList.remove("hidden");
         showStatus("authStatus", "Initial start error: " + (err?.message || err), "error");
