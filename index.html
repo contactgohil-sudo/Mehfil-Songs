@@ -97,7 +97,161 @@
    }
 
 
+   .install-app-banner {
+  position: fixed;
+  left: 12px;
+  right: 12px;
+  bottom: calc(12px + env(safe-area-inset-bottom));
+  z-index: 9999;
+  background: rgba(17, 24, 39, 0.96);
+  color: white;
+  border-radius: 18px;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.28);
+  padding: 12px;
+  backdrop-filter: blur(14px);
+}
 
+.install-app-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.install-app-title {
+  font-weight: 800;
+  font-size: 15px;
+  margin-bottom: 3px;
+}
+
+.install-app-subtitle {
+  font-size: 12px;
+  opacity: 0.86;
+  line-height: 1.35;
+}
+
+.install-app-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.install-app-banner .btn,
+.install-app-banner .btn-secondary {
+  padding: 9px 11px;
+  border-radius: 12px;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.install-app-banner .btn-secondary {
+  background: rgba(255, 255, 255, 0.12);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+}
+
+.install-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  background: rgba(15, 23, 42, 0.55);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 14px;
+}
+
+.install-modal.hidden {
+  display: none;
+}
+
+.install-modal-card {
+  width: 100%;
+  max-width: 460px;
+  background: var(--card, #ffffff);
+  color: var(--text, #111827);
+  border-radius: 22px;
+  padding: 16px;
+  box-shadow: 0 20px 70px rgba(0, 0, 0, 0.32);
+}
+
+.install-modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.install-modal-title {
+  font-size: 18px;
+  font-weight: 900;
+  margin-bottom: 4px;
+}
+
+.install-modal-subtitle {
+  font-size: 13px;
+  color: var(--muted, #6b7280);
+}
+
+.install-steps {
+  display: grid;
+  gap: 10px;
+  margin: 14px 0;
+}
+
+.install-step {
+  display: grid;
+  grid-template-columns: 34px 1fr;
+  align-items: center;
+  gap: 10px;
+  background: rgba(148, 163, 184, 0.12);
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 14px;
+  padding: 10px;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.install-step-number {
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: #111827;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 900;
+}
+
+.icon-btn {
+  border: none;
+  background: rgba(148, 163, 184, 0.18);
+  color: inherit;
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+@media (max-width: 520px) {
+  .install-app-content {
+    align-items: flex-start;
+  }
+
+  .install-app-actions {
+    flex-direction: column;
+  }
+
+  .install-app-banner .btn,
+  .install-app-banner .btn-secondary {
+    width: 84px;
+  }
+}
 
     .top-logout-btn {
   white-space: nowrap;
@@ -1188,12 +1342,70 @@
   </style>
 </head>
 <body>
+
+  <div id="installAppBanner" class="install-app-banner hidden">
+  <div class="install-app-content">
+    <div>
+      <div class="install-app-title">Install Mehfil</div>
+      <div class="install-app-subtitle">
+        Add Mehfil to your phone for a faster app-like experience.
+      </div>
+    </div>
+
+    <div class="install-app-actions">
+      <button id="installAppBtn" class="btn" type="button">Install</button>
+      <button id="dismissInstallAppBtn" class="btn-secondary" type="button">Later</button>
+    </div>
+  </div>
+</div>
+
+<div id="iosInstallModal" class="install-modal hidden">
+  <div class="install-modal-card">
+    <div class="install-modal-header">
+      <div>
+        <div class="install-modal-title">Install Mehfil on iPhone</div>
+        <div class="install-modal-subtitle">Takes less than 10 seconds.</div>
+      </div>
+      <button id="closeIosInstallModalBtn" class="icon-btn" type="button">×</button>
+    </div>
+
+    <div class="install-steps">
+      <div class="install-step">
+        <div class="install-step-number">1</div>
+        <div>
+          Tap the <strong>Share</strong> button in Safari.
+        </div>
+      </div>
+
+      <div class="install-step">
+        <div class="install-step-number">2</div>
+        <div>
+          Scroll and tap <strong>Add to Home Screen</strong>.
+        </div>
+      </div>
+
+      <div class="install-step">
+        <div class="install-step-number">3</div>
+        <div>
+          Tap <strong>Add</strong>. Then open Mehfil from your home screen.
+        </div>
+      </div>
+    </div>
+
+    <button id="iosInstallDoneBtn" class="btn" type="button">Got it</button>
+  </div>
+</div>
+
   <div class="container">
     <section id="authScreen" class="screen-card">
       <h2 class="section-title">Login / Request Access</h2>
       <div class="sub">Only approved members can enter the library.</div>
 
       <div id="authStatus" class="status-box"></div>
+
+      <div class="tiny" style="margin-top:12px; text-align:center; opacity:0.8;">
+          Install Mehfil after login for the best phone experience.
+      </div>
 
       <div class="row" style="margin-top:14px;">
         <div class="field">
@@ -1633,6 +1845,160 @@ let lyricCompactIndex = new Map();
 let preparedSongsById = new Map();
 let lastHiddenAt = 0;
 let lastResumeHandledAt = 0;
+
+let deferredInstallPrompt = null;
+
+const INSTALL_PROMPT_DISMISSED_KEY = "mehfil_install_prompt_dismissed_until_v1";
+
+function isStandaloneAppMode() {
+  return (
+    window.matchMedia("(display-mode: standalone)").matches ||
+    window.navigator.standalone === true
+  );
+}
+
+function isIosDevice() {
+  return /iphone|ipad|ipod/i.test(window.navigator.userAgent || "");
+}
+
+function isAndroidDevice() {
+  return /android/i.test(window.navigator.userAgent || "");
+}
+
+function getInstallPromptDismissedUntil() {
+  try {
+    return Number(localStorage.getItem(INSTALL_PROMPT_DISMISSED_KEY) || 0);
+  } catch {
+    return 0;
+  }
+}
+
+function dismissInstallPromptForDays(days = 7) {
+  try {
+    const until = Date.now() + days * 24 * 60 * 60 * 1000;
+    localStorage.setItem(INSTALL_PROMPT_DISMISSED_KEY, String(until));
+  } catch {
+    // Ignore storage failure.
+  }
+}
+
+function shouldShowInstallPrompt() {
+  if (isStandaloneAppMode()) return false;
+
+  const dismissedUntil = getInstallPromptDismissedUntil();
+  if (dismissedUntil && Date.now() < dismissedUntil) return false;
+
+  return isIosDevice() || isAndroidDevice() || !!deferredInstallPrompt;
+}
+
+function showInstallAppBanner() {
+  const banner = document.getElementById("installAppBanner");
+  if (!banner) return;
+
+  if (shouldShowInstallPrompt()) {
+    banner.classList.remove("hidden");
+  }
+}
+
+function hideInstallAppBanner() {
+  const banner = document.getElementById("installAppBanner");
+  if (banner) banner.classList.add("hidden");
+}
+
+function openIosInstallModal() {
+  const modal = document.getElementById("iosInstallModal");
+  if (modal) modal.classList.remove("hidden");
+}
+
+function closeIosInstallModal() {
+  const modal = document.getElementById("iosInstallModal");
+  if (modal) modal.classList.add("hidden");
+}
+
+async function handleInstallAppClick() {
+  if (isStandaloneAppMode()) {
+    hideInstallAppBanner();
+    return;
+  }
+
+  if (deferredInstallPrompt) {
+    const promptEvent = deferredInstallPrompt;
+    deferredInstallPrompt = null;
+
+    promptEvent.prompt();
+
+    try {
+      const choice = await promptEvent.userChoice;
+
+      if (choice?.outcome === "accepted") {
+        hideInstallAppBanner();
+        dismissInstallPromptForDays(365);
+      } else {
+        showInstallAppBanner();
+      }
+    } catch {
+      showInstallAppBanner();
+    }
+
+    return;
+  }
+
+  if (isIosDevice()) {
+    openIosInstallModal();
+    return;
+  }
+
+  openIosInstallModal();
+}
+
+function setupInstallAppPrompt() {
+  window.addEventListener("beforeinstallprompt", event => {
+    event.preventDefault();
+    deferredInstallPrompt = event;
+
+    setTimeout(() => {
+      showInstallAppBanner();
+    }, 1800);
+  });
+
+  window.addEventListener("appinstalled", () => {
+    deferredInstallPrompt = null;
+    hideInstallAppBanner();
+    dismissInstallPromptForDays(365);
+  });
+
+  const installBtn = document.getElementById("installAppBtn");
+  const dismissBtn = document.getElementById("dismissInstallAppBtn");
+  const closeIosBtn = document.getElementById("closeIosInstallModalBtn");
+  const iosDoneBtn = document.getElementById("iosInstallDoneBtn");
+
+  if (installBtn) {
+    installBtn.addEventListener("click", handleInstallAppClick);
+  }
+
+  if (dismissBtn) {
+    dismissBtn.addEventListener("click", () => {
+      hideInstallAppBanner();
+      dismissInstallPromptForDays(7);
+    });
+  }
+
+  if (closeIosBtn) {
+    closeIosBtn.addEventListener("click", closeIosInstallModal);
+  }
+
+  if (iosDoneBtn) {
+    iosDoneBtn.addEventListener("click", () => {
+      closeIosInstallModal();
+      hideInstallAppBanner();
+      dismissInstallPromptForDays(14);
+    });
+  }
+
+  setTimeout(() => {
+    showInstallAppBanner();
+  }, 2500);
+}
 
 const BACKGROUND_REFRESH_MIN_MS = 5 * 60 * 1000;
 const MAX_TITLE_LENGTH = 120;
@@ -9268,6 +9634,8 @@ document.getElementById("registeredUsersList").addEventListener("click", handleA
     document.addEventListener("DOMContentLoaded", () => {
       bindEvents();
       setupAuthRecoveryListener();
+      setupInstallAppPrompt();
+
       bootstrap().catch(err => {
         console.error("INITIAL START ERROR:", err);
         document.getElementById("authScreen").classList.remove("hidden");
