@@ -2,8 +2,17 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Mehfil Lyrics</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>Mehfil Lyrics</title>
+
+<meta name="theme-color" content="#111827" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-title" content="Mehfil" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+
+<link rel="manifest" href="./manifest.webmanifest" />
+<link rel="apple-touch-icon" href="./assets/icons/icon-192.png" />
 
   <style>
     * { box-sizing: border-box; }
@@ -27,13 +36,15 @@
     }
 
     body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      padding: 12px;
-      overflow-x: hidden;
-    }
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  padding: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+  overflow-x: hidden;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior-y: none;
+}
 
     .container {
       width: 100%;
@@ -9263,6 +9274,23 @@ document.getElementById("registeredUsersList").addEventListener("click", handleA
         showStatus("authStatus", "Initial start error: " + (err?.message || err), "error");
       });
     });
+
+    function registerMehfilServiceWorker() {
+  if (!("serviceWorker" in navigator)) return;
+
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./service-worker.js")
+      .then(registration => {
+        console.log("Mehfil service worker registered:", registration.scope);
+      })
+      .catch(error => {
+        console.warn("Mehfil service worker registration failed:", error);
+      });
+  });
+}
+
+registerMehfilServiceWorker();
+
   </script>
 </body>
 </html>
