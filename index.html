@@ -5429,6 +5429,1249 @@ mark {
   }
 }
 
+/* =========================================================
+   MODAL NOTCH + CLOSE VISIBILITY FIX — PATCH 17A
+   iPhone safe-area fix. Close remains secondary but visible.
+   ========================================================= */
+
+#songModal.modal {
+  align-items: flex-start !important;
+  padding-top: calc(env(safe-area-inset-top) + 14px) !important;
+  padding-right: max(8px, env(safe-area-inset-right)) !important;
+  padding-bottom: calc(env(safe-area-inset-bottom) + 10px) !important;
+  padding-left: max(8px, env(safe-area-inset-left)) !important;
+}
+
+#songModal .modal-card {
+  max-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 26px) !important;
+}
+
+/* Close should be identifiable, but not primary */
+#songModal #modalCloseBtn.modal-btn {
+  background: #ffffff !important;
+  color: #344054 !important;
+  border: 1px solid #dfe5ee !important;
+  box-shadow: 0 4px 12px rgba(17, 24, 39, 0.045) !important;
+  font-weight: 850 !important;
+}
+
+#songModal #modalCloseBtn.modal-btn:hover,
+#songModal #modalCloseBtn.modal-btn:focus {
+  background: #f8fafc !important;
+  color: #111827 !important;
+}
+
+/* =========================================================
+   FAVORITES DRAG ORDER — PATCH 17B
+   Manual reorder handle for Favorites only.
+   ========================================================= */
+
+#favoritesTab .favorite-song-row {
+  touch-action: pan-y;
+}
+
+#favoritesTab .favorite-drag-handle {
+  width: 30px;
+  min-width: 30px;
+  height: 44px;
+  border: 0;
+  background: transparent;
+  color: #98a2b3;
+  font-size: 20px;
+  line-height: 1;
+  font-weight: 900;
+  cursor: grab;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border-radius: 12px;
+}
+
+#favoritesTab .favorite-drag-handle:active {
+  cursor: grabbing;
+}
+
+#favoritesTab .favorite-drag-handle:hover,
+#favoritesTab .favorite-drag-handle:focus {
+  color: #111827;
+  background: #f3f4f6;
+  outline: none;
+}
+
+#favoritesTab .favorite-dragging {
+  opacity: 0.72;
+  transform: scale(0.99);
+  border-color: #d8b56d !important;
+  box-shadow:
+    0 14px 32px rgba(15, 23, 42, 0.12),
+    0 0 0 4px rgba(216, 181, 109, 0.16) !important;
+  pointer-events: none;
+}
+
+@media (max-width: 640px) {
+  #favoritesTab .favorite-drag-handle {
+    width: 28px;
+    min-width: 28px;
+    height: 42px;
+    font-size: 19px;
+  }
+}
+
+/* =========================================================
+   FAVORITES INLINE SAVE STATUS — PATCH 18
+   Prevents global banner layout shift after drag reorder.
+   ========================================================= */
+
+#favoritesTab > .card {
+  position: relative;
+}
+
+#favoritesTab .favorites-toolbar-left {
+  position: relative;
+  padding-right: 96px;
+}
+
+.favorite-order-status {
+  position: absolute;
+  top: 50%;
+  right: 0;
+  transform: translateY(-50%) translateY(-2px);
+  opacity: 0;
+  pointer-events: none;
+  white-space: nowrap;
+  min-height: 26px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  font-size: 11px;
+  line-height: 1;
+  font-weight: 900;
+  transition:
+    opacity 0.16s ease,
+    transform 0.16s ease;
+}
+
+.favorite-order-status.show {
+  opacity: 1;
+  transform: translateY(-50%) translateY(0);
+}
+
+.favorite-order-status-success {
+  background: #ecfdf3;
+  border-color: #bbf7d0;
+  color: #166534;
+}
+
+.favorite-order-status-error {
+  background: #fff7f7;
+  border-color: #fecaca;
+  color: #b91c1c;
+}
+
+/* Mobile: keep chip in header area without pushing rows */
+@media (max-width: 640px) {
+  #favoritesTab .favorites-toolbar-left {
+    padding-right: 82px;
+  }
+
+  .favorite-order-status {
+    right: 0;
+    padding: 6px 9px;
+    font-size: 10px;
+  }
+}
+
+@media (max-width: 380px) {
+  #favoritesTab .favorites-toolbar-left {
+    padding-right: 70px;
+  }
+
+  .favorite-order-status {
+    max-width: 68px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+/* =========================================================
+   ADMIN PANEL POLISH — PATCH 19
+   CSS-only. Keeps admin actions, warmup, cache dashboard intact.
+   ========================================================= */
+
+#adminTab > .card {
+  padding: 16px;
+  border-radius: 24px;
+  border: 1px solid #e1e6ee;
+  background:
+    radial-gradient(circle at top right, rgba(216, 181, 109, 0.08), transparent 180px),
+    linear-gradient(180deg, #ffffff 0%, #fbfcfd 100%);
+  box-shadow:
+    0 14px 38px rgba(15, 23, 42, 0.065),
+    0 1px 2px rgba(15, 23, 42, 0.03);
+}
+
+/* Admin header */
+#adminTab .toolbar {
+  margin-bottom: 13px;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+#adminTab .toolbar-left {
+  gap: 7px;
+  align-items: baseline;
+}
+
+#adminTab .toolbar-left strong {
+  color: #111827;
+  font-size: 22px;
+  line-height: 1.08;
+  letter-spacing: -0.04em;
+  font-weight: 950;
+}
+
+#adminTab .toolbar-left .tiny {
+  color: #667085;
+  font-size: 13px;
+  line-height: 1.4;
+  font-weight: 650;
+}
+
+#adminTab #refreshUsersBtn {
+  min-height: 40px;
+  padding: 8px 14px;
+  border-radius: 15px;
+  background: #ffffff;
+  border: 1px solid #dfe5ee;
+  color: #111827;
+  font-size: 13px;
+  font-weight: 850;
+  box-shadow: 0 5px 14px rgba(17, 24, 39, 0.045);
+}
+
+/* Admin subtabs: horizontal, no ugly cut-off */
+#adminTab > .card > .tabs {
+  margin: 10px 0 14px !important;
+  padding: 3px;
+  gap: 4px;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  border-radius: 18px;
+  background: #f2f4f7;
+  border: 1px solid #e4e8ef;
+  scrollbar-width: none;
+}
+
+#adminTab > .card > .tabs::-webkit-scrollbar {
+  display: none;
+}
+
+#adminTab > .card > .tabs .tab-btn {
+  flex: 0 0 auto;
+  min-height: 34px;
+  padding: 7px 12px;
+  border-radius: 15px;
+  border: 1px solid transparent;
+  background: transparent !important;
+  color: #344054 !important;
+  box-shadow: none !important;
+  font-size: 13px;
+  font-weight: 850;
+}
+
+#adminTab > .card > .tabs .tab-btn.active {
+  background: #111827 !important;
+  color: #ffffff !important;
+  border-color: #111827 !important;
+  box-shadow: 0 8px 18px rgba(17, 24, 39, 0.12) !important;
+}
+
+/* Pending / registered counts */
+#pendingUsersList > .tiny,
+#registeredUsersList > .tiny {
+  margin-bottom: 10px !important;
+  color: #667085;
+  font-size: 13px;
+  line-height: 1.35;
+  font-weight: 700;
+}
+
+/* User cards */
+#adminTab .pending-user {
+  margin: 0 0 11px;
+  padding: 14px;
+  border-radius: 19px;
+  border: 1px solid #e1e6ee;
+  background:
+    linear-gradient(180deg, #ffffff 0%, #fbfcfd 100%);
+  box-shadow:
+    0 8px 22px rgba(15, 23, 42, 0.045),
+    0 1px 2px rgba(15, 23, 42, 0.02);
+  gap: 12px;
+  align-items: flex-start;
+}
+
+#adminTab .pending-user-main {
+  min-width: 0;
+}
+
+#adminTab .pending-user-name {
+  color: #111827;
+  font-size: 18px;
+  line-height: 1.16;
+  letter-spacing: -0.025em;
+  font-weight: 950;
+  margin-bottom: 7px;
+}
+
+#adminTab .pending-user-meta {
+  color: #667085;
+  font-size: 13px;
+  line-height: 1.38;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+#adminTab .pending-user-meta strong {
+  color: #4b5565;
+  font-weight: 900;
+}
+
+/* Admin action buttons */
+#adminTab .pending-user .stack-actions {
+  margin: 0;
+  gap: 8px;
+  flex: 0 0 auto;
+  justify-content: flex-start;
+}
+
+#adminTab .pending-user .btn,
+#adminTab .pending-user .btn-secondary,
+#adminTab .pending-user .btn-danger {
+  min-height: 38px;
+  padding: 8px 12px;
+  border-radius: 14px;
+  font-size: 12px;
+  font-weight: 850;
+  white-space: nowrap;
+}
+
+#adminTab .pending-user .btn {
+  background: #111827;
+  border-color: #111827;
+  color: #ffffff;
+  box-shadow: 0 8px 18px rgba(17, 24, 39, 0.12);
+}
+
+#adminTab .pending-user .btn-secondary {
+  background: #ffffff;
+  border: 1px solid #dfe5ee;
+  color: #111827;
+  box-shadow: 0 4px 12px rgba(17, 24, 39, 0.04);
+}
+
+#adminTab .pending-user .btn-danger {
+  background: #fff7f7 !important;
+  border: 1px solid #fecaca !important;
+  color: #b91c1c !important;
+  box-shadow: none !important;
+}
+
+/* Warmup panel */
+#adminWarmupPanel {
+  overflow: hidden;
+}
+
+#adminWarmupPanel .admin-warmup-grid {
+  gap: 13px;
+}
+
+#adminWarmupPanel .status-box.show {
+  margin: 0;
+  border-radius: 18px;
+  border: 1px solid #ead7a8;
+  background:
+    radial-gradient(circle at top right, rgba(216, 181, 109, 0.13), transparent 160px),
+    linear-gradient(180deg, #fffdf8 0%, #ffffff 100%);
+  color: #5d4315;
+  padding: 13px 14px;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+#adminWarmupPanel .field label {
+  color: #4b5565;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.015em;
+}
+
+#adminWarmupInput.admin-warmup-textarea {
+  min-height: 190px;
+  border-radius: 18px;
+  border: 1px solid #dfe5ee;
+  background: #ffffff;
+  color: #111827;
+  padding: 13px 14px;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+#adminWarmupPanel .admin-warmup-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+  align-items: center;
+  margin-top: 0;
+}
+
+#adminWarmupPanel .admin-warmup-option {
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 10px;
+  border-radius: 15px;
+  border: 1px solid #e1e6ee;
+  background: #ffffff;
+  color: #667085;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+#adminWarmupPanel .admin-warmup-option input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+}
+
+#adminWarmupPanel .input-thin {
+  min-height: 36px;
+  border-radius: 13px;
+  font-size: 14px;
+}
+
+/* Warmup buttons */
+#adminWarmupPanel .admin-warmup-options > button {
+  min-height: 40px;
+  padding: 8px 13px;
+  border-radius: 15px;
+  font-size: 13px;
+  font-weight: 850;
+  white-space: nowrap;
+}
+
+#adminWarmupStartBtn {
+  background: #111827;
+  color: #ffffff;
+  border-color: #111827;
+  box-shadow: 0 8px 18px rgba(17, 24, 39, 0.12);
+}
+
+#adminWarmupStopBtn,
+#adminWarmupClearBtn,
+#adminWarmupImportCsvBtn,
+#adminWarmupExportTemplateBtn,
+#adminWarmupExportResultsBtn,
+#adminCacheDashboardRefreshBtn,
+#adminCacheDashboardExportBtn {
+  background: #ffffff;
+  border: 1px solid #dfe5ee;
+  color: #111827;
+  box-shadow: 0 4px 12px rgba(17, 24, 39, 0.04);
+}
+
+/* Warmup/cache dashboard */
+#adminWarmupPanel .admin-warmup-progress {
+  margin-top: 4px;
+}
+
+#adminWarmupSummary {
+  color: #667085;
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.admin-cache-dashboard {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid #edf0f4;
+}
+
+.admin-cache-dashboard-title {
+  color: #111827;
+  font-size: 20px;
+  line-height: 1.1;
+  letter-spacing: -0.035em;
+  font-weight: 950;
+}
+
+.admin-cache-muted {
+  margin-top: 4px;
+  color: #667085;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.admin-cache-toolbar {
+  gap: 8px;
+  margin-top: 10px;
+}
+
+/* Tables: make them mobile-safe */
+.admin-warmup-table,
+.admin-cache-table {
+  min-width: 640px;
+  font-size: 13px;
+}
+
+#adminWarmupResults,
+#adminCacheDashboardRows {
+  overflow-x: auto;
+  max-width: 100%;
+  -webkit-overflow-scrolling: touch;
+}
+
+.admin-warmup-table th,
+.admin-warmup-table td,
+.admin-cache-table th,
+.admin-cache-table td {
+  padding: 9px 8px;
+  border-bottom: 1px solid #edf0f4;
+}
+
+.admin-warmup-table th,
+.admin-cache-table th {
+  color: #667085;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.015em;
+}
+
+.admin-cache-query {
+  color: #111827;
+  font-weight: 900;
+}
+
+/* Mobile */
+@media (max-width: 640px) {
+  #adminTab > .card {
+    padding: 14px;
+    border-radius: 23px;
+  }
+
+  #adminTab .toolbar {
+    margin-bottom: 12px;
+  }
+
+  #adminTab .toolbar-left strong {
+    font-size: 21px;
+  }
+
+  #adminTab .toolbar-left .tiny {
+    font-size: 12px;
+  }
+
+  #adminTab #refreshUsersBtn {
+    min-height: 38px;
+    padding: 8px 13px;
+  }
+
+  #adminTab > .card > .tabs {
+    margin: 9px 0 13px !important;
+  }
+
+  #adminTab > .card > .tabs .tab-btn {
+    min-height: 33px;
+    padding: 7px 11px;
+    font-size: 12px;
+  }
+
+  #adminTab .pending-user {
+    padding: 13px;
+    border-radius: 18px;
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  #adminTab .pending-user-name {
+    font-size: 17px;
+  }
+
+  #adminTab .pending-user-meta {
+    font-size: 12px;
+  }
+
+  #adminTab .pending-user .stack-actions {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 7px;
+  }
+
+  #adminTab .pending-user .btn,
+  #adminTab .pending-user .btn-secondary,
+  #adminTab .pending-user .btn-danger {
+    min-height: 36px;
+    padding: 8px 11px;
+    border-radius: 13px;
+    font-size: 12px;
+  }
+
+  #adminWarmupInput.admin-warmup-textarea {
+    min-height: 180px;
+    font-size: 14px;
+  }
+
+  #adminWarmupPanel .admin-warmup-options {
+    gap: 8px;
+  }
+
+  #adminWarmupPanel .admin-warmup-option {
+    min-height: 38px;
+    font-size: 12px;
+  }
+
+  #adminWarmupPanel .admin-warmup-options > button {
+    min-height: 38px;
+    font-size: 12px;
+  }
+
+  .admin-cache-dashboard-title {
+    font-size: 19px;
+  }
+}
+
+@media (max-width: 380px) {
+  #adminTab > .card {
+    padding: 12px;
+  }
+
+  #adminTab > .card > .tabs .tab-btn {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+
+  #adminWarmupPanel .admin-warmup-options > button {
+    flex: 1 1 auto;
+  }
+}
+
+/* =========================================================
+   ADMIN CACHE + MOBILE WARMUP FIX — PATCH 20
+   Clearer cache count and safer mobile layout.
+   ========================================================= */
+
+/* Cache dashboard status should be compact, not a full warning banner */
+#adminCacheDashboardStatus.status-box.show {
+  margin: 10px 0 10px !important;
+  display: inline-flex;
+  width: auto;
+  max-width: 100%;
+  min-height: 32px;
+  align-items: center;
+  border-radius: 999px;
+  padding: 8px 12px;
+  font-size: 12px;
+  line-height: 1.25;
+  font-weight: 800;
+  box-shadow: none;
+}
+
+/* Warmup layout safety */
+#adminWarmupPanel,
+#adminWarmupPanel *,
+.admin-cache-dashboard,
+.admin-cache-dashboard * {
+  box-sizing: border-box;
+}
+
+#adminWarmupPanel {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+#adminWarmupPanel .admin-warmup-grid,
+#adminWarmupPanel .field,
+#adminWarmupPanel .admin-warmup-options,
+.admin-cache-dashboard,
+.admin-cache-dashboard-head,
+.admin-cache-toolbar {
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* Desktop/tablet: controls can wrap naturally */
+#adminWarmupPanel .admin-warmup-options {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 9px;
+}
+
+#adminWarmupPanel .admin-warmup-option {
+  min-width: 0;
+  max-width: 100%;
+}
+
+#adminWarmupPanel .admin-warmup-option input[type="number"] {
+  max-width: 100%;
+}
+
+/* Cache dashboard header */
+.admin-cache-dashboard-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.admin-cache-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* Mobile: stack controls properly instead of clipping right side */
+@media (max-width: 640px) {
+  #adminWarmupPanel .status-box.show {
+    text-align: left;
+  }
+
+  #adminWarmupInput.admin-warmup-textarea {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  #adminWarmupPanel .admin-warmup-options {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    width: 100%;
+  }
+
+  #adminWarmupPanel .admin-warmup-option {
+    width: 100%;
+    min-height: 42px;
+    justify-content: flex-start;
+    padding: 9px 10px;
+    border-radius: 15px;
+  }
+
+  #adminWarmupPanel .admin-warmup-option:first-child {
+    grid-column: 1 / -1;
+  }
+
+  #adminWarmupPanel .admin-warmup-option input[type="number"] {
+    width: 78px !important;
+    min-width: 78px;
+  }
+
+  #adminWarmupStartBtn,
+  #adminWarmupStopBtn,
+  #adminWarmupClearBtn,
+  #adminWarmupImportCsvBtn,
+  #adminWarmupExportTemplateBtn,
+  #adminWarmupExportResultsBtn {
+    width: 100%;
+    min-width: 0;
+  }
+
+  #adminWarmupStartBtn {
+    grid-column: 1 / -1;
+  }
+
+  .admin-cache-dashboard-head {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .admin-cache-toolbar {
+    display: grid;
+    grid-template-columns: 1fr;
+    width: 100%;
+    gap: 8px;
+  }
+
+  #adminCacheDashboardRefreshBtn,
+  #adminCacheDashboardExportBtn {
+    width: 100%;
+  }
+
+  #adminCacheDashboardStatus.status-box.show {
+    display: flex;
+    width: 100%;
+    border-radius: 16px;
+    white-space: normal;
+  }
+
+  #adminCacheDashboardResults {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .admin-cache-table {
+    min-width: 620px;
+  }
+}
+
+@media (max-width: 380px) {
+  #adminWarmupPanel .admin-warmup-options {
+    grid-template-columns: 1fr;
+  }
+
+  #adminWarmupPanel .admin-warmup-option {
+    grid-column: 1 / -1;
+  }
+}
+
+/* =========================================================
+   ADMIN MOBILE LAYOUT FIX — PATCH 21
+   Hard mobile override. No clipping, no horizontal form controls.
+   ========================================================= */
+
+/* Admin subtabs should fit as 3 equal buttons on mobile */
+@media (max-width: 640px) {
+  #adminTab > .card > .tabs {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    overflow: visible !important;
+    gap: 4px !important;
+    padding: 3px !important;
+  }
+
+  #adminTab > .card > .tabs .tab-btn {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    padding: 7px 6px !important;
+    text-align: center !important;
+    white-space: nowrap !important;
+    font-size: 12px !important;
+  }
+
+  /* Warmup panel must never clip horizontally */
+  #adminWarmupPanel,
+  #adminWarmupPanel .admin-warmup-grid,
+  #adminWarmupPanel .field,
+  #adminWarmupPanel .admin-warmup-options,
+  #adminWarmupPanel .admin-warmup-progress,
+  #adminWarmupPanel .admin-cache-dashboard {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    overflow-x: hidden !important;
+  }
+
+  /* Intro note: smaller and left-aligned */
+  #adminWarmupPanel .status-box.show {
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 12px 13px !important;
+    border-radius: 17px !important;
+    text-align: left !important;
+    font-size: 13px !important;
+    line-height: 1.45 !important;
+  }
+
+  #adminWarmupPanel .status-box.show::first-line {
+    font-weight: 700;
+  }
+
+  /* Textarea */
+  #adminWarmupInput.admin-warmup-textarea {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-height: 170px !important;
+    border-radius: 17px !important;
+    font-size: 14px !important;
+  }
+
+  /* The important part: stack warmup controls vertically */
+  #adminWarmupPanel .admin-warmup-options {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 9px !important;
+    margin-top: 4px !important;
+  }
+
+  #adminWarmupPanel .admin-warmup-option {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-height: 42px !important;
+    margin: 0 !important;
+    padding: 10px 12px !important;
+    border-radius: 16px !important;
+    border: 1px solid #e1e6ee !important;
+    background: #ffffff !important;
+    color: #667085 !important;
+    font-size: 13px !important;
+    font-weight: 800 !important;
+    box-shadow: 0 4px 12px rgba(17, 24, 39, 0.035) !important;
+  }
+
+  #adminWarmupPanel .admin-warmup-option:has(#adminWarmupForceRefresh) {
+    display: flex !important;
+    align-items: center !important;
+    gap: 9px !important;
+  }
+
+  #adminWarmupPanel .admin-warmup-option:has(#adminWarmupDelayMs),
+  #adminWarmupPanel .admin-warmup-option:has(#adminWarmupParallelCount) {
+    display: grid !important;
+    grid-template-columns: auto minmax(0, 1fr) auto !important;
+    align-items: center !important;
+    gap: 9px !important;
+  }
+
+  #adminWarmupDelayMs,
+  #adminWarmupParallelCount {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    height: 38px !important;
+    min-height: 38px !important;
+    border-radius: 13px !important;
+    padding: 8px 10px !important;
+    text-align: center !important;
+  }
+
+  /* Buttons: full width, no clipping */
+  #adminWarmupPanel .admin-warmup-options > button {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    min-height: 42px !important;
+    border-radius: 16px !important;
+    padding: 10px 12px !important;
+    text-align: center !important;
+    white-space: nowrap !important;
+  }
+
+  #adminWarmupStartBtn {
+    margin-top: 2px !important;
+  }
+
+  /* Cache dashboard controls */
+  .admin-cache-dashboard {
+    margin-top: 18px !important;
+    padding-top: 15px !important;
+  }
+
+  .admin-cache-dashboard-head {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+    width: 100% !important;
+  }
+
+  .admin-cache-dashboard-title {
+    font-size: 19px !important;
+    line-height: 1.15 !important;
+  }
+
+  .admin-cache-muted {
+    max-width: 100% !important;
+    font-size: 12px !important;
+    line-height: 1.4 !important;
+  }
+
+  .admin-cache-toolbar {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 8px !important;
+    width: 100% !important;
+  }
+
+  #adminCacheDashboardRefreshBtn,
+  #adminCacheDashboardExportBtn {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    min-height: 40px !important;
+    border-radius: 15px !important;
+  }
+
+  #adminCacheDashboardStatus.status-box.show {
+    width: 100% !important;
+    display: flex !important;
+    border-radius: 16px !important;
+    white-space: normal !important;
+    font-size: 12px !important;
+  }
+
+  /* Tables should scroll, not break layout */
+  #adminWarmupResults,
+  #adminCacheDashboardResults {
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
+  .admin-warmup-table,
+  .admin-cache-table {
+    min-width: 620px !important;
+  }
+}
+
+/* =========================================================
+   HEADER META COMPACT FIX
+   Keeps: Admin access • 935+119 songs
+   Prevents the line from overpowering the title.
+   ========================================================= */
+
+#appScreen .app-brand-copy {
+  min-width: 0;
+  max-width: 100%;
+}
+
+#appScreen .brand-meta-row {
+  max-width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  gap: 4px;
+}
+
+#appScreen .personal-mehfil-line,
+#appScreen .library-count-text,
+#appScreen .brand-meta-dot {
+  font-size: 11px !important;
+  line-height: 1.15 !important;
+}
+
+#appScreen .personal-mehfil-line {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 82px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+#appScreen .library-count-text {
+  flex: 0 0 auto;
+  font-weight: 800;
+}
+
+@media (max-width: 640px) {
+  #appScreen .brand {
+    font-size: 24px !important;
+  }
+
+  #appScreen .personal-mehfil-line,
+  #appScreen .library-count-text,
+  #appScreen .brand-meta-dot {
+    font-size: 11px !important;
+  }
+
+  #appScreen .personal-mehfil-line {
+    max-width: 78px;
+  }
+}
+
+@media (max-width: 380px) {
+  #appScreen .brand {
+    font-size: 22px !important;
+  }
+
+  #appScreen .personal-mehfil-line {
+    max-width: 70px;
+  }
+
+  #appScreen .library-count-text {
+    font-size: 10px !important;
+  }
+}
+
+/* =========================================================
+   HEADER META WIDTH LOCK — PATCH 23
+   Keeps: Admin access • 935+119 songs
+   Always inside the width of Jay's Mehfil.
+   ========================================================= */
+
+#appScreen .app-brand-copy {
+  min-width: 0;
+  max-width: 100%;
+}
+
+#appScreen .brand {
+  display: inline-block;
+  width: auto;
+  max-width: 100%;
+}
+
+#appScreen .brand-meta-row {
+  max-width: 100%;
+  width: auto;
+  overflow: hidden;
+  white-space: nowrap;
+  gap: 4px;
+}
+
+#appScreen .personal-mehfil-line,
+#appScreen .library-count-text,
+#appScreen .brand-meta-dot {
+  font-size: 11px !important;
+  line-height: 1.15 !important;
+}
+
+#appScreen .personal-mehfil-line {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+#appScreen .library-count-text {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 800;
+}
+
+#appScreen .brand-meta-dot {
+  flex: 0 0 auto;
+}
+
+/* If space is tight, preserve count more than access label */
+@media (max-width: 420px) {
+  #appScreen .personal-mehfil-line {
+    max-width: 78px;
+  }
+
+  #appScreen .library-count-text {
+    font-size: 10.5px !important;
+  }
+}
+
+/* =========================================================
+   HEADER META FINAL FORMAT — PATCH 24
+   Admin: Admin • 935+119
+   User: User Access
+   ========================================================= */
+
+#appScreen .brand-meta-row {
+  align-items: center;
+  gap: 5px;
+}
+
+#appScreen .personal-mehfil-line,
+#appScreen .library-count-text,
+#appScreen .brand-meta-dot {
+  font-size: 12px !important;
+  line-height: 1.15 !important;
+  font-weight: 800;
+}
+
+#appScreen .personal-mehfil-line {
+  max-width: none !important;
+}
+
+#appScreen .library-count-text {
+  max-width: none !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+}
+
+#appScreen .brand-meta-dot.hidden,
+#appScreen .library-count-text.hidden {
+  display: none !important;
+}
+
+@media (max-width: 640px) {
+  #appScreen .personal-mehfil-line,
+  #appScreen .library-count-text,
+  #appScreen .brand-meta-dot {
+    font-size: 12px !important;
+  }
+}
+
+@media (max-width: 380px) {
+  #appScreen .personal-mehfil-line,
+  #appScreen .library-count-text,
+  #appScreen .brand-meta-dot {
+    font-size: 11px !important;
+  }
+}
+
+/* =========================================================
+   STARTUP BOOT SCREEN — PATCH 25
+   Prevents login flash while Supabase restores session.
+   ========================================================= */
+
+.boot-screen {
+  max-width: 460px;
+  margin: 44px auto 0;
+  padding: 22px;
+  border-radius: 28px;
+  background: rgba(255, 255, 255, 0.98);
+  border: 1px solid #e1e6ee;
+  box-shadow:
+    0 24px 70px rgba(15, 23, 42, 0.10),
+    0 2px 8px rgba(15, 23, 42, 0.035);
+}
+
+.boot-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.boot-logo {
+  width: 46px;
+  height: 46px;
+  border-radius: 16px;
+  box-shadow:
+    0 10px 24px rgba(7, 26, 52, 0.18),
+    0 1px 2px rgba(17, 24, 39, 0.08);
+}
+
+.boot-title {
+  color: #111827;
+  font-size: 25px;
+  line-height: 1;
+  letter-spacing: -0.045em;
+  font-weight: 950;
+}
+
+.boot-subtitle {
+  margin-top: 5px;
+  color: #667085;
+  font-size: 13px;
+  line-height: 1.35;
+  font-weight: 650;
+}
+
+@media (max-width: 640px) {
+  .boot-screen {
+    margin: 34px auto 0;
+    padding: 20px;
+    border-radius: 26px;
+  }
+
+  .boot-logo {
+    width: 42px;
+    height: 42px;
+    border-radius: 15px;
+  }
+
+  .boot-title {
+    font-size: 23px;
+  }
+}
+
+/* ANDROID INSTALL RESPONSIVENESS — PATCH 26 */
+
+#installAppBtn:disabled {
+  opacity: 0.72;
+  cursor: wait;
+}
+
   </style>
 </head>
 <body>
@@ -5453,8 +6696,8 @@ mark {
   <div class="install-modal-card">
     <div class="install-modal-header">
       <div>
-        <div class="install-modal-title">Install Mehfil on iPhone</div>
-        <div class="install-modal-subtitle">Takes less than 10 seconds.</div>
+        <div id="installModalTitle" class="install-modal-title">Install Mehfil</div>
+<div id="installModalSubtitle" class="install-modal-subtitle">Takes less than 10 seconds.</div>
       </div>
       <button id="closeIosInstallModalBtn" class="icon-btn" type="button">×</button>
     </div>
@@ -5487,7 +6730,16 @@ mark {
 </div>
 
   <div class="container">
-    <section id="authScreen" class="screen-card auth-card">
+    <section id="bootScreen" class="screen-card boot-screen">
+  <div class="boot-brand">
+    <img class="boot-logo" src="./assets/icons/icon-192.png" alt="" />
+    <div>
+      <div class="boot-title">Mehfil</div>
+      <div class="boot-subtitle">Opening your library...</div>
+    </div>
+  </div>
+</section>
+    <section id="authScreen" class="screen-card auth-card hidden">
   <div class="auth-shell">
     <div class="auth-brand">
       <div class="auth-mark auth-logo-mark" aria-hidden="true">
@@ -5717,10 +6969,11 @@ mark {
       <section id="listTab" class="hidden">
         <div class="card">
           <div class="toolbar">
-            <div class="toolbar-left">
-              <strong>Library</strong>
-              <span class="tiny">Browse by movie or singer</span>
-            </div>
+            <div class="toolbar-left favorites-toolbar-left">
+  <strong>Favourite Songs</strong>
+  <span class="tiny">Your bookmarked songs</span>
+  <span id="favoriteOrderStatus" class="favorite-order-status" aria-live="polite"></span>
+</div>
 
             <div class="toolbar-right">
               <label class="tiny" for="groupMode">Sort / Group</label>
@@ -5761,9 +7014,9 @@ mark {
     </div>
 
     <div class="tabs" style="margin-top:8px;">
-  <button id="adminPendingSubtabBtn" class="tab-btn active" type="button">Pending requests</button>
-  <button id="adminRegisteredSubtabBtn" class="tab-btn" type="button">Registered users</button>
-  <button id="adminWarmupSubtabBtn" class="tab-btn" type="button">Cache Warmup</button>
+  <button id="adminPendingSubtabBtn" class="tab-btn active" type="button">Pending</button>
+<button id="adminRegisteredSubtabBtn" class="tab-btn" type="button">Users</button>
+<button id="adminWarmupSubtabBtn" class="tab-btn" type="button">Warmup</button>
 </div>
 
     <div id="adminPendingPanel">
@@ -5824,7 +7077,7 @@ mark {
   <div class="admin-cache-dashboard-head">
     <div>
       <div class="admin-cache-dashboard-title">Online Cache Dashboard</div>
-      <div class="admin-cache-muted">Recently warmed songs saved in Supabase online_song_cache.</div>
+      <div class="admin-cache-muted">Recently cached online search queries saved in Supabase online_song_cache.</div>
     </div>
 
     <div class="admin-cache-toolbar">
@@ -5915,6 +7168,8 @@ let fuse = null;
 let editingSongId = null;
 let openSongId = null;
 let lastQuery = "";
+let onlineCacheSongCount = 0;
+let localLibrarySongCount = 0;
 let activeMainTab = "search";
 let idleSuggestionSongId = null;
 let idleSuggestionTimer = null;
@@ -5923,6 +7178,8 @@ let activeRecognition = null;
 let expandedGroups = new Set();
 let favoriteSongIds = new Set();
 let favoriteSongsCache = [];
+let favoriteSortOrderMap = new Map();
+let favoriteDragSuppressClickUntil = 0;
 let searchInputTimer = null;
 let deepSearchTimer = null;
 let searchRunId = 0;
@@ -6017,8 +7274,19 @@ function hideInstallAppBanner() {
   if (banner) banner.classList.add("hidden");
 }
 
-function openIosInstallModal() {
+function openInstallHelpModal() {
   const modal = document.getElementById("iosInstallModal");
+  const title = document.getElementById("installModalTitle");
+  const subtitle = document.getElementById("installModalSubtitle");
+
+  if (isAndroidDevice()) {
+    if (title) title.textContent = "Install Mehfil on Android";
+    if (subtitle) subtitle.textContent = "Use Chrome menu if the install prompt does not appear.";
+  } else {
+    if (title) title.textContent = "Install Mehfil on iPhone";
+    if (subtitle) subtitle.textContent = "Takes less than 10 seconds.";
+  }
+
   if (modal) modal.classList.remove("hidden");
 }
 
@@ -6034,10 +7302,18 @@ async function handleInstallAppClick() {
   }
 
   if (deferredInstallPrompt) {
-    const promptEvent = deferredInstallPrompt;
-    deferredInstallPrompt = null;
+  const installBtn = document.getElementById("installAppBtn");
+  const originalText = installBtn ? installBtn.textContent : "";
 
-    promptEvent.prompt();
+  if (installBtn) {
+    installBtn.textContent = "Opening...";
+    installBtn.disabled = true;
+  }
+
+  const promptEvent = deferredInstallPrompt;
+  deferredInstallPrompt = null;
+
+  promptEvent.prompt();
 
     try {
       const choice = await promptEvent.userChoice;
@@ -6046,7 +7322,11 @@ async function handleInstallAppClick() {
         hideInstallAppBanner();
         dismissInstallPromptForDays(365);
       } else {
-        showInstallAppBanner();
+        if (installBtn) {
+  installBtn.textContent = originalText || "Install";
+  installBtn.disabled = false;
+}
+showInstallAppBanner();
       }
     } catch {
       showInstallAppBanner();
@@ -6055,12 +7335,7 @@ async function handleInstallAppClick() {
     return;
   }
 
-  if (isIosDevice()) {
-    openIosInstallModal();
-    return;
-  }
-
-  openIosInstallModal();
+  openInstallHelpModal();
 }
 
 function setupInstallAppPrompt() {
@@ -6068,9 +7343,7 @@ function setupInstallAppPrompt() {
     event.preventDefault();
     deferredInstallPrompt = event;
 
-    setTimeout(() => {
-      showInstallAppBanner();
-    }, 1800);
+    showInstallAppBanner();
   });
 
   window.addEventListener("appinstalled", () => {
@@ -11384,11 +12657,14 @@ function urlLooksLikePasswordRecovery() {
 function forcePasswordRecoveryMode(message = "Password recovery mode. Enter your new password below.") {
   passwordRecoveryMode = true;
 
+  const bootScreen = document.getElementById("bootScreen");
   const authScreen = document.getElementById("authScreen");
   const pendingScreen = document.getElementById("pendingScreen");
   const appScreen = document.getElementById("appScreen");
   const box = document.getElementById("passwordResetBox");
 
+  if (bootScreen) bootScreen.classList.add("hidden");
+  if (bootScreen) bootScreen.classList.add("hidden");
   if (authScreen) authScreen.classList.remove("hidden");
   if (pendingScreen) pendingScreen.classList.add("hidden");
   if (appScreen) appScreen.classList.add("hidden");
@@ -11623,28 +12899,105 @@ disposeSearchWorker();
         showStatus("pendingStatus", error.message || "Could not refresh approval status.", "error");
       }
     }
+    
+    function rebuildFavoriteSongsCache() {
+  favoriteSongsCache = preparedSongs
+    .filter(song => favoriteSongIds.has(Number(song.id)))
+    .sort((a, b) => {
+      const orderA = favoriteSortOrderMap.get(Number(a.id)) ?? 999999;
+      const orderB = favoriteSortOrderMap.get(Number(b.id)) ?? 999999;
+
+      if (orderA !== orderB) return orderA - orderB;
+
+      return String(a.title || "").localeCompare(String(b.title || ""));
+    });
+}
+
+function getNextFavoriteSortOrder() {
+  const orders = Array.from(favoriteSortOrderMap.values())
+    .map(Number)
+    .filter(Number.isFinite);
+
+  if (!orders.length) return 100;
+
+  return Math.max(...orders) + 100;
+}
+
+function showFavoriteOrderStatus(message, type = "success") {
+  const el = document.getElementById("favoriteOrderStatus");
+  if (!el) return;
+
+  el.textContent = message || "";
+  el.className = `favorite-order-status show favorite-order-status-${type}`;
+
+  clearTimeout(showFavoriteOrderStatus.timer);
+  showFavoriteOrderStatus.timer = setTimeout(() => {
+    el.className = "favorite-order-status";
+    el.textContent = "";
+  }, 1600);
+}
+
+async function saveFavoriteOrderFromDom() {
+  if (!session?.user || !isApproved()) return;
+
+  const rows = Array.from(document.querySelectorAll("#favoriteSongsList .favorite-song-row[data-song-id]"));
+  if (!rows.length) return;
+
+  const updates = rows.map((row, index) => {
+    const songId = Number(row.dataset.songId);
+    const sortOrder = (index + 1) * 100;
+
+    favoriteSortOrderMap.set(songId, sortOrder);
+
+    return supabaseClient
+      .from("bookmarks")
+      .update({ sort_order: sortOrder })
+      .eq("user_id", session.user.id)
+      .eq("song_id", songId);
+  });
+
+  const results = await Promise.all(updates);
+  const failed = results.find(result => result.error);
+
+  if (failed?.error) {
+  console.error("SAVE FAVORITE ORDER ERROR:", failed.error);
+  showFavoriteOrderStatus("Save failed", "error");
+  return;
+}
+
+rebuildFavoriteSongsCache();
+showFavoriteOrderStatus("Order saved", "success");
+}
 
     async function loadBookmarks() {
-      if (!session?.user || !isApproved()) {
-        favoriteSongIds = new Set();
-        favoriteSongsCache = [];
-        return;
-      }
+  if (!session?.user || !isApproved()) {
+    favoriteSongIds = new Set();
+    favoriteSongsCache = [];
+    favoriteSortOrderMap = new Map();
+    return;
+  }
 
-      const { data, error } = await supabaseClient
-        .from("bookmarks")
-        .select("song_id")
-        .eq("user_id", session.user.id);
+  const { data, error } = await supabaseClient
+    .from("bookmarks")
+    .select("song_id, sort_order")
+    .eq("user_id", session.user.id);
 
-      if (error) {
-        console.error("LOAD BOOKMARKS ERROR:", error);
-        showStatus("appStatus", error.message, "error");
-        return;
-      }
+  if (error) {
+    console.error("LOAD BOOKMARKS ERROR:", error);
+    showStatus("appStatus", error.message, "error");
+    return;
+  }
 
-      favoriteSongIds = new Set((data || []).map(row => Number(row.song_id)));
-      favoriteSongsCache = preparedSongs.filter(song => favoriteSongIds.has(Number(song.id)));
-    }
+  favoriteSongIds = new Set((data || []).map(row => Number(row.song_id)));
+  favoriteSortOrderMap = new Map(
+    (data || []).map(row => [
+      Number(row.song_id),
+      Number(row.sort_order || 999999)
+    ])
+  );
+
+  rebuildFavoriteSongsCache();
+}
 
     async function toggleBookmark(songId, event = null) {
       if (event) {
@@ -11671,10 +13024,13 @@ disposeSearchWorker();
         }
 
         favoriteSongIds.delete(numericSongId);
+favoriteSortOrderMap.delete(numericSongId);
       } else {
-        const { error } = await supabaseClient
-          .from("bookmarks")
-          .insert([{ user_id: session.user.id, song_id: numericSongId }]);
+        const nextSortOrder = getNextFavoriteSortOrder();
+
+const { error } = await supabaseClient
+  .from("bookmarks")
+  .insert([{ user_id: session.user.id, song_id: numericSongId, sort_order: nextSortOrder }]);
 
         if (error) {
           console.error("INSERT BOOKMARK ERROR:", error);
@@ -11683,9 +13039,10 @@ disposeSearchWorker();
         }
 
         favoriteSongIds.add(numericSongId);
+        favoriteSortOrderMap.set(numericSongId, nextSortOrder);
       }
 
-      favoriteSongsCache = preparedSongs.filter(song => favoriteSongIds.has(Number(song.id)));
+      rebuildFavoriteSongsCache();
 
      if (lastQuery.trim()) {
   scheduleSearchRender(lastQuery, { mode: "deep", showSnippets: true });
@@ -11701,6 +13058,83 @@ disposeSearchWorker();
         openSong(numericSongId);
       }
     }
+
+    function formatCombinedSongCount() {
+  const cached = Number(onlineCacheSongCount || 0);
+  const local = Number(localLibrarySongCount || 0);
+
+  if (cached > 0) {
+    return `${cached}+${local}`;
+  }
+
+  return `${local}`;
+}
+
+
+function syncHeaderMetaWidth() {
+  const brand = document.querySelector("#appScreen .brand");
+  const meta = document.querySelector("#appScreen .brand-meta-row");
+
+  if (!brand || !meta) return;
+
+  requestAnimationFrame(() => {
+    const width = Math.ceil(brand.getBoundingClientRect().width);
+    if (width > 0) {
+      meta.style.maxWidth = `${width}px`;
+      meta.style.width = `${width}px`;
+    }
+  });
+}
+
+function updateHeaderAccessAndCount() {
+  const welcomeEl = document.getElementById("welcomeLine");
+  const countEl = document.getElementById("libraryCountText");
+  const dotEl = document.querySelector("#appScreen .brand-meta-dot");
+
+  if (isAdmin()) {
+    if (welcomeEl) welcomeEl.textContent = "Admin";
+    if (countEl) {
+      countEl.textContent = formatCombinedSongCount();
+      countEl.classList.remove("hidden");
+    }
+    if (dotEl) dotEl.classList.remove("hidden");
+  } else {
+    if (welcomeEl) welcomeEl.textContent = "User Access";
+    if (countEl) {
+      countEl.textContent = "";
+      countEl.classList.add("hidden");
+    }
+    if (dotEl) dotEl.classList.add("hidden");
+  }
+
+  syncHeaderMetaWidth();
+}
+
+async function loadOnlineCacheSongCount() {
+  if (!supabaseClient || !session?.user || !isApproved()) {
+    onlineCacheSongCount = 0;
+    updateHeaderAccessAndCount();
+    return;
+  }
+
+  try {
+    const { count, error } = await supabaseClient
+      .from("online_song_cache")
+      .select("query_norm", {
+        count: "exact",
+        head: true
+      });
+
+    if (error) throw error;
+
+    onlineCacheSongCount = Number(count || 0);
+  } catch (error) {
+    console.warn("Could not load online cache count:", error?.message || error);
+    onlineCacheSongCount = 0;
+  }
+
+  updateHeaderAccessAndCount();
+}
 
    async function loadSongs(options = {}) {
   const { silent = false } = options;
@@ -11723,6 +13157,7 @@ disposeSearchWorker();
   }
 
   songs = data || [];
+  localLibrarySongCount = songs.length;
 rebuildFuse();
 syncSearchWorkerIndex();
 await loadBookmarks();
@@ -11738,7 +13173,8 @@ if (lastQuery.trim()) {
 startIdleSuggestionRotation();
   renderSongGroups();
   renderFavorites();
-  document.getElementById("libraryCountText").textContent = `${songs.length} songs`;
+  updateHeaderAccessAndCount();
+await loadOnlineCacheSongCount();
   lastSongsRefreshAt = Date.now();
 
   if (!silent) {
@@ -11762,8 +13198,9 @@ syncSearchWorkerIndex();
 refreshSuggestionLists();
 checkEditorDuplicateState();
  clearSearchOnlineUi();
-favoriteSongsCache = preparedSongs.filter(song => favoriteSongIds.has(Number(song.id)));
-document.getElementById("libraryCountText").textContent = `${songs.length} songs`;
+rebuildFavoriteSongsCache();
+localLibrarySongCount = songs.length;
+updateHeaderAccessAndCount();
 
 if (lastQuery.trim()) {
   scheduleSearchRender(lastQuery, { mode: "deep", showSnippets: true });
@@ -12257,6 +13694,8 @@ let adminWarmupStopRequested = false;
 let adminWarmupRunning = false;
 let adminWarmupRows = [];
 let adminCacheDashboardRows = [];
+let adminCacheDashboardTotalCount = 0;
+const ADMIN_CACHE_DASHBOARD_LIMIT = 100;
 
 async function loadPendingUsers() {
   return await loadUsersAdminData();
@@ -12744,27 +14183,37 @@ async function loadOnlineCacheDashboard() {
 
   if (!root) return;
 
-  setAdminCacheDashboardStatus("Loading online cache dashboard...", "info");
+  setAdminCacheDashboardStatus("Loading cache dashboard...", "info");
 
   try {
-    const { data, error } = await supabaseClient
+    const { data, error, count } = await supabaseClient
       .from("online_song_cache")
-      .select("query_norm, display_query, provider, candidates, hit_count, last_hit_at, updated_at, created_at")
+      .select(
+        "query_norm, display_query, provider, candidates, hit_count, last_hit_at, updated_at, created_at",
+        { count: "exact" }
+      )
       .order("updated_at", { ascending: false })
-      .limit(50);
+      .range(0, ADMIN_CACHE_DASHBOARD_LIMIT - 1);
 
     if (error) throw error;
 
     adminCacheDashboardRows = Array.isArray(data) ? data : [];
+    adminCacheDashboardTotalCount = Number(count || adminCacheDashboardRows.length || 0);
 
     renderOnlineCacheDashboard();
 
+    const shown = adminCacheDashboardRows.length;
+    const total = adminCacheDashboardTotalCount;
+
     setAdminCacheDashboardStatus(
-      `${adminCacheDashboardRows.length} cached query row(s) loaded.`,
+      total > shown
+        ? `Showing latest ${shown} of ${total} cached searches.`
+        : `${shown} cached search row(s) loaded.`,
       "success"
     );
   } catch (error) {
     adminCacheDashboardRows = [];
+    adminCacheDashboardTotalCount = 0;
     renderOnlineCacheDashboard();
     setAdminCacheDashboardStatus(`Could not load cache dashboard: ${error?.message || error}`, "error");
   }
@@ -13449,43 +14898,50 @@ async function deleteRegisteredUserAccountData(userId, email) {
     }
 
     function renderFavorites() {
-      const root = document.getElementById("favoriteSongsList");
-      if (!root) return;
+  const root = document.getElementById("favoriteSongsList");
+  if (!root) return;
 
-      if (!favoriteSongsCache.length) {
-        root.innerHTML = `<div class="empty">No favourite songs yet.</div>`;
-        return;
-      }
+  if (!favoriteSongsCache.length) {
+    root.innerHTML = `<div class="empty">No favourite songs yet.</div>`;
+    return;
+  }
 
-      root.innerHTML = favoriteSongsCache
-        .slice()
-        .sort((a, b) => String(a.title || "").localeCompare(String(b.title || "")))
-        .map(song => {
-          const isFav = favoriteSongIds.has(Number(song.id));
-          const editButton = isApproved()
-            ? `<button class="edit-btn" type="button" data-edit-id="${song.id}" title="Edit">✎</button>`
-            : "";
+  root.innerHTML = favoriteSongsCache
+    .map(song => {
+      const isFav = favoriteSongIds.has(Number(song.id));
+      const editButton = isApproved()
+        ? `<button class="edit-btn" type="button" data-edit-id="${song.id}" title="Edit">✎</button>`
+        : "";
 
-          return `
-            <div class="song-row" data-song-id="${song.id}">
-              <div class="result-main">
-                <div class="song-title">${escapeHtml(song.title || "")}</div>
-                <div class="song-meta">${escapeHtml(joinMeta([song.movie, song.singer]))}</div>
-              </div>
-              <div class="stack-actions">
-                <button
-                  class="star-btn ${isFav ? "active" : ""}"
-                  type="button"
-                  data-bookmark-id="${song.id}"
-                  title="${isFav ? "Remove from favourites" : "Add to favourites"}"
-                >${isFav ? "★" : "☆"}</button>
-                ${editButton}
-              </div>
-            </div>
-          `;
-        })
-        .join("");
-    }
+      return `
+        <div class="song-row favorite-song-row" data-song-id="${song.id}">
+          <button
+            class="favorite-drag-handle"
+            type="button"
+            data-favorite-drag-handle
+            title="Drag to reorder"
+            aria-label="Drag to reorder"
+          >⋮⋮</button>
+
+          <div class="result-main">
+            <div class="song-title">${escapeHtml(song.title || "")}</div>
+            <div class="song-meta">${escapeHtml(joinMeta([song.movie, song.singer]))}</div>
+          </div>
+
+          <div class="stack-actions">
+            <button
+              class="star-btn ${isFav ? "active" : ""}"
+              type="button"
+              data-bookmark-id="${song.id}"
+              title="${isFav ? "Remove from favourites" : "Add to favourites"}"
+            >${isFav ? "★" : "☆"}</button>
+            ${editButton}
+          </div>
+        </div>
+      `;
+    })
+    .join("");
+}
 
     function openSong(songId) {
       openModalKind = "local";
@@ -13608,6 +15064,8 @@ markInputAutofilled(document.getElementById("songSinger"), false);
 
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
+
+window.addEventListener("resize", syncHeaderMetaWidth);
 
     function closeEditor() {
       document.getElementById("songEditorCard").classList.add("hidden");
@@ -13785,11 +15243,14 @@ markInputAutofilled(document.getElementById("songSinger"), false);
     }
 
     function renderScreens() {
-      const authScreen = document.getElementById("authScreen");
-      const pendingScreen = document.getElementById("pendingScreen");
-      const appScreen = document.getElementById("appScreen");
+  const bootScreen = document.getElementById("bootScreen");
+  const authScreen = document.getElementById("authScreen");
+  const pendingScreen = document.getElementById("pendingScreen");
+  const appScreen = document.getElementById("appScreen");
 
-      if (!authScreen || !pendingScreen || !appScreen) return;
+  if (!authScreen || !pendingScreen || !appScreen) return;
+
+  if (bootScreen) bootScreen.classList.add("hidden");
 
         if (passwordRecoveryMode || urlLooksLikePasswordRecovery()) {
     forcePasswordRecoveryMode("Password recovery mode. Enter your new password below.");
@@ -13836,7 +15297,7 @@ if (appBrandTitle) {
   appBrandTitle.textContent = `${firstName}'s Mehfil`;
 }
 
-document.getElementById("welcomeLine").textContent = isAdmin() ? "Admin access" : "Member";
+updateHeaderAccessAndCount();
       document.getElementById("toggleAddBtn").classList.toggle("hidden", !isApproved());
       document.getElementById("tabAdminBtn").classList.toggle("hidden", !isAdmin());
       document.getElementById("libraryCountText").textContent = `${songs.length} songs`;
@@ -13912,9 +15373,12 @@ if (!session?.user) return;
         activateTab("search");
       } catch (err) {
         console.error("BOOTSTRAP ERROR:", err);
-        document.getElementById("authScreen").classList.remove("hidden");
-        document.getElementById("pendingScreen").classList.add("hidden");
-        document.getElementById("appScreen").classList.add("hidden");
+        const bootScreen = document.getElementById("bootScreen");
+if (bootScreen) bootScreen.classList.add("hidden");
+
+document.getElementById("authScreen").classList.remove("hidden");
+document.getElementById("pendingScreen").classList.add("hidden");
+document.getElementById("appScreen").classList.add("hidden");
         showStatus("authStatus", "App failed to start: " + (err?.message || err), "error");
       }
     }
@@ -14197,7 +15661,85 @@ deepSearchTimer = setTimeout(() => {
         if (row) openSong(Number(row.dataset.songId));
       });
 
+      let favoriteDragState = null;
+
+document.getElementById("favoriteSongsList").addEventListener("pointerdown", (e) => {
+  const handle = e.target.closest("[data-favorite-drag-handle]");
+  if (!handle) return;
+
+  const row = handle.closest(".favorite-song-row");
+  const root = document.getElementById("favoriteSongsList");
+
+  if (!row || !root) return;
+
+  e.preventDefault();
+  e.stopPropagation();
+
+  favoriteDragState = {
+    row,
+    root,
+    startY: e.clientY,
+    moved: false
+  };
+
+  row.classList.add("favorite-dragging");
+  handle.setPointerCapture?.(e.pointerId);
+});
+
+document.getElementById("favoriteSongsList").addEventListener("pointermove", (e) => {
+  if (!favoriteDragState) return;
+
+  const { row, root, startY } = favoriteDragState;
+
+  if (Math.abs(e.clientY - startY) > 5) {
+    favoriteDragState.moved = true;
+  }
+
+  const target = document.elementFromPoint(e.clientX, e.clientY);
+  const overRow = target?.closest?.(".favorite-song-row");
+
+  if (!overRow || overRow === row || !root.contains(overRow)) return;
+
+  const rect = overRow.getBoundingClientRect();
+  const before = e.clientY < rect.top + rect.height / 2;
+
+  root.insertBefore(row, before ? overRow : overRow.nextSibling);
+});
+
+document.getElementById("favoriteSongsList").addEventListener("pointerup", async (e) => {
+  if (!favoriteDragState) return;
+
+  const { row, moved } = favoriteDragState;
+
+  row.classList.remove("favorite-dragging");
+
+  favoriteDragState = null;
+
+  if (moved) {
+    favoriteDragSuppressClickUntil = Date.now() + 500;
+    await saveFavoriteOrderFromDom();
+  }
+});
+
+document.getElementById("favoriteSongsList").addEventListener("pointercancel", () => {
+  if (!favoriteDragState) return;
+
+  favoriteDragState.row.classList.remove("favorite-dragging");
+  favoriteDragState = null;
+});
+
       document.getElementById("favoriteSongsList").addEventListener("click", async (e) => {
+        if (Date.now() < favoriteDragSuppressClickUntil) {
+  e.preventDefault();
+  e.stopPropagation();
+  return;
+}
+
+if (e.target.closest("[data-favorite-drag-handle]")) {
+  e.preventDefault();
+  e.stopPropagation();
+  return;
+}
         const bookmarkBtn = e.target.closest("[data-bookmark-id]");
         if (bookmarkBtn) {
           await toggleBookmark(Number(bookmarkBtn.dataset.bookmarkId), e);
