@@ -7120,6 +7120,205 @@ body.song-modal-open::after {
   position: relative;
   z-index: 1;
 }
+
+/* MIC TOGGLE FIX — PATCH 31 */
+
+#micBtn.mic-listening {
+  background: #fff1f2 !important;
+  color: #b91c1c !important;
+  border-color: #fecdd3 !important;
+  box-shadow: 0 0 0 4px rgba(225, 29, 72, 0.08) !important;
+}
+
+#micBtn.mic-listening::after {
+  content: "";
+  width: 7px;
+  height: 7px;
+  margin-left: 2px;
+  border-radius: 999px;
+  background: #e11d48;
+  display: inline-block;
+}
+
+/* =========================================================
+   APP STATUS TOAST — PATCH 32
+   Prevents status messages from pushing the page down.
+   ========================================================= */
+
+#appStatus.status-box {
+  display: none;
+}
+
+#appStatus.status-box.show {
+  position: fixed !important;
+  left: 50% !important;
+  bottom: calc(16px + env(safe-area-inset-bottom)) !important;
+  transform: translateX(-50%) !important;
+  z-index: 13000 !important;
+
+  display: block !important;
+  width: min(calc(100vw - 24px), 560px) !important;
+  margin: 0 !important;
+
+  border-radius: 16px !important;
+  padding: 11px 14px !important;
+  font-size: 13px !important;
+  line-height: 1.4 !important;
+  font-weight: 750 !important;
+
+  box-shadow:
+    0 16px 44px rgba(15, 23, 42, 0.18),
+    0 1px 2px rgba(15, 23, 42, 0.08) !important;
+
+  animation: mehfilToastIn 0.16s ease-out;
+}
+
+@keyframes mehfilToastIn {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+@media (max-width: 640px) {
+  #appStatus.status-box.show {
+    bottom: calc(12px + env(safe-area-inset-bottom)) !important;
+    width: calc(100vw - 20px) !important;
+    border-radius: 15px !important;
+    font-size: 12px !important;
+  }
+}
+
+/* =========================================================
+   MIC STATUS PILL — PATCH 33
+   Mic feedback belongs near the search bar, not at page bottom.
+   ========================================================= */
+
+#searchTab .search-bar {
+  position: relative;
+}
+
+.mic-status-pill {
+  position: absolute;
+  left: 0;
+  top: calc(100% + 8px);
+  z-index: 40;
+
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+
+  max-width: min(360px, calc(100vw - 44px));
+  padding: 9px 11px;
+  border-radius: 999px;
+
+  background: #fff1f2;
+  color: #9f1239;
+  border: 1px solid #fecdd3;
+
+  font-size: 12px;
+  line-height: 1.25;
+  font-weight: 900;
+
+  box-shadow:
+    0 12px 28px rgba(159, 18, 57, 0.14),
+    0 1px 2px rgba(15, 23, 42, 0.08);
+
+  pointer-events: none;
+  animation: micPillIn 0.14s ease-out;
+}
+
+.mic-status-pill.hidden {
+  display: none !important;
+}
+
+.mic-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: #e11d48;
+  box-shadow: 0 0 0 4px rgba(225, 29, 72, 0.12);
+  animation: micPulse 1s ease-in-out infinite;
+  flex: 0 0 auto;
+}
+
+.mic-status-pill.mic-status-warn {
+  background: #fff7ed;
+  color: #9a3412;
+  border-color: #fed7aa;
+  box-shadow:
+    0 12px 28px rgba(154, 52, 18, 0.13),
+    0 1px 2px rgba(15, 23, 42, 0.08);
+}
+
+.mic-status-pill.mic-status-warn .mic-status-dot {
+  background: #f97316;
+  box-shadow: 0 0 0 4px rgba(249, 115, 22, 0.13);
+  animation: none;
+}
+
+@keyframes micPulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+
+  50% {
+    transform: scale(0.72);
+    opacity: 0.55;
+  }
+}
+
+@keyframes micPillIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 640px) {
+  .mic-status-pill {
+    top: calc(100% + 7px);
+    font-size: 11px;
+    padding: 8px 10px;
+    max-width: calc(100vw - 34px);
+  }
+}
+
+/* =========================================================
+   FAVORITES DRAG TEXT-SELECTION FIX — PATCH 34
+   Prevents iPhone/Safari text selection while reordering.
+   ========================================================= */
+
+#favoritesTab .favorite-song-row,
+#favoritesTab .favorite-song-row *,
+#favoritesTab .favorite-drag-handle {
+  -webkit-user-select: none !important;
+  user-select: none !important;
+  -webkit-touch-callout: none !important;
+}
+
+#favoritesTab .favorite-drag-handle {
+  touch-action: none !important;
+}
+
+body.favorite-drag-active,
+body.favorite-drag-active * {
+  -webkit-user-select: none !important;
+  user-select: none !important;
+  -webkit-touch-callout: none !important;
+}
+
   </style>
 </head>
 <body>
@@ -7404,7 +7603,12 @@ body.song-modal-open::after {
       <section id="searchTab">
        <div class="card">
   <div class="search-bar">
-    <button id="micBtn" class="icon-btn" type="button" title="Speak">🎤</button>
+    <button id="micBtn" class="icon-btn" type="button" title="Speak" aria-label="Start voice search">🎤</button>
+
+<div id="micStatusPill" class="mic-status-pill hidden" role="status" aria-live="polite">
+  <span class="mic-status-dot"></span>
+  <span id="micStatusText">Listening… tap mic again to stop</span>
+</div>
 
 <input
   id="searchInput"
@@ -7674,13 +7878,20 @@ let localLibrarySongCount = 0;
 let activeMainTab = "search";
 let idleSuggestionSongId = null;
 let idleSuggestionTimer = null;
+let libraryReadyForIdleSuggestion = false;
 const IDLE_SUGGESTION_ROTATE_MS = 3 * 60 * 1000;
 let activeRecognition = null;
+let micListening = false;
+let micStopRequested = false;
+let micAutoStopTimer = null;
+let micFinalRawTranscript = "";
 let expandedGroups = new Set();
 let favoriteSongIds = new Set();
 let favoriteSongsCache = [];
 let favoriteSortOrderMap = new Map();
 let favoriteDragSuppressClickUntil = 0;
+let songGroupsDirty = true;
+let favoritesDirty = true;
 let searchInputTimer = null;
 let deepSearchTimer = null;
 let searchRunId = 0;
@@ -7716,6 +7927,8 @@ let lastHiddenAt = 0;
 let lastResumeHandledAt = 0;
 
 let deferredInstallPrompt = null;
+let appReadyForInstallPrompt = false;
+let appStartupLoadRunning = false;
 let currentProviderLyricsUrl = "";
 const MEHFIL_POLICY_VERSION = "2026-05-terms-v1";
 const MEHFIL_LEGAL_CONTACT_EMAIL = "munichmehfil@gmail.com";
@@ -7759,6 +7972,7 @@ function dismissInstallPromptForDays(days = 7) {
 }
 
 function shouldShowInstallPrompt() {
+  if (!appReadyForInstallPrompt) return false;
   if (isStandaloneAppMode()) return false;
 
   const dismissedUntil = getInstallPromptDismissedUntil();
@@ -7887,9 +8101,9 @@ function setupInstallAppPrompt() {
     });
   }
 
-  setTimeout(() => {
-    showInstallAppBanner();
-  }, 2500);
+ // setTimeout(() => {
+ //   showInstallAppBanner();
+ // }, 2500);
 }
 
 const BACKGROUND_REFRESH_MIN_MS = 5 * 60 * 1000;
@@ -8026,6 +8240,27 @@ function getFastLyricCandidateScore(song, query) {
       return parts.filter(Boolean).join(" • ");
     }
 
+    function renderInstantIdlePanel() {
+  const root = document.getElementById("searchResults");
+  if (!root) return;
+
+  root.innerHTML = `
+    <div class="search-idle-panel">
+      <div class="search-idle-kicker">Ready</div>
+
+      <div class="search-idle-title">Search Mehfil.</div>
+
+      <div class="search-idle-text">
+        Type a song title, lyric line, singer, or movie. Your library is opening in the background.
+      </div>
+
+      <div class="search-idle-note">
+        Suggestions appear once the library is ready.
+      </div>
+    </div>
+  `;
+}
+
     function getIdleSuggestionPool() {
   return preparedSongs
     .filter(song =>
@@ -8138,6 +8373,56 @@ function startIdleSuggestionRotation() {
       showStatus(id, "", "info");
     }
   }, timeoutMs);
+}
+
+function nextPaint() {
+  return new Promise(resolve => {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(resolve);
+    });
+  });
+}
+
+function markAppReadyForInstallPrompt(delayMs = 1500) {
+  appReadyForInstallPrompt = true;
+
+  setTimeout(() => {
+    showInstallAppBanner();
+  }, delayMs);
+}
+
+async function startApprovedAppShell() {
+  if (!profile?.approved) return;
+
+  renderAppShell();
+activateTab("search");
+renderInstantIdlePanel();
+
+showStatus("appStatus", "Opening Mehfil library...", "info");
+
+  await nextPaint();
+
+  if (appStartupLoadRunning) return;
+
+  appStartupLoadRunning = true;
+
+  setTimeout(async () => {
+    try {
+      await loadSongs({ silent: true });
+      showStatus("appStatus", "", "info");
+      await enforceLegalAcceptanceIfNeeded();
+      markAppReadyForInstallPrompt(1500);
+    } catch (error) {
+      console.error("STARTUP LIBRARY LOAD ERROR:", error);
+      showStatus(
+        "appStatus",
+        "Library could not load: " + (error?.message || error),
+        "error"
+      );
+    } finally {
+      appStartupLoadRunning = false;
+    }
+  }, 80);
 }
 
  function getOnlineLookupCacheKey(payload = {}) {
@@ -11663,7 +11948,7 @@ function getStrongQueryVariants(query) {
   };
 }
 
-   function rebuildFuse() {
+      function rebuildFuse() {
   preparedSongs = songs.map(buildPreparedSong);
   buildLyricIndexes();
 
@@ -13324,11 +13609,9 @@ if (window.history && window.history.replaceState) {
         renderScreens();
 
         if (profile?.approved) {
-          renderAppShell();
-          await loadSongs();
-          activateTab("search");
-          showStatus("authStatus", "", "info");
-        } else {
+  await startApprovedAppShell();
+  showStatus("authStatus", "", "info");
+} else {
           showStatus("authStatus", "Your request is pending. Please wait for admin approval.", "warn");
         }
       } catch (err) {
@@ -13339,6 +13622,8 @@ if (window.history && window.history.replaceState) {
 
     async function logoutUser() {
       stopActiveRecognition();
+      appReadyForInstallPrompt = false;
+hideInstallAppBanner();
      unsubscribeFromSongsRealtime();
 unsubscribeFromLiveSongChannel();
 showLiveNowBar("");
@@ -13376,6 +13661,8 @@ disposeSearchWorker();
       fuse = null;
       editingSongId = null;
       openSongId = null;
+      libraryReadyForIdleSuggestion = false;
+idleSuggestionSongId = null;
       lastQuery = "";
       expandedGroups = new Set();
       favoriteSongIds = new Set();
@@ -13397,11 +13684,9 @@ disposeSearchWorker();
         renderScreens();
 
         if (profile?.approved) {
-          renderAppShell();
-          await loadSongs();
-          activateTab("search");
-          showStatus("pendingStatus", "Your account is now approved.", "success");
-        } else {
+  await startApprovedAppShell();
+  showTemporaryStatus("appStatus", "Your account is now approved.", "success", 3500);
+} else {
           showStatus(
             "pendingStatus",
             "Your request is pending. After an admin approves your account, log in again with the same email and password.",
@@ -13449,6 +13734,23 @@ function showFavoriteOrderStatus(message, type = "success") {
     el.className = "favorite-order-status";
     el.textContent = "";
   }, 1600);
+}
+
+function clearBrowserTextSelection() {
+  try {
+    const selection = window.getSelection?.();
+    if (selection) selection.removeAllRanges();
+  } catch (_) {
+    // Ignore.
+  }
+}
+
+function setFavoriteDragSelectionLock(active) {
+  document.body.classList.toggle("favorite-drag-active", !!active);
+
+  if (active) {
+    clearBrowserTextSelection();
+  }
 }
 
 async function saveFavoriteOrderFromDom() {
@@ -13565,8 +13867,8 @@ const { error } = await supabaseClient
   renderResults([], "");
 }
 
-      renderSongGroups();
-      renderFavorites();
+      markLibraryViewsDirty();
+renderLibraryViewsIfVisible();
 
       if (openSongId === numericSongId) {
         openSong(numericSongId);
@@ -13714,12 +14016,28 @@ async function loadOnlineCacheSongCount() {
   }
 
   songs = data || [];
-  localLibrarySongCount = songs.length;
+localLibrarySongCount = songs.length;
+
+libraryReadyForIdleSuggestion = false;
+updateHeaderAccessAndCount();
+
+// Keep the first page stable while indexing happens.
+if (!lastQuery.trim()) {
+  renderResults([], "");
+}
+
 rebuildFuse();
-syncSearchWorkerIndex();
+
+libraryReadyForIdleSuggestion = true;
+
+// Do not block startup by syncing the worker immediately.
+scheduleWorkerIndexSync(250);
+
 await loadBookmarks();
 refreshSuggestionLists();
 checkEditorDuplicateState();
+
+markLibraryViewsDirty();
 
 if (lastQuery.trim()) {
   scheduleSearchRender(lastQuery, { mode: "deep", showSnippets: true });
@@ -13727,12 +14045,19 @@ if (lastQuery.trim()) {
   searchRunId++;
   renderResults([], "");
 }
+
 startIdleSuggestionRotation();
-  renderSongGroups();
-  renderFavorites();
-  updateHeaderAccessAndCount();
-await loadOnlineCacheSongCount();
-  lastSongsRefreshAt = Date.now();
+
+// Only render hidden heavy tabs if the user is actually viewing them.
+renderLibraryViewsIfVisible();
+
+updateHeaderAccessAndCount();
+
+setTimeout(() => {
+  loadOnlineCacheSongCount();
+}, 700);
+
+lastSongsRefreshAt = Date.now();
 
   if (!silent) {
     showStatus("appStatus", "", "info");
@@ -13751,13 +14076,16 @@ function refreshUiFromSongsState(options = {}) {
   const { preserveOpenModal = true } = options;
 
  rebuildFuse();
-syncSearchWorkerIndex();
+scheduleWorkerIndexSync(120);
 refreshSuggestionLists();
 checkEditorDuplicateState();
- clearSearchOnlineUi();
+clearSearchOnlineUi();
+
 rebuildFavoriteSongsCache();
 localLibrarySongCount = songs.length;
 updateHeaderAccessAndCount();
+
+markLibraryViewsDirty();
 
 if (lastQuery.trim()) {
   scheduleSearchRender(lastQuery, { mode: "deep", showSnippets: true });
@@ -13766,8 +14094,7 @@ if (lastQuery.trim()) {
   renderResults([], "");
 }
 
-  renderSongGroups();
-  renderFavorites();
+renderLibraryViewsIfVisible();
 
   if (preserveOpenModal && openSongId != null) {
     const stillExists = preparedSongs.find(s => Number(s.id) === Number(openSongId));
@@ -15290,6 +15617,11 @@ async function deleteRegisteredUserAccountData(userId, email) {
   const suppressEmptyState = !!options.suppressEmptyState;
 
   if (!query.trim()) {
+  if (!libraryReadyForIdleSuggestion) {
+    renderInstantIdlePanel();
+    return;
+  }
+
   const suggestion = getIdleSuggestionSong();
 
   if (!suggestion) {
@@ -15500,6 +15832,40 @@ async function deleteRegisteredUserAccountData(userId, email) {
     .join("");
 }
 
+function isTabCurrentlyVisible(id) {
+  const el = document.getElementById(id);
+  return !!el && !el.classList.contains("hidden");
+}
+
+function markLibraryViewsDirty() {
+  songGroupsDirty = true;
+  favoritesDirty = true;
+}
+
+function renderSongGroupsIfNeeded(force = false) {
+  if (!force && !songGroupsDirty) return;
+
+  renderSongGroups();
+  songGroupsDirty = false;
+}
+
+function renderFavoritesIfNeeded(force = false) {
+  if (!force && !favoritesDirty) return;
+
+  renderFavorites();
+  favoritesDirty = false;
+}
+
+function renderLibraryViewsIfVisible() {
+  if (isTabCurrentlyVisible("listTab")) {
+    renderSongGroupsIfNeeded();
+  }
+
+  if (isTabCurrentlyVisible("favoritesTab")) {
+    renderFavoritesIfNeeded();
+  }
+}
+
     function openSong(songId) {
       openModalKind = "local";
 openOnlineCandidateData = null;
@@ -15673,8 +16039,12 @@ window.addEventListener("resize", syncHeaderMetaWidth);
     document.getElementById("songEditorCard").classList.remove("hidden");
   }
 
+  if (tabName === "list") {
+    renderSongGroupsIfNeeded();
+  }
+
   if (tabName === "favorites") {
-    renderFavorites();
+    renderFavoritesIfNeeded();
   }
 
   if (tabName === "admin" && isAdmin()) {
@@ -15683,23 +16053,100 @@ window.addEventListener("resize", syncHeaderMetaWidth);
 }
 
     function setMicUiState(listening) {
-      const micBtn = document.getElementById("micBtn");
-      if (listening) {
-        micBtn.textContent = "🔴";
-        micBtn.classList.add("mic-listening");
-      } else {
-        micBtn.textContent = "🎤";
-        micBtn.classList.remove("mic-listening");
-      }
-    }
+  micListening = !!listening;
 
-    function stopActiveRecognition() {
-      if (activeRecognition) {
-        try { activeRecognition.stop(); } catch (_) {}
-        activeRecognition = null;
-      }
-      setMicUiState(false);
+  const micBtn = document.getElementById("micBtn");
+  if (!micBtn) return;
+
+  if (micListening) {
+    micBtn.textContent = "■";
+    micBtn.classList.add("mic-listening");
+    micBtn.setAttribute("aria-label", "Stop voice search");
+    micBtn.title = "Stop voice search";
+  } else {
+    micBtn.textContent = "🎤";
+    micBtn.classList.remove("mic-listening");
+    micBtn.setAttribute("aria-label", "Start voice search");
+    micBtn.title = "Start voice search";
+  }
+}
+
+function stopActiveRecognition() {
+  micStopRequested = true;
+
+  if (micAutoStopTimer) {
+    clearTimeout(micAutoStopTimer);
+    micAutoStopTimer = null;
+  }
+
+  if (activeRecognition) {
+    const recognition = activeRecognition;
+    activeRecognition = null;
+
+    try {
+      recognition.stop();
+    } catch (_) {
+      try { recognition.abort(); } catch (_) {}
     }
+  }
+
+  setMicUiState(false);
+  showStatus("appStatus", "", "info");
+}
+
+function toggleMicSearch() {
+  if (micListening || activeRecognition) {
+    stopActiveRecognition();
+    return;
+  }
+
+  startMicSearch();
+}
+    function hasIndicScript(text) {
+  return /[\u0900-\u097F\u0A80-\u0AFF]/.test(String(text || ""));
+}
+
+function romanizeVoiceTranscript(text) {
+  const raw = String(text || "").trim();
+
+  if (!raw) return "";
+
+  if (!hasIndicScript(raw)) {
+    return normalizeText(raw);
+  }
+
+  const romanObj = transliterateIndicWithMap(raw);
+  const romanRaw = romanObj?.rawRoman || romanObj?.roman || raw;
+
+  return normalizeRomanPhraseLoose(romanRaw)
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function finalizeMicSearchTranscript(rawTranscript) {
+  const input = document.getElementById("searchInput");
+  if (!input) return;
+
+  const raw = String(rawTranscript || "").trim();
+  const finalQuery = romanizeVoiceTranscript(raw);
+
+  if (!finalQuery) {
+    input.value = "";
+    lastQuery = "";
+    renderResults([], "");
+    return;
+  }
+
+  input.value = finalQuery;
+  lastQuery = finalQuery;
+
+  clearSearchOnlineUi();
+
+  scheduleSearchRender(finalQuery, {
+    mode: "deep",
+    showSnippets: true
+  });
+}
 
     function detectMicLanguageFromQuery(text) {
       const value = String(text || "");
@@ -15719,7 +16166,14 @@ window.addEventListener("resize", syncHeaderMetaWidth);
         return;
       }
 
-      stopActiveRecognition();
+     if (activeRecognition || micListening) {
+  stopActiveRecognition();
+  return;
+}
+
+micStopRequested = false;
+micFinalRawTranscript = "";
+
 
       try {
         const recognition = new SpeechRecognition();
@@ -15734,61 +16188,89 @@ window.addEventListener("resize", syncHeaderMetaWidth);
 
         recognition.onstart = () => {
           setMicUiState(true);
-          showStatus("appStatus", "Listening...", "info");
+          showStatus("appStatus", "", "info");
+
+micAutoStopTimer = setTimeout(() => {
+  if (activeRecognition || micListening) {
+    stopActiveRecognition();
+  }
+}, 9000);
         };
 
         recognition.onresult = (event) => {
-          let liveText = "";
-          for (let i = event.resultIndex; i < event.results.length; i++) {
-            const transcript = event.results[i][0].transcript;
-            if (event.results[i].isFinal) {
-              finalTranscript += transcript + " ";
-            } else {
-              liveText += transcript;
-            }
-          }
+  let liveText = "";
 
-          const combined = (finalTranscript + liveText).trim();
-          input.value = combined;
-          lastQuery = combined;
+  for (let i = event.resultIndex; i < event.results.length; i++) {
+    const transcript = event.results[i][0].transcript;
 
-          scheduleSearchRender(combined, {
-          mode: "fast",
-          showSnippets: false
-        });
-        };
+    if (event.results[i].isFinal) {
+      finalTranscript += transcript + " ";
+    } else {
+      liveText += transcript;
+    }
+  }
+
+  const combinedRaw = (finalTranscript + liveText).trim();
+  micFinalRawTranscript = combinedRaw;
+
+  // During listening, show what the phone heard.
+  // Final Roman conversion happens when mic stops.
+  input.value = combinedRaw;
+  lastQuery = combinedRaw;
+
+  const interimQuery = romanizeVoiceTranscript(combinedRaw);
+
+  if (interimQuery) {
+    scheduleSearchRender(interimQuery, {
+      mode: "fast",
+      showSnippets: false
+    });
+  }
+};
 
         recognition.onerror = (event) => {
-          setMicUiState(false);
+  if (micAutoStopTimer) {
+    clearTimeout(micAutoStopTimer);
+    micAutoStopTimer = null;
+  }
 
-          if (event.error === "not-allowed") {
-            showStatus("appStatus", "Mic permission blocked. Allow microphone access in browser settings.", "warn");
-          } else if (event.error === "language-not-supported") {
-            showStatus("appStatus", "This browser does not support the detected speech language.", "warn");
-          } else if (event.error === "no-speech") {
-            showStatus("appStatus", "No speech detected. Tap again and speak immediately.", "warn");
-          } else if (event.error === "audio-capture") {
-            showStatus("appStatus", "No microphone detected by the browser.", "warn");
-          } else {
-            showStatus("appStatus", `Mic error: ${event.error}`, "warn");
-          }
-
-          activeRecognition = null;
-        };
-
-        recognition.onend = () => {
   setMicUiState(false);
   activeRecognition = null;
 
-  if (!input.value.trim()) {
-    showStatus("appStatus", "Mic stopped. Tap again and speak immediately.", "warn");
-  } else {
-    scheduleSearchRender(input.value, {
-      mode: "deep",
-      showSnippets: true
-    });
-    showStatus("appStatus", "", "info");
+  let message = "Mic could not understand. Try again.";
+
+  if (event.error === "not-allowed") {
+    message = "Mic permission blocked. Allow microphone access.";
+  } else if (event.error === "language-not-supported") {
+    message = "Speech language is not supported here.";
+  } else if (event.error === "no-speech") {
+    message = "No speech detected. Tap mic and speak clearly.";
+  } else if (event.error === "audio-capture") {
+    message = "No microphone detected by the browser.";
   }
+
+  showStatus("appStatus", "", "info");
+  showMicStatusPill(message, "warn", 2600);
+};
+
+       recognition.onend = () => {
+  setMicUiState(false);
+  activeRecognition = null;
+
+  if (micAutoStopTimer) {
+    clearTimeout(micAutoStopTimer);
+    micAutoStopTimer = null;
+  }
+
+  const rawTranscript = micFinalRawTranscript || input.value || "";
+
+  if (!String(rawTranscript).trim()) {
+    lastQuery = "";
+    renderResults([], "");
+    return;
+  }
+
+  finalizeMicSearchTranscript(rawTranscript);
 };
 
         recognition.start();
@@ -15798,6 +16280,53 @@ window.addEventListener("resize", syncHeaderMetaWidth);
         showStatus("appStatus", "Webpage mic could not start on this device/browser.", "warn");
       }
     }
+function showMicStatusPill(message = "Listening… tap mic again to stop", type = "listening", timeoutMs = 0) {
+  const pill = document.getElementById("micStatusPill");
+  const text = document.getElementById("micStatusText");
+
+  if (!pill || !text) return;
+
+  text.textContent = message;
+  pill.className = `mic-status-pill mic-status-${type || "listening"}`;
+
+  clearTimeout(showMicStatusPill.timer);
+
+  if (timeoutMs > 0) {
+    showMicStatusPill.timer = setTimeout(() => {
+      hideMicStatusPill();
+    }, timeoutMs);
+  }
+}
+
+function hideMicStatusPill() {
+  const pill = document.getElementById("micStatusPill");
+  if (!pill) return;
+
+  clearTimeout(showMicStatusPill.timer);
+  pill.classList.add("hidden");
+}
+
+function setMicUiState(listening) {
+  micListening = !!listening;
+
+  const btn = document.getElementById("micBtn");
+  if (!btn) return;
+
+  btn.classList.toggle("mic-listening", micListening);
+  btn.setAttribute("aria-pressed", String(micListening));
+
+  if (micListening) {
+    btn.textContent = "⏹";
+    btn.title = "Stop listening";
+    btn.setAttribute("aria-label", "Stop voice search");
+    showMicStatusPill("Listening… tap mic again to stop", "listening");
+  } else {
+    btn.textContent = "🎤";
+    btn.title = "Speak";
+    btn.setAttribute("aria-label", "Start voice search");
+    hideMicStatusPill();
+  }
+}
 
     function renderScreens() {
   const bootScreen = document.getElementById("bootScreen");
@@ -16193,10 +16722,7 @@ if (!session?.user) return;
 
         if (!profile.approved) return;
 
-        renderAppShell();
-await loadSongs();
-activateTab("search");
-await enforceLegalAcceptanceIfNeeded();
+        await startApprovedAppShell();
       } catch (err) {
         console.error("BOOTSTRAP ERROR:", err);
         const bootScreen = document.getElementById("bootScreen");
@@ -16399,9 +16925,10 @@ document.getElementById("liveNowDismissBtn").addEventListener("click", dismissPe
       document.getElementById("liveMiniBtn").addEventListener("click", openPendingLiveSong);
 
       document.getElementById("groupMode").addEventListener("change", () => {
-        expandedGroups = new Set();
-        renderSongGroups();
-      });
+  expandedGroups = new Set();
+  songGroupsDirty = true;
+  renderSongGroupsIfNeeded(true);
+});
 
     document.getElementById("searchInput").addEventListener("input", (e) => {
   const nextValue = e.target.value;
@@ -16459,7 +16986,7 @@ deepSearchTimer = setTimeout(() => {
   document.getElementById("searchInput").focus();
 });
 
-      document.getElementById("micBtn").addEventListener("click", startMicSearch);
+      document.getElementById("micBtn").addEventListener("click", toggleMicSearch);
 
       document.getElementById("searchResults").addEventListener("keydown", (e) => {
   if (e.key !== "Enter" && e.key !== " ") return;
@@ -16530,18 +17057,23 @@ document.getElementById("favoriteSongsList").addEventListener("pointerdown", (e)
   e.stopPropagation();
 
   favoriteDragState = {
-    row,
-    root,
-    startY: e.clientY,
-    moved: false
-  };
+  row,
+  root,
+  startY: e.clientY,
+  moved: false
+};
 
-  row.classList.add("favorite-dragging");
-  handle.setPointerCapture?.(e.pointerId);
+setFavoriteDragSelectionLock(true);
+clearBrowserTextSelection();
+
+row.classList.add("favorite-dragging");
+handle.setPointerCapture?.(e.pointerId);
 });
 
 document.getElementById("favoriteSongsList").addEventListener("pointermove", (e) => {
   if (!favoriteDragState) return;
+  e.preventDefault();
+clearBrowserTextSelection();
 
   const { row, root, startY } = favoriteDragState;
 
@@ -16565,9 +17097,11 @@ document.getElementById("favoriteSongsList").addEventListener("pointerup", async
 
   const { row, moved } = favoriteDragState;
 
-  row.classList.remove("favorite-dragging");
+ row.classList.remove("favorite-dragging");
 
-  favoriteDragState = null;
+favoriteDragState = null;
+setFavoriteDragSelectionLock(false);
+clearBrowserTextSelection();
 
   if (moved) {
     favoriteDragSuppressClickUntil = Date.now() + 500;
@@ -16579,7 +17113,9 @@ document.getElementById("favoriteSongsList").addEventListener("pointercancel", (
   if (!favoriteDragState) return;
 
   favoriteDragState.row.classList.remove("favorite-dragging");
-  favoriteDragState = null;
+favoriteDragState = null;
+setFavoriteDragSelectionLock(false);
+clearBrowserTextSelection();
 });
 
       document.getElementById("favoriteSongsList").addEventListener("click", async (e) => {
