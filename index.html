@@ -1583,6 +1583,3852 @@
   }
 }
 
+/* =========================================================
+   CLASSIC LIGHT FOUNDATION — PATCH 1
+   Compact, clean, mobile-first app shell.
+   Safe CSS-only override. No app logic changes.
+   ========================================================= */
+
+:root {
+  --bg: #f5f6fa;
+  --card: #ffffff;
+  --text: #111827;
+  --muted: #667085;
+  --line: #e1e5eb;
+  --border: #e1e5eb;
+  --primary: #111827;
+  --primary-soft: #f1f3f6;
+  --shadow: 0 8px 24px rgba(15, 23, 42, 0.055);
+  --shadow-soft: 0 2px 10px rgba(15, 23, 42, 0.04);
+  --radius: 18px;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+  background:
+    radial-gradient(circle at top, rgba(255,255,255,0.9), rgba(245,246,250,0) 320px),
+    var(--bg);
+  color: var(--text);
+}
+
+.container {
+  max-width: 1080px;
+}
+
+/* Cards */
+.screen-card,
+.card {
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.screen-card {
+  padding: 20px;
+}
+
+.card {
+  padding: 12px;
+  margin-bottom: 10px;
+}
+
+/* Typography */
+.brand {
+  font-size: 28px;
+  line-height: 1.05;
+  letter-spacing: -0.035em;
+  font-weight: 850;
+}
+
+.section-title {
+  font-size: 24px;
+  line-height: 1.1;
+  letter-spacing: -0.035em;
+  font-weight: 850;
+}
+
+.sub,
+.library-count-text,
+.tiny {
+  color: var(--muted);
+}
+
+.library-count-text {
+  font-size: 13px;
+  margin-top: 3px;
+}
+
+/* Buttons */
+.btn,
+.btn-secondary,
+.btn-danger,
+.modal-btn,
+.provider-lyrics-btn {
+  border-radius: 14px;
+  font-weight: 750;
+  min-height: 40px;
+  transition: transform 0.12s ease, border-color 0.12s ease, box-shadow 0.12s ease, background 0.12s ease;
+}
+
+.btn,
+.modal-btn {
+  background: var(--primary);
+  color: #ffffff;
+}
+
+.btn-secondary {
+  background: #ffffff;
+  border: 1px solid var(--line);
+  color: var(--text);
+  box-shadow: var(--shadow-soft);
+}
+
+.btn:active,
+.btn-secondary:active,
+.tab-btn:active,
+.icon-btn:active,
+.modal-btn:active {
+  transform: translateY(1px);
+}
+
+/* Inputs */
+.input,
+.textarea,
+.select,
+.search-input {
+  background: #ffffff;
+  border: 1px solid var(--line);
+  color: var(--text);
+  box-shadow: inset 0 1px 0 rgba(15, 23, 42, 0.02);
+}
+
+.input:focus,
+.textarea:focus,
+.select:focus,
+.search-input:focus {
+  border-color: #b8c0cc;
+  box-shadow: 0 0 0 3px rgba(17, 24, 39, 0.06);
+}
+
+/* Header */
+.topbar {
+  align-items: flex-start;
+  margin-bottom: 8px;
+}
+
+.account-user {
+  color: var(--muted);
+}
+
+.top-logout-btn {
+  box-shadow: var(--shadow-soft);
+}
+
+/* Tabs */
+.tabs {
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.tab-btn {
+  background: #ffffff;
+  border: 1px solid var(--line);
+  color: var(--text);
+  box-shadow: var(--shadow-soft);
+  font-weight: 750;
+}
+
+.tab-btn.active,
+.add-tab-btn {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #ffffff;
+  box-shadow: none;
+}
+
+/* Search */
+.search-bar {
+  align-items: stretch;
+}
+
+.search-input {
+  font-weight: 500;
+}
+
+.search-input::placeholder,
+.input::placeholder,
+.textarea::placeholder {
+  color: #747d8c;
+}
+
+.icon-btn {
+  background: #ffffff;
+  border: 1px solid var(--line);
+  color: var(--text);
+  box-shadow: var(--shadow-soft);
+}
+
+.online-search-btn {
+  background: var(--primary);
+  color: #ffffff;
+  border-color: var(--primary);
+  box-shadow: none;
+}
+
+/* Empty/search helper */
+.empty {
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  color: var(--muted);
+  box-shadow: var(--shadow-soft);
+}
+
+/* Result cards foundation */
+.result-card,
+.song-row,
+.group-card,
+.pending-user {
+  background: #ffffff;
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-soft);
+}
+
+.result-card:hover,
+.song-row:hover {
+  border-color: #c5ccd8;
+}
+
+/* Footer */
+.footer {
+  color: var(--muted);
+}
+
+/* Mobile compact shell */
+@media (max-width: 640px) {
+  body {
+    padding: max(6px, env(safe-area-inset-top)) max(6px, env(safe-area-inset-right)) max(6px, env(safe-area-inset-bottom)) max(6px, env(safe-area-inset-left));
+  }
+
+  .screen-card {
+    margin: 42px auto 0;
+    padding: 16px;
+    border-radius: 22px;
+  }
+
+  .section-title {
+    font-size: 24px;
+    margin-bottom: 8px;
+  }
+
+  .sub {
+    font-size: 14px;
+    line-height: 1.35;
+  }
+
+  .field {
+    margin-bottom: 9px;
+  }
+
+  .field label {
+    margin-bottom: 5px;
+    font-size: 13px;
+  }
+
+  .input,
+  .select {
+    min-height: 48px;
+    padding: 11px 13px;
+    font-size: 16px;
+    border-radius: 15px;
+  }
+
+  .textarea {
+    padding: 11px 13px;
+    font-size: 15px;
+    border-radius: 15px;
+  }
+
+  .stack-actions {
+    gap: 7px;
+    margin-top: 8px;
+  }
+
+  .btn,
+  .btn-secondary,
+  .btn-danger {
+    min-height: 38px;
+    padding: 8px 13px;
+    border-radius: 14px;
+    font-size: 13px;
+  }
+
+  /* Main app: compact header to protect result space */
+  .topbar {
+    gap: 8px;
+    margin-bottom: 6px;
+  }
+
+  .brand {
+    font-size: 25px;
+    line-height: 1.02;
+    letter-spacing: -0.045em;
+  }
+
+  .library-count-text {
+    font-size: 12px;
+    margin-top: 2px;
+  }
+
+  .account-actions {
+    gap: 4px;
+  }
+
+  .account-user {
+    font-size: 12px;
+    max-width: 190px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .top-logout-btn {
+    min-height: 32px;
+    padding: 5px 13px;
+    border-radius: 13px;
+    font-size: 12px;
+  }
+
+  .live-mini-btn {
+    font-size: 10px;
+  }
+
+  .tabs {
+    gap: 6px;
+    margin-bottom: 8px;
+    padding-bottom: 1px;
+  }
+
+  .tab-btn {
+    min-height: 36px;
+    padding: 8px 13px;
+    border-radius: 999px;
+    font-size: 13px;
+  }
+
+  .card {
+    padding: 9px;
+    border-radius: 18px;
+    margin-bottom: 9px;
+  }
+
+  .search-bar {
+    gap: 6px;
+    margin-bottom: 8px;
+  }
+
+  .icon-btn {
+    width: 42px;
+    min-width: 42px;
+    height: 42px;
+    border-radius: 14px;
+    font-size: 17px;
+  }
+
+  .search-input {
+    min-height: 42px;
+    padding: 9px 12px;
+    border-radius: 14px;
+    font-size: 16px;
+  }
+
+  .empty {
+    padding: 13px 12px;
+    border-radius: 16px;
+    font-size: 14px;
+    line-height: 1.4;
+  }
+
+  .result-card,
+  .song-row {
+    padding: 10px;
+    border-radius: 15px;
+    margin-bottom: 7px;
+  }
+
+  .song-title {
+    font-size: 15px;
+    line-height: 1.25;
+  }
+
+  .song-meta,
+  .song-snippet {
+    font-size: 12px;
+  }
+
+  .footer {
+    padding: 10px 8px 8px;
+    font-size: 12px;
+  }
+}
+
+  /* =========================================================
+   LOGIN POLISH — PATCH 2
+   Premium Classic Light auth screen only.
+   Keeps all existing JS IDs intact.
+   ========================================================= */
+
+#authScreen.auth-card {
+  max-width: 460px;
+  margin: 44px auto 0;
+  padding: 0;
+  overflow: hidden;
+  border-radius: 28px;
+  background: rgba(255, 255, 255, 0.98);
+  border: 1px solid rgba(209, 216, 226, 0.95);
+  box-shadow:
+    0 24px 70px rgba(15, 23, 42, 0.10),
+    0 2px 8px rgba(15, 23, 42, 0.035);
+}
+
+.auth-shell {
+  padding: 22px;
+}
+
+.auth-brand {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  margin-bottom: 22px;
+}
+
+.auth-mark {
+  width: 42px;
+  height: 42px;
+  border-radius: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #111827;
+  color: #ffffff;
+  font-size: 19px;
+  font-weight: 900;
+  box-shadow: 0 10px 24px rgba(17, 24, 39, 0.18);
+}
+
+.auth-app-name {
+  font-size: 22px;
+  line-height: 1;
+  font-weight: 900;
+  letter-spacing: -0.045em;
+  color: #111827;
+}
+
+.auth-app-subtitle {
+  margin-top: 4px;
+  font-size: 12px;
+  line-height: 1.2;
+  color: #667085;
+  font-weight: 650;
+}
+
+.auth-head {
+  margin-bottom: 17px;
+}
+
+.auth-title {
+  margin: 0;
+  font-size: 25px;
+  line-height: 1.08;
+  letter-spacing: -0.045em;
+  font-weight: 900;
+  color: #111827;
+}
+
+.auth-subtitle {
+  margin-top: 8px;
+  font-size: 15px;
+  line-height: 1.35;
+  color: #586174;
+}
+
+.auth-install-note {
+  margin-top: 10px;
+  padding: 9px 11px;
+  border-radius: 14px;
+  background: #f6f7f9;
+  border: 1px solid #e8ebf0;
+  color: #7b8494;
+  font-size: 12px;
+  line-height: 1.35;
+  text-align: center;
+}
+
+.auth-form {
+  display: grid;
+  gap: 11px;
+}
+
+#authScreen .field {
+  margin: 0;
+}
+
+#authScreen .field label {
+  margin-bottom: 6px;
+  font-size: 13px;
+  line-height: 1.2;
+  color: #4b5565;
+  font-weight: 800;
+}
+
+#authScreen .auth-input {
+  min-height: 50px;
+  border-radius: 17px;
+  border: 1px solid #dfe4ea;
+  background: #ffffff;
+  padding: 12px 14px;
+  font-size: 16px;
+  color: #111827;
+  box-shadow:
+    inset 0 1px 0 rgba(17, 24, 39, 0.025),
+    0 1px 2px rgba(17, 24, 39, 0.025);
+}
+
+#authScreen .auth-input::placeholder {
+  color: #7a8392;
+}
+
+#authScreen .auth-input:focus {
+  border-color: #aeb7c5;
+  box-shadow:
+    0 0 0 4px rgba(17, 24, 39, 0.055),
+    inset 0 1px 0 rgba(17, 24, 39, 0.025);
+}
+
+.auth-actions {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 9px;
+  margin-top: 4px;
+}
+
+#authScreen .auth-primary-action,
+#authScreen .auth-secondary-action {
+  width: 100%;
+  min-height: 48px;
+  border-radius: 17px;
+  font-size: 15px;
+  font-weight: 850;
+}
+
+#authScreen .auth-primary-action {
+  background: #111827;
+  color: #ffffff;
+  border: 1px solid #111827;
+  box-shadow: 0 12px 24px rgba(17, 24, 39, 0.16);
+}
+
+#authScreen .auth-secondary-action {
+  background: #ffffff;
+  color: #111827;
+  border: 1px solid #dfe4ea;
+  box-shadow: 0 6px 16px rgba(17, 24, 39, 0.05);
+}
+
+.auth-link-button {
+  justify-self: center;
+  border: 0;
+  background: transparent;
+  color: #4b5565;
+  padding: 5px 8px;
+  min-height: 28px;
+  font-size: 13px;
+  font-weight: 750;
+  text-decoration: none;
+  cursor: pointer;
+  border-radius: 10px;
+}
+
+.auth-link-button:hover,
+.auth-link-button:focus {
+  color: #111827;
+  background: #f3f4f6;
+  outline: none;
+}
+
+.auth-reset-box {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #edf0f4;
+  display: grid;
+  gap: 11px;
+}
+
+.auth-footnote {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid #edf0f4;
+  color: #667085;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+@media (max-width: 640px) {
+  #authScreen.auth-card {
+    margin: 34px auto 0;
+    border-radius: 26px;
+  }
+
+  .auth-shell {
+    padding: 20px;
+  }
+
+  .auth-brand {
+    margin-bottom: 20px;
+  }
+
+  .auth-title {
+    font-size: 24px;
+  }
+
+  .auth-subtitle {
+    font-size: 14px;
+  }
+
+  #authScreen .auth-input {
+    min-height: 49px;
+  }
+
+  #authScreen .auth-primary-action,
+  #authScreen .auth-secondary-action {
+    min-height: 47px;
+  }
+}
+
+@media (max-width: 380px) {
+  .auth-shell {
+    padding: 18px;
+  }
+
+  .auth-title {
+    font-size: 22px;
+  }
+
+  .auth-mark {
+    width: 39px;
+    height: 39px;
+    border-radius: 15px;
+  }
+}
+
+/* LOGIN BRAND LOGO OVERRIDE */
+
+.auth-logo-mark {
+  padding: 0;
+  overflow: hidden;
+  background: #071a34;
+  border: 1px solid rgba(17, 24, 39, 0.08);
+  box-shadow:
+    0 12px 26px rgba(7, 26, 52, 0.18),
+    0 1px 2px rgba(17, 24, 39, 0.08);
+}
+
+.auth-logo-mark img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+
+/* =========================================================
+   SEARCH HOME POLISH — PATCH 3
+   Compact mobile shell. Protects vertical result space.
+   ========================================================= */
+
+#appScreen {
+  padding-top: 2px;
+}
+
+/* Header */
+#appScreen .topbar {
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+#appScreen .brand-wrap {
+  display: grid;
+  gap: 1px;
+}
+
+#appScreen .brand {
+  font-size: 30px;
+  line-height: 0.96;
+  letter-spacing: -0.055em;
+  font-weight: 950;
+  color: #111827;
+}
+
+#appScreen .library-count-text {
+  font-size: 13px;
+  line-height: 1.2;
+  color: #667085;
+  margin-top: 4px;
+}
+
+#appScreen .account-actions {
+  gap: 5px;
+}
+
+#appScreen .account-user {
+  font-size: 12px;
+  line-height: 1.15;
+  color: #667085;
+  max-width: 210px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+#appScreen .account-row {
+  gap: 8px;
+}
+
+#appScreen .top-logout-btn {
+  min-height: 38px;
+  padding: 7px 15px;
+  border-radius: 16px;
+  font-size: 13px;
+  font-weight: 850;
+  background: #ffffff;
+  border: 1px solid #dfe4ea;
+  box-shadow: 0 6px 16px rgba(17, 24, 39, 0.06);
+}
+
+#appScreen .live-mini-btn {
+  color: #b91c1c;
+  font-size: 11px;
+  font-weight: 950;
+  letter-spacing: 0.06em;
+}
+
+/* Tabs */
+#appScreen > .tabs {
+  gap: 8px;
+  margin-bottom: 10px;
+  padding-bottom: 2px;
+}
+
+#appScreen > .tabs .tab-btn {
+  min-height: 39px;
+  padding: 8px 15px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 850;
+  background: #ffffff;
+  color: #111827;
+  border: 1px solid #dfe4ea;
+  box-shadow: 0 5px 14px rgba(17, 24, 39, 0.045);
+}
+
+#appScreen > .tabs .tab-btn.active {
+  background: #111827;
+  color: #ffffff;
+  border-color: #111827;
+  box-shadow: none;
+}
+
+/* Add Song should look like an action, not another active tab */
+#appScreen > .tabs .add-tab-btn:not(.active) {
+  background: #ffffff;
+  color: #111827;
+  border-color: #dfe4ea;
+}
+
+/* Search card */
+#searchTab > .card {
+  padding: 11px;
+  border-radius: 22px;
+  border: 1px solid #dfe4ea;
+  background: rgba(255,255,255,0.98);
+  box-shadow:
+    0 12px 34px rgba(15, 23, 42, 0.07),
+    0 1px 2px rgba(15, 23, 42, 0.03);
+}
+
+#searchTab .search-bar {
+  gap: 7px;
+  margin-bottom: 9px;
+}
+
+#searchTab .search-input {
+  min-height: 48px;
+  border-radius: 17px;
+  padding: 10px 14px;
+  font-size: 17px;
+  font-weight: 500;
+  border: 1px solid #dfe4ea;
+  background: #ffffff;
+}
+
+#searchTab .search-input::placeholder {
+  color: #7a8392;
+}
+
+#searchTab .icon-btn {
+  width: 48px;
+  min-width: 48px;
+  height: 48px;
+  border-radius: 17px;
+  border: 1px solid #dfe4ea;
+  background: #ffffff;
+  box-shadow: 0 5px 14px rgba(17, 24, 39, 0.045);
+}
+
+#searchTab .online-search-btn {
+  background: #111827;
+  color: #ffffff;
+  border-color: #111827;
+  box-shadow: none;
+}
+
+#searchTab .empty {
+  margin-top: 0;
+  padding: 14px 14px;
+  border-radius: 18px;
+  font-size: 15px;
+  line-height: 1.45;
+  color: #667085;
+  background: #ffffff;
+  border: 1px solid #e2e6ed;
+  box-shadow: none;
+}
+
+/* Mobile: save space aggressively */
+@media (max-width: 640px) {
+  body {
+    padding: max(5px, env(safe-area-inset-top)) max(5px, env(safe-area-inset-right)) max(5px, env(safe-area-inset-bottom)) max(5px, env(safe-area-inset-left));
+  }
+
+  #appScreen .topbar {
+    margin-bottom: 7px;
+  }
+
+  #appScreen .brand {
+    font-size: 29px;
+  }
+
+  #appScreen .library-count-text {
+    font-size: 12px;
+    margin-top: 3px;
+  }
+
+  /* Hide account text on mobile. Logout already proves account state. */
+  #appScreen .account-user {
+    display: none;
+  }
+
+  #appScreen .top-logout-btn {
+    min-height: 36px;
+    padding: 6px 14px;
+    border-radius: 15px;
+    font-size: 13px;
+  }
+
+  #appScreen > .tabs {
+    gap: 7px;
+    margin-bottom: 9px;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    scrollbar-width: none;
+  }
+
+  #appScreen > .tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  #appScreen > .tabs .tab-btn {
+    min-height: 38px;
+    padding: 8px 14px;
+    font-size: 13px;
+    flex: 0 0 auto;
+  }
+
+  #searchTab > .card {
+    padding: 10px;
+    border-radius: 21px;
+  }
+
+  #searchTab .search-bar {
+    gap: 6px;
+    margin-bottom: 8px;
+  }
+
+  #searchTab .icon-btn {
+    width: 46px;
+    min-width: 46px;
+    height: 46px;
+    border-radius: 16px;
+    font-size: 17px;
+  }
+
+  #searchTab .search-input {
+    min-height: 46px;
+    padding: 9px 12px;
+    font-size: 16px;
+    border-radius: 16px;
+  }
+
+  #searchTab .empty {
+    padding: 13px 12px;
+    border-radius: 17px;
+    font-size: 14px;
+  }
+
+  .footer {
+    padding-top: 12px;
+  }
+}
+
+@media (max-width: 380px) {
+  #appScreen .brand {
+    font-size: 27px;
+  }
+
+  #searchTab .icon-btn {
+    width: 43px;
+    min-width: 43px;
+    height: 43px;
+  }
+
+  #searchTab .search-input {
+    min-height: 43px;
+    font-size: 15px;
+  }
+}
+
+/* =========================================================
+   PERSONAL COMPACT HEADER — PATCH 4
+   Adds identity without wasting vertical result space.
+   ========================================================= */
+
+#appScreen .app-topbar {
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+#appScreen .app-brand-wrap {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+#appScreen .app-brand-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+#appScreen .app-header-logo {
+  width: 38px;
+  height: 38px;
+  border-radius: 14px;
+  flex: 0 0 auto;
+  display: block;
+  box-shadow:
+    0 8px 18px rgba(7, 26, 52, 0.16),
+    0 1px 2px rgba(17, 24, 39, 0.08);
+}
+
+#appScreen .app-brand-copy {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+#appScreen .brand {
+  font-size: 30px;
+  line-height: 0.94;
+  letter-spacing: -0.06em;
+  font-weight: 950;
+  color: #111827;
+}
+
+#appScreen .brand-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+#appScreen .personal-mehfil-line {
+  display: block !important;
+  margin: 0;
+  max-width: 145px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: #667085;
+  font-size: 12px;
+  line-height: 1.2;
+  font-weight: 750;
+  text-align: left;
+}
+
+#appScreen .brand-meta-dot {
+  color: #98a2b3;
+  font-size: 12px;
+  line-height: 1;
+  flex: 0 0 auto;
+}
+
+#appScreen .library-count-text {
+  margin: 0;
+  color: #667085;
+  font-size: 12px;
+  line-height: 1.2;
+  font-weight: 650;
+  flex: 0 0 auto;
+}
+
+#appScreen .app-header-actions {
+  flex: 0 0 auto;
+  align-items: flex-end;
+}
+
+#appScreen .account-row {
+  gap: 8px;
+}
+
+#appScreen .live-mini-btn {
+  color: #b91c1c;
+  font-size: 11px;
+  font-weight: 950;
+  letter-spacing: 0.06em;
+}
+
+#appScreen .top-logout-btn {
+  min-height: 38px;
+  padding: 7px 15px;
+  border-radius: 16px;
+  font-size: 13px;
+  font-weight: 850;
+}
+
+/* Force Add Song to behave like an action tab, not the active tab */
+#appScreen .tabs #toggleAddBtn.add-tab-btn:not(.active) {
+  background: #ffffff !important;
+  color: #111827 !important;
+  border-color: #dfe4ea !important;
+  box-shadow: 0 5px 14px rgba(17, 24, 39, 0.045) !important;
+}
+
+@media (max-width: 640px) {
+  #appScreen .app-topbar {
+    margin-bottom: 8px;
+  }
+
+  #appScreen .app-header-logo {
+    width: 36px;
+    height: 36px;
+    border-radius: 13px;
+  }
+
+  #appScreen .brand {
+    font-size: 29px;
+  }
+
+  #appScreen .personal-mehfil-line {
+    max-width: 130px;
+    font-size: 12px;
+  }
+
+  #appScreen .library-count-text {
+    font-size: 12px;
+  }
+
+  #appScreen .top-logout-btn {
+    min-height: 36px;
+    padding: 6px 14px;
+    border-radius: 15px;
+  }
+}
+
+@media (max-width: 380px) {
+  #appScreen .app-header-logo {
+    width: 34px;
+    height: 34px;
+    border-radius: 12px;
+  }
+
+  #appScreen .brand {
+    font-size: 27px;
+  }
+
+  #appScreen .personal-mehfil-line {
+    max-width: 108px;
+  }
+
+  #appScreen .top-logout-btn {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+}
+
+/* =========================================================
+   SOFT SEARCH + INSTALL UI — PATCH 5
+   Less machine-controller, more premium classic app.
+   ========================================================= */
+
+/* App background: softer and less sterile */
+body {
+  background:
+    radial-gradient(circle at 50% -120px, rgba(255, 255, 255, 0.95), rgba(245, 246, 250, 0) 360px),
+    linear-gradient(180deg, #f7f8fb 0%, #f4f6fa 100%);
+}
+
+/* Header: personal title first, compact identity */
+#appScreen .app-topbar {
+  margin-bottom: 7px;
+  align-items: center;
+}
+
+#appScreen .app-header-logo {
+  width: 34px;
+  height: 34px;
+  border-radius: 12px;
+  box-shadow:
+    0 7px 16px rgba(7, 26, 52, 0.13),
+    0 1px 2px rgba(17, 24, 39, 0.08);
+}
+
+#appScreen .app-brand-row {
+  gap: 9px;
+}
+
+#appScreen .brand {
+  font-size: 24px;
+  line-height: 1;
+  letter-spacing: -0.045em;
+  font-weight: 950;
+}
+
+#appScreen .brand-meta-row {
+  margin-top: 2px;
+  gap: 5px;
+}
+
+#appScreen .personal-mehfil-line {
+  max-width: none;
+  font-size: 12px;
+  font-weight: 750;
+  color: #667085;
+}
+
+#appScreen .library-count-text {
+  font-size: 12px;
+  font-weight: 650;
+  color: #667085;
+}
+
+#appScreen .brand-meta-dot {
+  color: #a0a8b5;
+}
+
+/* LIVE should be a status, not another big control */
+#appScreen .live-mini-btn {
+  color: #b91c1c;
+  background: #fff1f2;
+  border: 1px solid #fecdd3;
+  border-radius: 999px;
+  padding: 4px 7px;
+  font-size: 10px;
+  line-height: 1;
+  font-weight: 950;
+  letter-spacing: 0.06em;
+}
+
+/* Logout: smaller, calmer */
+#appScreen .top-logout-btn {
+  min-height: 34px;
+  padding: 6px 13px;
+  border-radius: 14px;
+  font-size: 12px;
+  font-weight: 850;
+  background: #ffffff;
+  border: 1px solid #e1e5eb;
+  box-shadow: 0 4px 12px rgba(17, 24, 39, 0.045);
+}
+
+/* Tabs: slimmer pills */
+#appScreen > .tabs {
+  gap: 7px;
+  margin-bottom: 9px;
+}
+
+#appScreen > .tabs .tab-btn {
+  min-height: 35px;
+  padding: 7px 13px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 850;
+  box-shadow: 0 4px 11px rgba(17, 24, 39, 0.04);
+}
+
+#appScreen > .tabs .tab-btn.active {
+  background: #111827;
+  color: #ffffff;
+  border-color: #111827;
+}
+
+#appScreen > .tabs #toggleAddBtn.add-tab-btn:not(.active) {
+  background: #ffffff !important;
+  color: #111827 !important;
+  border-color: #e1e5eb !important;
+}
+
+/* Search card: softer, not chunky */
+#searchTab > .card {
+  padding: 9px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.98);
+  border-color: #e1e5eb;
+  box-shadow:
+    0 10px 26px rgba(15, 23, 42, 0.055),
+    0 1px 2px rgba(15, 23, 42, 0.025);
+}
+
+#searchTab .search-bar {
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+#searchTab .icon-btn {
+  width: 42px;
+  min-width: 42px;
+  height: 42px;
+  border-radius: 15px;
+  font-size: 16px;
+  box-shadow: none;
+}
+
+#searchTab .search-input {
+  min-height: 42px;
+  border-radius: 15px;
+  padding: 8px 12px;
+  font-size: 15px;
+}
+
+#searchTab .online-search-btn {
+  background: #111827;
+  border-color: #111827;
+}
+
+#searchTab .empty {
+  padding: 12px 12px;
+  border-radius: 16px;
+  background: #fafbfc;
+  border-color: #e7ebf0;
+  color: #687386;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+/* Install banner: light premium card. Install is primary, Later is quiet. */
+.install-app-banner {
+  left: 10px;
+  right: 10px;
+  bottom: calc(10px + env(safe-area-inset-bottom));
+  background: rgba(255, 255, 255, 0.98);
+  color: #111827;
+  border: 1px solid #e1e5eb;
+  border-radius: 22px;
+  padding: 12px;
+  box-shadow:
+    0 18px 48px rgba(15, 23, 42, 0.16),
+    0 1px 2px rgba(15, 23, 42, 0.04);
+  backdrop-filter: blur(16px);
+}
+
+.install-app-content {
+  align-items: center;
+  gap: 10px;
+}
+
+.install-app-content::before {
+  content: "";
+  width: 36px;
+  height: 36px;
+  border-radius: 13px;
+  flex: 0 0 auto;
+  background-image: url("./assets/icons/icon-192.png");
+  background-size: cover;
+  background-position: center;
+  box-shadow: 0 7px 16px rgba(7, 26, 52, 0.14);
+}
+
+.install-app-title {
+  color: #111827;
+  font-size: 14px;
+  font-weight: 950;
+  letter-spacing: -0.02em;
+  margin-bottom: 2px;
+}
+
+.install-app-subtitle {
+  color: #667085;
+  opacity: 1;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.install-app-actions {
+  flex-direction: row !important;
+  align-items: center;
+  gap: 8px;
+}
+
+.install-app-banner .btn {
+  order: 1;
+  min-width: 86px;
+  min-height: 40px;
+  padding: 8px 13px;
+  border-radius: 14px;
+  background: #111827;
+  color: #ffffff;
+  border: 1px solid #111827;
+  box-shadow: 0 10px 22px rgba(17, 24, 39, 0.14);
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.install-app-banner .btn-secondary {
+  order: 2;
+  min-width: auto;
+  width: auto !important;
+  min-height: 36px;
+  padding: 7px 6px;
+  border: 0;
+  background: transparent !important;
+  color: #667085;
+  box-shadow: none;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.install-app-banner .btn-secondary:hover,
+.install-app-banner .btn-secondary:focus {
+  color: #111827;
+  background: #f3f4f6 !important;
+}
+
+/* Mobile-specific tightening */
+@media (max-width: 640px) {
+  #appScreen .app-topbar {
+    gap: 8px;
+  }
+
+  #appScreen .brand {
+    font-size: 23px;
+  }
+
+  #appScreen .app-header-logo {
+    width: 33px;
+    height: 33px;
+  }
+
+  #appScreen .top-logout-btn {
+    min-height: 33px;
+    padding: 5px 12px;
+  }
+
+  #appScreen > .tabs .tab-btn {
+    min-height: 34px;
+    padding: 7px 12px;
+  }
+
+  #searchTab .icon-btn {
+    width: 41px;
+    min-width: 41px;
+    height: 41px;
+  }
+
+  #searchTab .search-input {
+    min-height: 41px;
+  }
+
+  .install-app-banner {
+    border-radius: 20px;
+    padding: 11px;
+  }
+
+  .install-app-content {
+    align-items: center !important;
+  }
+
+  .install-app-actions {
+    flex-direction: row !important;
+  }
+
+  .install-app-banner .btn,
+  .install-app-banner .btn-secondary {
+    width: auto !important;
+  }
+}
+
+@media (max-width: 380px) {
+  #appScreen .brand {
+    font-size: 21px;
+  }
+
+  #appScreen .personal-mehfil-line,
+  #appScreen .library-count-text {
+    font-size: 11px;
+  }
+
+  #appScreen .app-header-logo {
+    width: 31px;
+    height: 31px;
+  }
+
+  .install-app-content::before {
+    display: none;
+  }
+}
+
+/* =========================================================
+   COMMAND CENTER + IDLE STATE — PATCH 6
+   Classic premium shell without wasting result space.
+   ========================================================= */
+
+/* One premium header surface */
+#appScreen .app-command-center {
+  margin-bottom: 10px;
+  padding: 10px;
+  border-radius: 24px;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.98), rgba(250,251,253,0.96));
+  border: 1px solid #dfe5ee;
+  box-shadow:
+    0 14px 38px rgba(15, 23, 42, 0.075),
+    0 1px 2px rgba(15, 23, 42, 0.035);
+}
+
+#appScreen .app-command-center::before {
+  content: "";
+  display: block;
+  height: 2px;
+  border-radius: 999px;
+  margin: -1px 2px 9px;
+  background: linear-gradient(90deg, #d8b56d, #111827 42%, #d8b56d);
+  opacity: 0.5;
+}
+
+/* Header row */
+#appScreen .app-topbar {
+  margin: 0;
+  align-items: center;
+  gap: 10px;
+}
+
+#appScreen .app-brand-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+#appScreen .app-header-logo {
+  width: 38px;
+  height: 38px;
+  border-radius: 13px;
+  flex: 0 0 auto;
+  box-shadow:
+    0 8px 18px rgba(7, 26, 52, 0.16),
+    0 1px 2px rgba(17, 24, 39, 0.08);
+}
+
+#appScreen .app-brand-copy {
+  min-width: 0;
+}
+
+#appScreen .brand {
+  font-size: 25px;
+  line-height: 0.98;
+  letter-spacing: -0.05em;
+  font-weight: 950;
+  color: #111827;
+}
+
+#appScreen .brand-meta-row {
+  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+#appScreen .personal-mehfil-line,
+#appScreen .library-count-text {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.2;
+  font-weight: 750;
+  color: #667085;
+}
+
+#appScreen .brand-meta-dot {
+  color: #a0a8b5;
+  font-size: 12px;
+}
+
+/* Header actions */
+#appScreen .app-header-actions {
+  flex: 0 0 auto;
+}
+
+#appScreen .account-row {
+  gap: 7px;
+}
+
+#appScreen .live-mini-btn {
+  color: #991b1b;
+  background: #fff1f2;
+  border: 1px solid #fecdd3;
+  border-radius: 999px;
+  padding: 5px 8px;
+  font-size: 10px;
+  line-height: 1;
+  font-weight: 950;
+  letter-spacing: 0.07em;
+}
+
+#appScreen .top-logout-btn {
+  min-height: 34px;
+  padding: 6px 13px;
+  border-radius: 14px;
+  font-size: 12px;
+  font-weight: 850;
+  background: #ffffff;
+  color: #111827;
+  border: 1px solid #dfe4ea;
+  box-shadow: 0 4px 12px rgba(17, 24, 39, 0.045);
+}
+
+/* Main function nav */
+#appScreen .app-main-nav {
+  margin: 10px 0 0;
+  padding: 3px;
+  gap: 4px;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  border-radius: 18px;
+  background: #f2f4f7;
+  border: 1px solid #e4e8ef;
+  scrollbar-width: none;
+}
+
+#appScreen .app-main-nav::-webkit-scrollbar {
+  display: none;
+}
+
+#appScreen .app-main-nav .tab-btn {
+  flex: 1 0 auto;
+  min-height: 34px;
+  padding: 7px 12px;
+  border-radius: 15px;
+  border: 1px solid transparent;
+  background: transparent;
+  box-shadow: none;
+  color: #334155;
+  font-size: 13px;
+  font-weight: 850;
+}
+
+#appScreen .app-main-nav .tab-btn.active {
+  background: #111827;
+  color: #ffffff;
+  border-color: #111827;
+  box-shadow: 0 8px 18px rgba(17, 24, 39, 0.12);
+}
+
+#appScreen .app-main-nav .add-tab-btn:not(.active) {
+  background: #ffffff !important;
+  color: #111827 !important;
+  border-color: #dfe4ea !important;
+}
+
+/* Search card should be a quieter surface under the command center */
+#searchTab > .card {
+  padding: 10px;
+  border-radius: 22px;
+  background: rgba(255,255,255,0.98);
+  border: 1px solid #e1e6ee;
+  box-shadow:
+    0 12px 32px rgba(15, 23, 42, 0.06),
+    0 1px 2px rgba(15, 23, 42, 0.025);
+}
+
+#searchTab .search-bar {
+  gap: 7px;
+  margin-bottom: 9px;
+}
+
+#searchTab .icon-btn {
+  width: 43px;
+  min-width: 43px;
+  height: 43px;
+  border-radius: 15px;
+  box-shadow: none;
+  background: #ffffff;
+  border-color: #dfe4ea;
+}
+
+#searchTab .online-search-btn {
+  background: #111827;
+  color: #ffffff;
+  border-color: #111827;
+}
+
+#searchTab .search-input {
+  min-height: 43px;
+  border-radius: 15px;
+  padding: 9px 12px;
+  font-size: 15px;
+  border-color: #dfe4ea;
+}
+
+/* Useful idle result area */
+.search-idle-panel {
+  min-height: clamp(210px, 38vh, 360px);
+  border-radius: 18px;
+  border: 1px solid #e6eaf0;
+  background:
+    radial-gradient(circle at top right, rgba(216, 181, 109, 0.16), transparent 180px),
+    linear-gradient(180deg, #ffffff 0%, #fafbfc 100%);
+  padding: 18px 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.8);
+}
+
+.search-idle-kicker {
+  width: fit-content;
+  margin-bottom: 9px;
+  padding: 5px 9px;
+  border-radius: 999px;
+  background: #f8f1df;
+  color: #7a5718;
+  border: 1px solid #edd8a6;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.search-idle-title {
+  font-size: 23px;
+  line-height: 1.05;
+  letter-spacing: -0.045em;
+  font-weight: 950;
+  color: #111827;
+}
+
+.search-idle-text {
+  margin-top: 8px;
+  max-width: 440px;
+  color: #667085;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.search-idle-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 16px;
+}
+
+.search-idle-pills span {
+  padding: 7px 10px;
+  border-radius: 999px;
+  background: #ffffff;
+  border: 1px solid #e1e6ee;
+  color: #475467;
+  font-size: 12px;
+  font-weight: 800;
+  box-shadow: 0 3px 10px rgba(17, 24, 39, 0.035);
+}
+
+/* Footer should not interrupt the idle panel visually */
+#appScreen + .footer,
+.footer {
+  color: #667085;
+}
+
+/* Mobile tightening */
+@media (max-width: 640px) {
+  #appScreen .app-command-center {
+    padding: 9px;
+    border-radius: 22px;
+    margin-bottom: 9px;
+  }
+
+  #appScreen .app-command-center::before {
+    margin-bottom: 8px;
+  }
+
+  #appScreen .app-header-logo {
+    width: 35px;
+    height: 35px;
+    border-radius: 12px;
+  }
+
+  #appScreen .brand {
+    font-size: 23px;
+  }
+
+  #appScreen .personal-mehfil-line,
+  #appScreen .library-count-text {
+    font-size: 12px;
+  }
+
+  #appScreen .top-logout-btn {
+    min-height: 33px;
+    padding: 5px 12px;
+  }
+
+  #appScreen .app-main-nav {
+    margin-top: 9px;
+  }
+
+  #appScreen .app-main-nav .tab-btn {
+    min-height: 33px;
+    padding: 7px 11px;
+    font-size: 13px;
+  }
+
+  #searchTab > .card {
+    padding: 9px;
+    border-radius: 21px;
+  }
+
+  #searchTab .icon-btn {
+    width: 41px;
+    min-width: 41px;
+    height: 41px;
+  }
+
+  #searchTab .search-input {
+    min-height: 41px;
+    font-size: 15px;
+  }
+
+  .search-idle-panel {
+    min-height: clamp(230px, 42vh, 390px);
+    padding: 17px 15px;
+  }
+
+  .search-idle-title {
+    font-size: 22px;
+  }
+
+  .search-idle-text {
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 380px) {
+  #appScreen .brand {
+    font-size: 21px;
+  }
+
+  #appScreen .app-header-logo {
+    width: 32px;
+    height: 32px;
+  }
+
+  #appScreen .live-mini-btn {
+    display: none;
+  }
+
+  #appScreen .app-main-nav .tab-btn {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+}
+
+/* =========================================================
+   IDLE PANEL REFRESH
+   Better empty state, no fake buttons
+   ========================================================= */
+
+.search-idle-panel {
+  min-height: clamp(240px, 40vh, 380px);
+  border-radius: 18px;
+  border: 1px solid #e6eaf0;
+  background:
+    radial-gradient(circle at top right, rgba(216, 181, 109, 0.10), transparent 170px),
+    linear-gradient(180deg, #ffffff 0%, #fbfbfc 100%);
+  padding: 18px 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+}
+
+.search-idle-header {
+  margin-bottom: 16px;
+}
+
+.search-idle-kicker {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: #f8f1df;
+  color: #7a5718;
+  border: 1px solid #e8d19a;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.search-idle-title {
+  margin-top: 12px;
+  font-size: 22px;
+  line-height: 1.06;
+  letter-spacing: -0.04em;
+  font-weight: 950;
+  color: #111827;
+}
+
+.search-idle-text {
+  margin-top: 8px;
+  max-width: 460px;
+  color: #667085;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.search-idle-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.search-idle-card {
+  border: 1px solid #e3e7ee;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.92);
+  padding: 12px 13px;
+  box-shadow: 0 2px 10px rgba(17, 24, 39, 0.03);
+}
+
+.search-idle-card-label {
+  font-size: 12px;
+  font-weight: 850;
+  letter-spacing: 0.01em;
+  color: #344054;
+  text-transform: uppercase;
+}
+
+.search-idle-card-example {
+  margin-top: 6px;
+  font-size: 14px;
+  line-height: 1.4;
+  color: #667085;
+  font-weight: 600;
+}
+
+.search-idle-note {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid #eceff4;
+  color: #7b8494;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+@media (max-width: 640px) {
+  .search-idle-panel {
+    min-height: clamp(250px, 42vh, 400px);
+    padding: 16px 14px;
+  }
+
+  .search-idle-title {
+    font-size: 21px;
+  }
+
+  .search-idle-text {
+    font-size: 13px;
+  }
+
+  .search-idle-grid {
+    grid-template-columns: 1fr;
+    gap: 9px;
+  }
+
+  .search-idle-card {
+    padding: 11px 12px;
+    border-radius: 15px;
+  }
+
+  .search-idle-card-label {
+    font-size: 11px;
+  }
+
+  .search-idle-card-example {
+    font-size: 13px;
+  }
+}
+
+/* =========================================================
+   IDLE EDITORIAL CLEANUP + TRUE SEGMENTED NAV — PATCH 7
+   Removes fake-button look. Only active tab is highlighted.
+   ========================================================= */
+
+/* True segmented nav: inactive tabs are flat, including Add */
+#appScreen .app-main-nav .tab-btn,
+#appScreen .app-main-nav #toggleAddBtn.add-tab-btn,
+#appScreen .app-main-nav #toggleAddBtn.add-tab-btn:not(.active) {
+  background: transparent !important;
+  color: #344054 !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+
+#appScreen .app-main-nav .tab-btn.active {
+  background: #111827 !important;
+  color: #ffffff !important;
+  border-color: #111827 !important;
+  box-shadow: 0 8px 18px rgba(17, 24, 39, 0.13) !important;
+}
+
+/* Add can be slightly distinct, but not selected */
+#appScreen .app-main-nav #toggleAddBtn.add-tab-btn:not(.active) {
+  color: #111827 !important;
+  font-weight: 900;
+}
+
+/* Idle panel: editorial guide, not fake cards */
+.search-idle-panel {
+  min-height: clamp(250px, 42vh, 390px);
+  border-radius: 18px;
+  border: 1px solid #e5e9f0;
+  background:
+    radial-gradient(circle at top right, rgba(216, 181, 109, 0.11), transparent 175px),
+    linear-gradient(180deg, #ffffff 0%, #fbfcfd 100%);
+  padding: 20px 20px 18px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+}
+
+.search-idle-kicker {
+  display: inline-flex;
+  width: fit-content;
+  align-items: center;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: #f8f1df;
+  color: #795719;
+  border: 1px solid #e8d19a;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.search-idle-title {
+  margin-top: 34px;
+  font-size: 25px;
+  line-height: 1.05;
+  letter-spacing: -0.045em;
+  font-weight: 950;
+  color: #111827;
+}
+
+.search-idle-text {
+  margin-top: 10px;
+  max-width: 470px;
+  color: #667085;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.search-idle-divider {
+  margin: 18px 0 2px;
+  height: 1px;
+  width: 100%;
+  background: linear-gradient(90deg, #e7ebf0, rgba(231, 235, 240, 0));
+}
+
+.search-idle-guide {
+  margin-top: 6px;
+  display: grid;
+  gap: 0;
+}
+
+.search-idle-guide-row {
+  display: grid;
+  grid-template-columns: 76px minmax(0, 1fr);
+  gap: 12px;
+  align-items: baseline;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(231, 235, 240, 0.78);
+}
+
+.search-idle-guide-row:last-child {
+  border-bottom: 0;
+}
+
+.search-idle-guide-label {
+  color: #344054;
+  font-size: 11px;
+  line-height: 1.2;
+  font-weight: 900;
+  letter-spacing: 0.055em;
+  text-transform: uppercase;
+}
+
+.search-idle-guide-text {
+  color: #667085;
+  font-size: 14px;
+  line-height: 1.35;
+  font-weight: 650;
+}
+
+.search-idle-note {
+  margin-top: auto;
+  padding-top: 15px;
+  color: #8a94a6;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+/* Kill old fake-card styling if old classes remain anywhere */
+.search-idle-grid,
+.search-idle-card,
+.search-idle-pills,
+.search-idle-pills span {
+  box-shadow: none !important;
+}
+
+/* Mobile tuning */
+@media (max-width: 640px) {
+  .search-idle-panel {
+    min-height: clamp(250px, 42vh, 390px);
+    padding: 19px 18px 16px;
+  }
+
+  .search-idle-title {
+    margin-top: 32px;
+    font-size: 24px;
+  }
+
+  .search-idle-text {
+    font-size: 14px;
+  }
+
+  .search-idle-guide-row {
+    grid-template-columns: 68px minmax(0, 1fr);
+    gap: 10px;
+    padding: 9px 0;
+  }
+
+  .search-idle-guide-text {
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 380px) {
+  .search-idle-panel {
+    padding: 17px 16px 15px;
+  }
+
+  .search-idle-title {
+    font-size: 22px;
+  }
+
+  .search-idle-guide-row {
+    grid-template-columns: 62px minmax(0, 1fr);
+  }
+}
+
+/* =========================================================
+   CLICKABLE IDLE SUGGESTION — PATCH 8
+   Shows one real rotating song from the library.
+   ========================================================= */
+
+.search-idle-panel {
+  min-height: clamp(250px, 42vh, 390px);
+  border-radius: 18px;
+  border: 1px solid #e5e9f0;
+  background:
+    radial-gradient(circle at top right, rgba(216, 181, 109, 0.12), transparent 180px),
+    linear-gradient(180deg, #ffffff 0%, #fbfcfd 100%);
+  padding: 20px 20px 18px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+}
+
+.search-idle-title {
+  margin-top: 30px;
+  font-size: 24px;
+  line-height: 1.05;
+  letter-spacing: -0.045em;
+  font-weight: 950;
+  color: #111827;
+}
+
+.search-idle-text {
+  margin-top: 10px;
+  max-width: 470px;
+  color: #667085;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.idle-featured-song {
+  margin-top: 18px;
+  border-radius: 18px;
+  border: 1px solid #dfe5ee;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.98), rgba(248,250,252,0.96));
+  padding: 15px;
+  cursor: pointer;
+  box-shadow:
+    0 10px 24px rgba(15, 23, 42, 0.065),
+    inset 0 1px 0 rgba(255,255,255,0.85);
+  transition:
+    transform 0.12s ease,
+    border-color 0.12s ease,
+    box-shadow 0.12s ease;
+}
+
+.idle-featured-song:hover,
+.idle-featured-song:focus {
+  outline: none;
+  transform: translateY(-1px);
+  border-color: #cfd6e2;
+  box-shadow:
+    0 14px 30px rgba(15, 23, 42, 0.09),
+    0 0 0 4px rgba(17, 24, 39, 0.045);
+}
+
+.idle-featured-song:active {
+  transform: translateY(0);
+}
+
+.idle-featured-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.idle-featured-label {
+  color: #8a651e;
+  font-size: 11px;
+  line-height: 1.2;
+  font-weight: 900;
+  letter-spacing: 0.055em;
+  text-transform: uppercase;
+}
+
+.idle-featured-title {
+  margin-top: 5px;
+  color: #111827;
+  font-size: 20px;
+  line-height: 1.16;
+  font-weight: 950;
+  letter-spacing: -0.025em;
+}
+
+.idle-featured-arrow {
+  width: 31px;
+  height: 31px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  background: #111827;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.idle-featured-meta {
+  margin-top: 6px;
+  color: #667085;
+  font-size: 13px;
+  line-height: 1.35;
+  font-weight: 700;
+}
+
+.idle-featured-preview {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #edf0f4;
+  color: #4b5565;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.idle-featured-action {
+  margin-top: 12px;
+  color: #111827;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.search-idle-note {
+  margin-top: auto;
+  padding-top: 15px;
+  color: #8a94a6;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+@media (max-width: 640px) {
+  .search-idle-panel {
+    min-height: clamp(250px, 42vh, 390px);
+    padding: 18px 17px 16px;
+  }
+
+  .search-idle-title {
+    margin-top: 28px;
+    font-size: 23px;
+  }
+
+  .idle-featured-song {
+    padding: 14px;
+    border-radius: 17px;
+  }
+
+  .idle-featured-title {
+    font-size: 18px;
+  }
+
+  .idle-featured-preview {
+    font-size: 13px;
+  }
+}
+
+/* =========================================================
+   RESULT CARD POLISH — PATCH 9
+   Keeps lyric preview size. Improves hierarchy and premium feel.
+   ========================================================= */
+
+/* Online status banner: success should not look like an error */
+.search-online-state {
+  margin: 0 0 12px;
+  border-radius: 20px;
+  padding: 13px 15px;
+  border: 1px solid #e3e8ef;
+  background: #ffffff;
+  color: #111827;
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.045);
+}
+
+.search-online-state-success {
+  border-color: #ead7a8;
+  background:
+    radial-gradient(circle at top right, rgba(216, 181, 109, 0.14), transparent 170px),
+    linear-gradient(180deg, #fffdf8 0%, #ffffff 100%);
+  color: #5d4315;
+}
+
+.search-online-state-pending {
+  border-color: #dfe5ee;
+  background: #ffffff;
+  color: #344054;
+}
+
+.search-online-state-error {
+  border-color: #fecaca;
+  background: #fff7f7;
+  color: #991b1b;
+}
+
+.search-online-state-row {
+  gap: 11px;
+}
+
+.search-online-state-title {
+  font-size: 15px;
+  line-height: 1.35;
+  font-weight: 950;
+  letter-spacing: -0.015em;
+}
+
+.search-online-state-helper {
+  margin-top: 5px;
+  font-size: 13px;
+  line-height: 1.42;
+  color: inherit;
+  opacity: 0.82;
+}
+
+/* Online result list spacing */
+.search-online-candidates {
+  gap: 12px;
+}
+
+/* Shared card polish */
+.result-card,
+.song-row {
+  border-radius: 20px;
+  border: 1px solid #e1e6ee;
+  background:
+    linear-gradient(180deg, #ffffff 0%, #fbfcfd 100%);
+  box-shadow:
+    0 10px 26px rgba(15, 23, 42, 0.055),
+    0 1px 2px rgba(15, 23, 42, 0.025);
+}
+
+.result-card:hover,
+.song-row:hover {
+  border-color: #cfd6e2;
+  box-shadow:
+    0 13px 30px rgba(15, 23, 42, 0.075),
+    0 1px 2px rgba(15, 23, 42, 0.03);
+}
+
+/* Online result card: keep preview area generous */
+.online-result-card {
+  padding: 15px 16px;
+  display: block;
+  cursor: pointer;
+}
+
+.online-result-card .result-main {
+  width: 100%;
+}
+
+/* Pills should look like metadata, not warnings */
+.online-pill-row {
+  gap: 7px;
+  margin-bottom: 12px;
+}
+
+.online-pill {
+  border: 1px solid #e4e8ef;
+  background: #f8fafc;
+  color: #475467;
+  border-radius: 999px;
+  padding: 5px 9px;
+  font-size: 11px;
+  font-weight: 850;
+  line-height: 1;
+}
+
+/* First pill is the main quality/source cue */
+.online-pill-row .online-pill:first-child {
+  border-color: #ead7a8;
+  background: #f8f1df;
+  color: #795719;
+}
+
+/* Song title and metadata */
+.online-result-card .song-title,
+.result-card .song-title {
+  color: #111827;
+  font-size: 19px;
+  line-height: 1.18;
+  font-weight: 950;
+  letter-spacing: -0.025em;
+  margin-bottom: 6px;
+}
+
+.online-result-card .song-meta,
+.result-card .song-meta {
+  color: #667085;
+  font-size: 14px;
+  line-height: 1.42;
+  font-weight: 650;
+  margin-bottom: 10px;
+}
+
+/* Keep lyric preview visible and readable */
+.online-preview,
+.song-snippet {
+  color: #374151;
+  font-size: 15px;
+  line-height: 1.62;
+  white-space: pre-wrap;
+}
+
+/* Online preview gets a subtle reading area, not a smaller one */
+.online-preview {
+  margin-top: 12px;
+  padding-top: 13px;
+  border-top: 1px solid #edf0f4;
+  color: #3f4756;
+}
+
+/* Local result action buttons should be quiet */
+.result-card .stack-actions {
+  margin-top: 0;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.star-btn,
+.edit-btn {
+  border-radius: 12px;
+  border-color: #e1e6ee;
+  background: #ffffff;
+  box-shadow: 0 3px 9px rgba(17, 24, 39, 0.035);
+}
+
+.star-btn.active {
+  background: #f8f1df;
+  border-color: #ead7a8;
+  color: #795719;
+}
+
+/* Mobile tuning */
+@media (max-width: 640px) {
+  .search-online-state {
+    padding: 12px 13px;
+    border-radius: 18px;
+    margin-bottom: 11px;
+  }
+
+  .search-online-state-title {
+    font-size: 14px;
+  }
+
+  .search-online-state-helper {
+    font-size: 13px;
+  }
+
+  .search-online-candidates {
+    gap: 11px;
+  }
+
+  .online-result-card {
+    padding: 14px;
+    border-radius: 19px;
+  }
+
+  .online-pill-row {
+    gap: 6px;
+    margin-bottom: 11px;
+  }
+
+  .online-pill {
+    padding: 5px 8px;
+    font-size: 11px;
+  }
+
+  .online-result-card .song-title,
+  .result-card .song-title {
+    font-size: 18px;
+    line-height: 1.18;
+  }
+
+  .online-result-card .song-meta,
+  .result-card .song-meta {
+    font-size: 13px;
+    line-height: 1.4;
+  }
+
+  .online-preview,
+  .song-snippet {
+    font-size: 14px;
+    line-height: 1.58;
+  }
+
+  .online-preview {
+    margin-top: 11px;
+    padding-top: 12px;
+  }
+}
+
+/* =========================================================
+   LYRICS MODAL POLISH — PATCH 10
+   Admin-safe. CSS-only. Keeps Save/Fav/Put Live/Edit/Delete/Close.
+   ========================================================= */
+
+.modal {
+  background: rgba(15, 23, 42, 0.58);
+  padding: 10px;
+  backdrop-filter: blur(4px);
+}
+
+.modal.show {
+  display: flex;
+}
+
+.modal-card {
+  width: 100%;
+  max-width: 760px;
+  max-height: 88vh;
+  overflow: auto;
+  background:
+    linear-gradient(180deg, #ffffff 0%, #fbfcfd 100%);
+  border: 1px solid #e1e6ee;
+  border-radius: 24px;
+  padding: 18px 18px 20px;
+  box-shadow:
+    0 28px 90px rgba(15, 23, 42, 0.34),
+    0 1px 2px rgba(15, 23, 42, 0.12);
+}
+
+/* Header */
+.modal-top {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+  margin-bottom: 14px;
+  padding-bottom: 13px;
+  border-bottom: 1px solid #edf0f4;
+}
+
+.modal-main {
+  min-width: 0;
+}
+
+.modal-title {
+  margin: 0;
+  color: #111827;
+  font-size: 27px;
+  line-height: 1.05;
+  letter-spacing: -0.045em;
+  font-weight: 950;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.modal-meta {
+  margin-top: 7px;
+  color: #667085;
+  font-size: 14px;
+  line-height: 1.42;
+  font-weight: 650;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+/* Actions become a clean command row */
+.modal-side {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  display: grid;
+  gap: 9px;
+  align-items: start;
+}
+
+.modal-actions {
+  width: 100%;
+  max-width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  gap: 8px;
+}
+
+/* Base modal button */
+.modal-btn {
+  min-height: 38px;
+  border: 1px solid #dfe5ee;
+  border-radius: 14px;
+  padding: 8px 13px;
+  background: #ffffff;
+  color: #111827;
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1;
+  font-weight: 850;
+  white-space: nowrap;
+  box-shadow: 0 4px 12px rgba(17, 24, 39, 0.045);
+  transition:
+    transform 0.12s ease,
+    border-color 0.12s ease,
+    box-shadow 0.12s ease,
+    background 0.12s ease;
+}
+
+.modal-btn:active {
+  transform: translateY(1px);
+}
+
+/* Favorite: icon button */
+#modalBookmarkBtn.modal-btn {
+  width: 40px;
+  min-width: 40px;
+  height: 40px;
+  min-height: 40px;
+  padding: 0;
+  border-radius: 14px;
+  background: #111827;
+  color: #ffffff;
+  border-color: #111827;
+  font-size: 21px;
+  box-shadow: none;
+}
+
+/* Save online result: premium but not huge */
+#modalSaveBtn.modal-btn {
+  background: #8a4b16;
+  color: #fffaf0;
+  border-color: #8a4b16;
+  box-shadow: 0 10px 22px rgba(138, 75, 22, 0.18);
+}
+
+#modalSaveBtn.modal-save-highlight {
+  background: #8a4b16 !important;
+  color: #fffaf0 !important;
+  border-color: #8a4b16 !important;
+  box-shadow: 0 10px 22px rgba(138, 75, 22, 0.18) !important;
+  animation: none !important;
+}
+
+/* Put Live: visible, but calmer than before */
+#modalShareNowBtn.modal-btn {
+  background: #fff4ed !important;
+  color: #9a3412 !important;
+  border: 1px solid #fed7aa !important;
+  box-shadow: 0 5px 14px rgba(154, 52, 18, 0.08) !important;
+}
+
+#modalShareNowBtn.modal-btn:hover,
+#modalShareNowBtn.modal-btn:focus {
+  background: #ffedd5 !important;
+  color: #7c2d12 !important;
+}
+
+/* Edit: neutral admin/member action */
+#modalEditBtn.modal-btn {
+  background: #111827;
+  color: #ffffff;
+  border-color: #111827;
+  box-shadow: none;
+}
+
+/* Delete: admin-only danger, but not huge */
+#modalDeleteBtn.modal-btn,
+#modalDeleteBtn.btn-danger {
+  background: #fff7f7 !important;
+  color: #b91c1c !important;
+  border: 1px solid #fecaca !important;
+  box-shadow: none !important;
+}
+
+/* Close: quiet secondary, not primary */
+#modalCloseBtn.modal-btn {
+  margin-left: auto;
+  background: transparent;
+  color: #667085;
+  border-color: transparent;
+  box-shadow: none;
+}
+
+#modalCloseBtn.modal-btn:hover,
+#modalCloseBtn.modal-btn:focus {
+  background: #f3f4f6;
+  color: #111827;
+}
+
+/* Extra metadata: source/confidence/key/chord */
+.modal-extra-meta {
+  max-width: 100%;
+  text-align: left;
+  color: #667085;
+  font-size: 12px;
+  line-height: 1.5;
+  background: #f8fafc;
+  border: 1px solid #e6eaf0;
+  border-radius: 15px;
+  padding: 10px 12px;
+}
+
+.modal-extra-meta strong {
+  color: #344054;
+  font-weight: 900;
+}
+
+/* Lyrics reading area */
+.lyrics-full {
+  margin-top: 10px;
+  white-space: pre-wrap;
+  color: #111827;
+  font-size: 24px;
+  line-height: 1.72;
+  letter-spacing: -0.01em;
+}
+
+/* Search highlight */
+.lyrics-full mark,
+mark {
+  background: #f8e39b;
+  color: #111827;
+  padding: 0 3px;
+  border-radius: 6px;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+
+/* Mobile tuning */
+@media (max-width: 640px) {
+  .modal {
+    padding: 7px;
+    align-items: flex-start;
+  }
+
+  .modal-card {
+    max-height: calc(100dvh - 14px);
+    border-radius: 22px;
+    padding: 16px 15px 18px;
+  }
+
+  .modal-top {
+    gap: 11px;
+    margin-bottom: 13px;
+    padding-bottom: 12px;
+  }
+
+  .modal-title {
+    font-size: 24px;
+    line-height: 1.06;
+  }
+
+  .modal-meta {
+    font-size: 13px;
+    line-height: 1.42;
+  }
+
+  .modal-actions {
+    gap: 7px;
+  }
+
+  .modal-btn {
+    min-height: 36px;
+    padding: 8px 11px;
+    border-radius: 13px;
+    font-size: 12px;
+  }
+
+  #modalBookmarkBtn.modal-btn {
+    width: 38px;
+    min-width: 38px;
+    height: 38px;
+    min-height: 38px;
+    font-size: 20px;
+  }
+
+  #modalCloseBtn.modal-btn {
+    margin-left: 0;
+  }
+
+  .modal-extra-meta {
+    font-size: 12px;
+    border-radius: 14px;
+    padding: 9px 10px;
+  }
+
+  .lyrics-full {
+    font-size: 25px;
+    line-height: 1.72;
+    margin-top: 9px;
+  }
+}
+
+@media (max-width: 380px) {
+  .modal-card {
+    padding: 15px 14px 17px;
+  }
+
+  .modal-title {
+    font-size: 22px;
+  }
+
+  .lyrics-full {
+    font-size: 23px;
+  }
+
+  .modal-btn {
+    font-size: 12px;
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+}
+
+/* =========================================================
+   MODAL READING SIZE FIX — PATCH 11
+   Keeps modal polish, fixes oversized lyrics/buttons.
+   ========================================================= */
+
+/* Modal card: slightly tighter */
+.modal-card {
+  border-radius: 22px;
+  padding: 17px 17px 19px;
+}
+
+/* Header title: strong but not huge */
+.modal-title {
+  font-size: 25px;
+  line-height: 1.08;
+  letter-spacing: -0.04em;
+}
+
+.modal-meta {
+  font-size: 14px;
+  line-height: 1.42;
+}
+
+/* Button row: less bulky */
+.modal-actions {
+  gap: 7px;
+}
+
+.modal-btn {
+  min-height: 36px;
+  padding: 8px 12px;
+  border-radius: 13px;
+  font-size: 12px;
+}
+
+/* Star button */
+#modalBookmarkBtn.modal-btn {
+  width: 38px;
+  min-width: 38px;
+  height: 38px;
+  min-height: 38px;
+  border-radius: 13px;
+  font-size: 19px;
+}
+
+/* Save button should not dominate the whole modal */
+#modalSaveBtn.modal-btn {
+  padding-left: 14px;
+  padding-right: 14px;
+}
+
+/* Close should stay quiet but aligned */
+#modalCloseBtn.modal-btn {
+  margin-left: 0;
+  color: #667085;
+}
+
+/* Source metadata box: compact */
+.modal-extra-meta {
+  padding: 9px 10px;
+  border-radius: 14px;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+/* Main fix: readable lyric size */
+.lyrics-full {
+  margin-top: 10px;
+  font-size: 20px;
+  line-height: 1.82;
+  letter-spacing: 0;
+  color: #111827;
+}
+
+/* Highlight should not look like a giant sticker */
+.lyrics-full mark,
+mark {
+  background: #f8e39b;
+  color: #111827;
+  padding: 0 2px;
+  border-radius: 5px;
+}
+
+/* Mobile: balanced reading size */
+@media (max-width: 640px) {
+  .modal {
+    padding: 7px;
+    align-items: flex-start;
+  }
+
+  .modal-card {
+    max-height: calc(100dvh - 14px);
+    border-radius: 22px;
+    padding: 16px 15px 18px;
+  }
+
+  .modal-title {
+    font-size: 24px;
+    line-height: 1.08;
+  }
+
+  .modal-meta {
+    font-size: 13px;
+    line-height: 1.42;
+  }
+
+  .modal-top {
+    gap: 10px;
+    margin-bottom: 12px;
+    padding-bottom: 11px;
+  }
+
+  .modal-actions {
+    gap: 7px;
+  }
+
+  .modal-btn {
+    min-height: 35px;
+    padding: 7px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+  }
+
+  #modalBookmarkBtn.modal-btn {
+    width: 36px;
+    min-width: 36px;
+    height: 36px;
+    min-height: 36px;
+    border-radius: 12px;
+    font-size: 18px;
+  }
+
+  .modal-extra-meta {
+    font-size: 12px;
+    padding: 9px 10px;
+  }
+
+  .lyrics-full {
+    font-size: 20px;
+    line-height: 1.78;
+    margin-top: 9px;
+  }
+}
+
+/* Small phones */
+@media (max-width: 380px) {
+  .modal-title {
+    font-size: 22px;
+  }
+
+  .lyrics-full {
+    font-size: 19px;
+    line-height: 1.76;
+  }
+}
+
+/* =========================================================
+   MODAL FINAL FONT CORRECTION — PATCH 12
+   Practical reading size for Hindi / Gujarati / Roman lyrics.
+   Must stay at the very end of CSS.
+   ========================================================= */
+
+#songModal .lyrics-full {
+  font-size: 17px !important;
+  line-height: 1.82 !important;
+  letter-spacing: 0 !important;
+  margin-top: 10px !important;
+}
+
+#songModal .modal-title {
+  font-size: 23px !important;
+  line-height: 1.08 !important;
+}
+
+#songModal .modal-meta {
+  font-size: 13px !important;
+  line-height: 1.42 !important;
+}
+
+#songModal .modal-card {
+  padding: 16px !important;
+}
+
+/* Mobile */
+@media (max-width: 640px) {
+  #songModal .lyrics-full {
+    font-size: 17px !important;
+    line-height: 1.8 !important;
+  }
+
+  #songModal .modal-title {
+    font-size: 22px !important;
+  }
+
+  #songModal .modal-meta {
+    font-size: 12px !important;
+  }
+
+  #songModal .modal-card {
+    padding: 15px !important;
+  }
+}
+
+/* Very small phones */
+@media (max-width: 380px) {
+  #songModal .lyrics-full {
+    font-size: 16px !important;
+    line-height: 1.78 !important;
+  }
+
+  #songModal .modal-title {
+    font-size: 21px !important;
+  }
+}
+
+/* =========================================================
+   ADD TAB ACTIVE FIX — PATCH 13B
+   Must stay after the segmented-nav CSS.
+   ========================================================= */
+
+#appScreen .app-main-nav #toggleAddBtn.add-tab-btn.active,
+#appScreen .tabs #toggleAddBtn.add-tab-btn.active {
+  background: #111827 !important;
+  color: #ffffff !important;
+  border-color: #111827 !important;
+  box-shadow: 0 8px 18px rgba(17, 24, 39, 0.13) !important;
+}
+
+/* =========================================================
+   ADD / EDIT SONG FORM POLISH — PATCH 14
+   CSS-only. Keeps all editor IDs and save/fetch logic intact.
+   ========================================================= */
+
+#songEditorCard {
+  padding: 17px;
+  border-radius: 24px;
+  border: 1px solid #e1e6ee;
+  background:
+    radial-gradient(circle at top right, rgba(216, 181, 109, 0.08), transparent 180px),
+    linear-gradient(180deg, #ffffff 0%, #fbfcfd 100%);
+  box-shadow:
+    0 14px 38px rgba(15, 23, 42, 0.07),
+    0 1px 2px rgba(15, 23, 42, 0.035);
+}
+
+#songEditorCard #editorHeading {
+  margin: 0 0 14px;
+  color: #111827;
+  font-size: 28px;
+  line-height: 1.04;
+  letter-spacing: -0.055em;
+  font-weight: 950;
+}
+
+#songEditorCard #editorHeading::after {
+  content: "Add details, paste lyrics, then save to your library.";
+  display: block;
+  margin-top: 7px;
+  color: #667085;
+  font-size: 13px;
+  line-height: 1.4;
+  letter-spacing: 0;
+  font-weight: 650;
+}
+
+#songEditorCard #songForm {
+  display: grid;
+  gap: 12px;
+}
+
+#songEditorCard .row {
+  gap: 10px;
+}
+
+#songEditorCard .field,
+#songEditorCard .field-compact {
+  margin-bottom: 0;
+}
+
+#songEditorCard .field label {
+  margin-bottom: 6px;
+  color: #4b5565;
+  font-size: 12px;
+  line-height: 1.2;
+  font-weight: 900;
+  letter-spacing: 0.015em;
+}
+
+#songEditorCard .input,
+#songEditorCard .textarea,
+#songEditorCard .select {
+  border-radius: 17px;
+  border: 1px solid #dfe5ee;
+  background: #ffffff;
+  color: #111827;
+  box-shadow:
+    inset 0 1px 0 rgba(17, 24, 39, 0.02),
+    0 1px 2px rgba(17, 24, 39, 0.025);
+}
+
+#songEditorCard .input {
+  min-height: 48px;
+  padding: 11px 14px;
+  font-size: 15px;
+}
+
+#songEditorCard .input-thin {
+  min-height: 44px;
+  padding: 10px 13px;
+  font-size: 15px;
+}
+
+#songEditorCard .textarea {
+  min-height: 230px;
+  padding: 14px;
+  font-size: 15px;
+  line-height: 1.55;
+  resize: vertical;
+}
+
+#songEditorCard .input::placeholder,
+#songEditorCard .textarea::placeholder {
+  color: #7a8392;
+}
+
+#songEditorCard .input:focus,
+#songEditorCard .textarea:focus,
+#songEditorCard .select:focus {
+  border-color: #b8c0cc;
+  box-shadow:
+    0 0 0 4px rgba(17, 24, 39, 0.055),
+    inset 0 1px 0 rgba(17, 24, 39, 0.02);
+}
+
+/* Key + Chord row: save vertical space */
+#songEditorCard .row:has(#songOriginalKey) {
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+  gap: 10px;
+}
+
+#songEditorCard #duplicateWarning {
+  margin: 0;
+}
+
+/* Editor actions */
+#songEditorCard .stack-actions {
+  margin-top: 2px;
+  gap: 8px;
+  align-items: center;
+}
+
+#songEditorCard #saveSongBtn {
+  min-height: 42px;
+  padding: 9px 16px;
+  border-radius: 16px;
+  background: #111827;
+  color: #ffffff;
+  border: 1px solid #111827;
+  font-size: 14px;
+  font-weight: 900;
+  box-shadow: 0 10px 22px rgba(17, 24, 39, 0.12);
+}
+
+#songEditorCard #fetchLyricsBtn,
+#songEditorCard #cancelEditBtn,
+#songEditorCard #closeEditorBtn {
+  min-height: 42px;
+  padding: 9px 15px;
+  border-radius: 16px;
+  background: #ffffff;
+  color: #111827;
+  border: 1px solid #dfe5ee;
+  font-size: 14px;
+  font-weight: 850;
+  box-shadow: 0 5px 14px rgba(17, 24, 39, 0.045);
+}
+
+#songEditorCard #closeEditorBtn {
+  color: #667085;
+}
+
+#songEditorCard #editorStatus {
+  display: block;
+  width: 100%;
+  margin-top: 2px;
+  color: #667085;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+/* Bottom helper text */
+#songEditorCard form > .tiny:last-child {
+  margin-top: 0 !important;
+  padding-top: 12px;
+  border-top: 1px solid #edf0f4;
+  color: #7b8494;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+/* Online matches inside editor */
+#editorLookupBox {
+  margin-top: 4px !important;
+  padding: 12px;
+  border-radius: 18px;
+  border: 1px solid #e5e9f0;
+  background: #fbfcfd;
+}
+
+#editorLookupBox .tiny {
+  color: #344054;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+}
+
+/* Autofilled states should be softer */
+#songEditorCard .input-autofilled,
+#songEditorCard #songLyrics.textarea-autofilled {
+  border-color: #ead7a8 !important;
+  background: #fffdf8 !important;
+  box-shadow: 0 0 0 3px rgba(216, 181, 109, 0.12) !important;
+}
+
+/* Mobile tuning */
+@media (max-width: 640px) {
+  #songEditorCard {
+    padding: 16px;
+    border-radius: 23px;
+  }
+
+  #songEditorCard #editorHeading {
+    font-size: 26px;
+    margin-bottom: 13px;
+  }
+
+  #songEditorCard #editorHeading::after {
+    font-size: 12px;
+  }
+
+  #songEditorCard #songForm {
+    gap: 11px;
+  }
+
+  #songEditorCard .input {
+    min-height: 46px;
+    padding: 10px 13px;
+    font-size: 15px;
+    border-radius: 16px;
+  }
+
+  #songEditorCard .input-thin {
+    min-height: 43px;
+  }
+
+  #songEditorCard .textarea {
+    min-height: 220px;
+    font-size: 15px;
+    border-radius: 16px;
+  }
+
+  #songEditorCard .row:has(#songOriginalKey) {
+    grid-template-columns: 0.82fr 1.18fr;
+    gap: 9px;
+  }
+
+  #songEditorCard .stack-actions {
+    gap: 7px;
+  }
+
+  #songEditorCard #saveSongBtn,
+  #songEditorCard #fetchLyricsBtn,
+  #songEditorCard #cancelEditBtn,
+  #songEditorCard #closeEditorBtn {
+    min-height: 40px;
+    padding: 8px 13px;
+    border-radius: 15px;
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 380px) {
+  #songEditorCard {
+    padding: 14px;
+  }
+
+  #songEditorCard #editorHeading {
+    font-size: 24px;
+  }
+
+  #songEditorCard .row:has(#songOriginalKey) {
+    grid-template-columns: 1fr;
+  }
+
+  #songEditorCard .textarea {
+    min-height: 205px;
+  }
+
+  #songEditorCard #saveSongBtn,
+  #songEditorCard #fetchLyricsBtn,
+  #songEditorCard #cancelEditBtn,
+  #songEditorCard #closeEditorBtn {
+    flex: 1 1 auto;
+  }
+}
+
+/* =========================================================
+   PROVIDER FALLBACK POLISH — PATCH 15
+   Keeps ALL provider results. Visual polish only.
+   ========================================================= */
+
+.provider-lyrics-fallback {
+  border-radius: 22px;
+  border: 1px solid #e1e6ee;
+  background:
+    radial-gradient(circle at top right, rgba(216, 181, 109, 0.10), transparent 180px),
+    linear-gradient(180deg, #ffffff 0%, #fbfcfd 100%);
+  padding: 18px;
+  box-shadow:
+    0 12px 32px rgba(15, 23, 42, 0.06),
+    0 1px 2px rgba(15, 23, 42, 0.025);
+}
+
+.provider-lyrics-title {
+  color: #111827;
+  font-size: 22px;
+  line-height: 1.08;
+  letter-spacing: -0.04em;
+  font-weight: 950;
+  margin-bottom: 8px;
+}
+
+.provider-lyrics-message {
+  color: #667085;
+  font-size: 14px;
+  line-height: 1.5;
+  margin-bottom: 14px;
+}
+
+.provider-link-grid {
+  display: grid;
+  gap: 10px;
+  margin-top: 13px;
+}
+
+/* Provider cards: still clickable, but cleaner */
+.provider-link-card {
+  width: 100%;
+  border-radius: 18px;
+  border: 1px solid #e1e6ee;
+  background:
+    linear-gradient(180deg, #ffffff 0%, #fbfcfd 100%);
+  color: #111827;
+  padding: 14px;
+  cursor: pointer;
+  text-align: left;
+  display: grid;
+  gap: 8px;
+  box-shadow: 0 5px 16px rgba(15, 23, 42, 0.045);
+  transition:
+    transform 0.12s ease,
+    border-color 0.12s ease,
+    box-shadow 0.12s ease;
+}
+
+.provider-link-card:hover,
+.provider-link-card:focus {
+  outline: none;
+  transform: translateY(-1px);
+  border-color: #cfd6e2;
+  box-shadow:
+    0 12px 26px rgba(15, 23, 42, 0.075),
+    0 0 0 4px rgba(17, 24, 39, 0.035);
+}
+
+.provider-link-card:active {
+  transform: translateY(0);
+}
+
+.provider-link-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.provider-link-name {
+  color: #111827;
+  font-size: 16px;
+  line-height: 1.1;
+  font-weight: 950;
+  letter-spacing: -0.02em;
+}
+
+.provider-link-badge {
+  flex: 0 0 auto;
+  border-radius: 999px;
+  padding: 5px 9px;
+  border: 1px solid #d9eadb;
+  background: #f0fbf2;
+  color: #24713a;
+  font-size: 11px;
+  line-height: 1;
+  font-weight: 900;
+}
+
+/* Noisy provider titles: readable, not overpowering */
+.provider-link-title {
+  color: #111827;
+  font-size: 14px;
+  line-height: 1.38;
+  font-weight: 850;
+  letter-spacing: -0.01em;
+}
+
+.provider-link-description {
+  color: #667085;
+  font-size: 13px;
+  line-height: 1.45;
+  font-weight: 550;
+}
+
+.provider-link-meta {
+  margin-top: 2px;
+  padding-top: 9px;
+  border-top: 1px solid #edf0f4;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  color: #667085;
+  font-size: 12px;
+  line-height: 1.2;
+  font-weight: 700;
+}
+
+.provider-link-open {
+  color: #111827;
+  font-weight: 900;
+}
+
+/* Manual paste should be available, but not compete with provider cards */
+.provider-manual-row {
+  margin-top: 13px;
+  padding-top: 13px;
+  border-top: 1px solid #edf0f4;
+}
+
+.provider-manual-row .provider-lyrics-btn {
+  width: 100%;
+  min-height: 42px;
+  border-radius: 16px;
+  background: #ffffff;
+  color: #111827;
+  border: 1px solid #dfe5ee;
+  font-size: 13px;
+  font-weight: 850;
+  box-shadow: 0 5px 14px rgba(17, 24, 39, 0.045);
+}
+
+.provider-lyrics-note {
+  margin-top: 10px;
+  color: #8a94a6;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+/* Mobile */
+@media (max-width: 640px) {
+  .provider-lyrics-fallback {
+    padding: 16px;
+    border-radius: 21px;
+  }
+
+  .provider-lyrics-title {
+    font-size: 20px;
+  }
+
+  .provider-lyrics-message {
+    font-size: 13px;
+  }
+
+  .provider-link-card {
+    padding: 13px;
+    border-radius: 17px;
+  }
+
+  .provider-link-name {
+    font-size: 15px;
+  }
+
+  .provider-link-badge {
+    font-size: 10px;
+    padding: 5px 8px;
+  }
+
+  .provider-link-title {
+    font-size: 14px;
+  }
+
+  .provider-link-description {
+    font-size: 12px;
+  }
+
+  .provider-link-meta {
+    font-size: 11px;
+  }
+}
+
+/* =========================================================
+   SONGS + FAVORITES POLISH — PATCH 16
+   CSS-only. Keeps grouping, edit, bookmark, and open-song logic.
+   ========================================================= */
+
+/* Shared section cards */
+#listTab > .card,
+#favoritesTab > .card {
+  padding: 16px;
+  border-radius: 24px;
+  border: 1px solid #e1e6ee;
+  background:
+    radial-gradient(circle at top right, rgba(216, 181, 109, 0.08), transparent 170px),
+    linear-gradient(180deg, #ffffff 0%, #fbfcfd 100%);
+  box-shadow:
+    0 14px 38px rgba(15, 23, 42, 0.065),
+    0 1px 2px rgba(15, 23, 42, 0.03);
+}
+
+/* Toolbar/header */
+#listTab .toolbar,
+#favoritesTab .toolbar {
+  margin-bottom: 14px;
+  gap: 10px;
+  align-items: center;
+}
+
+#listTab .toolbar-left,
+#favoritesTab .toolbar-left {
+  gap: 8px;
+  align-items: baseline;
+}
+
+#listTab .toolbar-left strong,
+#favoritesTab .toolbar-left strong {
+  color: #111827;
+  font-size: 22px;
+  line-height: 1.08;
+  letter-spacing: -0.04em;
+  font-weight: 950;
+}
+
+#listTab .toolbar-left .tiny,
+#favoritesTab .toolbar-left .tiny {
+  color: #667085;
+  font-size: 13px;
+  line-height: 1.35;
+  font-weight: 650;
+}
+
+#listTab .toolbar-right {
+  gap: 9px;
+  align-items: center;
+}
+
+#listTab .toolbar-right label {
+  color: #667085;
+  font-size: 12px;
+  font-weight: 850;
+}
+
+#listTab #groupMode {
+  min-width: 155px !important;
+  min-height: 42px;
+  padding: 9px 40px 9px 14px;
+  border-radius: 16px;
+  border: 1px solid #dfe5ee;
+  background: #ffffff;
+  color: #111827;
+  font-size: 15px;
+  font-weight: 750;
+  box-shadow: 0 5px 14px rgba(17, 24, 39, 0.04);
+}
+
+/* Group cards */
+#songGroups {
+  display: grid;
+  gap: 12px;
+}
+
+#listTab .group-card {
+  margin: 0;
+  overflow: hidden;
+  border-radius: 20px;
+  border: 1px solid #e1e6ee;
+  background: #ffffff;
+  box-shadow:
+    0 8px 22px rgba(15, 23, 42, 0.045),
+    0 1px 2px rgba(15, 23, 42, 0.02);
+}
+
+#listTab .group-head {
+  padding: 13px 14px;
+  background:
+    linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+  border-bottom: 1px solid #edf0f4;
+}
+
+#listTab .group-head strong {
+  color: #111827;
+  font-size: 16px;
+  line-height: 1.2;
+  font-weight: 950;
+  letter-spacing: -0.015em;
+}
+
+#listTab .group-count {
+  margin-top: 3px;
+  color: #667085;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+#listTab .group-head > div:last-child {
+  color: #111827;
+  font-size: 13px;
+  font-weight: 900;
+  opacity: 0.75;
+}
+
+#listTab .group-body {
+  padding: 10px;
+  display: grid;
+  gap: 9px;
+}
+
+#listTab .group-body.hidden {
+  display: none;
+}
+
+/* Favorites list spacing */
+#favoriteSongsList {
+  display: grid;
+  gap: 10px;
+}
+
+/* Shared song rows */
+#listTab .song-row,
+#favoritesTab .song-row {
+  margin: 0;
+  min-height: 74px;
+  padding: 12px 12px;
+  border-radius: 18px;
+  border: 1px solid #e1e6ee;
+  background:
+    linear-gradient(180deg, #ffffff 0%, #fbfcfd 100%);
+  box-shadow:
+    0 7px 18px rgba(15, 23, 42, 0.045),
+    0 1px 2px rgba(15, 23, 42, 0.02);
+  align-items: center;
+  gap: 10px;
+}
+
+#listTab .song-row:hover,
+#favoritesTab .song-row:hover {
+  border-color: #cfd6e2;
+  box-shadow:
+    0 11px 24px rgba(15, 23, 42, 0.065),
+    0 0 0 4px rgba(17, 24, 39, 0.025);
+}
+
+#listTab .song-title,
+#favoritesTab .song-title {
+  color: #111827;
+  font-size: 17px;
+  line-height: 1.22;
+  font-weight: 950;
+  letter-spacing: -0.02em;
+  margin-bottom: 4px;
+}
+
+#listTab .song-meta,
+#favoritesTab .song-meta {
+  color: #667085;
+  font-size: 13px;
+  line-height: 1.35;
+  font-weight: 650;
+  margin: 0;
+}
+
+/* Action buttons */
+#listTab .stack-actions,
+#favoritesTab .stack-actions {
+  margin: 0;
+  gap: 7px;
+  flex: 0 0 auto;
+}
+
+#listTab .star-btn,
+#favoritesTab .star-btn,
+#listTab .edit-btn,
+#favoritesTab .edit-btn {
+  width: 38px;
+  min-width: 38px;
+  height: 38px;
+  border-radius: 14px;
+  border: 1px solid #dfe5ee;
+  background: #ffffff;
+  box-shadow: 0 4px 12px rgba(17, 24, 39, 0.04);
+}
+
+#listTab .star-btn,
+#favoritesTab .star-btn {
+  color: #8a651e;
+  font-size: 16px;
+}
+
+#listTab .star-btn.active,
+#favoritesTab .star-btn.active {
+  background: #f8f1df;
+  border-color: #e8d19a;
+  color: #795719;
+}
+
+#listTab .edit-btn,
+#favoritesTab .edit-btn {
+  color: #111827;
+  font-size: 14px;
+}
+
+/* Empty states */
+#listTab .empty,
+#favoritesTab .empty {
+  border-radius: 18px;
+  border: 1px solid #e1e6ee;
+  background: #ffffff;
+  color: #667085;
+  padding: 18px;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+/* Mobile tuning */
+@media (max-width: 640px) {
+  #listTab > .card,
+  #favoritesTab > .card {
+    padding: 14px;
+    border-radius: 23px;
+  }
+
+  #listTab .toolbar,
+  #favoritesTab .toolbar {
+    margin-bottom: 13px;
+  }
+
+  #listTab .toolbar-left,
+  #favoritesTab .toolbar-left {
+    gap: 7px;
+  }
+
+  #listTab .toolbar-left strong,
+  #favoritesTab .toolbar-left strong {
+    font-size: 20px;
+  }
+
+  #listTab .toolbar-left .tiny,
+  #favoritesTab .toolbar-left .tiny {
+    font-size: 12px;
+  }
+
+  #listTab .toolbar-right {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  #listTab #groupMode {
+    min-width: 150px !important;
+    min-height: 40px;
+    border-radius: 15px;
+    font-size: 14px;
+  }
+
+  #songGroups {
+    gap: 11px;
+  }
+
+  #listTab .group-card {
+    border-radius: 19px;
+  }
+
+  #listTab .group-head {
+    padding: 12px 13px;
+  }
+
+  #listTab .group-head strong {
+    font-size: 15px;
+  }
+
+  #listTab .group-body {
+    padding: 9px;
+    gap: 8px;
+  }
+
+  #favoriteSongsList {
+    gap: 9px;
+  }
+
+  #listTab .song-row,
+  #favoritesTab .song-row {
+    min-height: 70px;
+    padding: 11px;
+    border-radius: 17px;
+    gap: 9px;
+  }
+
+  #listTab .song-title,
+  #favoritesTab .song-title {
+    font-size: 16px;
+    line-height: 1.2;
+  }
+
+  #listTab .song-meta,
+  #favoritesTab .song-meta {
+    font-size: 12px;
+  }
+
+  #listTab .star-btn,
+  #favoritesTab .star-btn,
+  #listTab .edit-btn,
+  #favoritesTab .edit-btn {
+    width: 36px;
+    min-width: 36px;
+    height: 36px;
+    border-radius: 13px;
+  }
+}
+
+@media (max-width: 380px) {
+  #listTab > .card,
+  #favoritesTab > .card {
+    padding: 12px;
+  }
+
+  #listTab .song-row,
+  #favoritesTab .song-row {
+    padding: 10px;
+  }
+
+  #listTab .song-title,
+  #favoritesTab .song-title {
+    font-size: 15px;
+  }
+
+  #listTab .star-btn,
+  #favoritesTab .star-btn,
+  #listTab .edit-btn,
+  #favoritesTab .edit-btn {
+    width: 34px;
+    min-width: 34px;
+    height: 34px;
+  }
+}
+
   </style>
 </head>
 <body>
@@ -1641,72 +5487,75 @@
 </div>
 
   <div class="container">
-    <section id="authScreen" class="screen-card">
-      <h2 class="section-title">Login / Request Access</h2>
-      <div class="sub">Only approved members can enter the library.</div>
-
-      <div id="authStatus" class="status-box"></div>
-
-      <div class="tiny" style="margin-top:12px; text-align:center; opacity:0.8;">
-          Install Mehfil after login for the best phone experience.
-      </div>
-
-      <div class="row" style="margin-top:14px;">
-        <div class="field">
-          <label for="authName">Name</label>
-          <input id="authName" class="input" type="text" placeholder="Your name" />
-        </div>
-      </div>
-
-      <div class="row">
-        <div class="field">
-          <label for="authEmail">Email</label>
-          <input id="authEmail" class="input" type="email" placeholder="name@example.com" />
-        </div>
-      </div>
-
-      <div class="row">
-        <div class="field">
-          <label for="authPassword">Password</label>
-          <input id="authPassword" class="input" type="password" placeholder="Enter password" />
-        </div>
-      </div>
-
-      <div class="stack-actions">
-  <button id="loginBtn" class="btn" type="button">Login</button>
-  <button id="signupBtn" class="btn-secondary" type="button">Request Access</button>
-  <button id="forgotPasswordBtn" class="btn-secondary" type="button">Forgot Password?</button>
+    <section id="authScreen" class="screen-card auth-card">
+  <div class="auth-shell">
+    <div class="auth-brand">
+      <div class="auth-mark auth-logo-mark" aria-hidden="true">
+  <img src="./assets/icons/icon-192.png" alt="" />
 </div>
+      <div>
+        <div class="auth-app-name">Mehfil</div>
+        <div class="auth-app-subtitle">Lyrics Library</div>
+      </div>
+    </div>
 
-<div id="passwordResetBox" class="hidden" style="margin-top:14px;">
-  <div class="status-box show status-info">
-    Enter a new password after opening the reset link from your email.
-  </div>
+    <div class="auth-head">
+      <h2 class="auth-title">Login / Request Access</h2>
+      <div class="auth-subtitle">Only approved members can enter the library.</div>
+      <div class="auth-install-note">Install Mehfil after login for the best phone experience.</div>
+    </div>
 
-  <div class="row">
-    <div class="field">
-      <label for="newPassword">New password</label>
-      <input id="newPassword" class="input" type="password" placeholder="New password" />
+    <div id="authStatus" class="status-box"></div>
+
+    <div class="auth-form">
+      <div class="field">
+        <label for="authName">Name</label>
+        <input id="authName" class="input auth-input" type="text" placeholder="Your name" />
+      </div>
+
+      <div class="field">
+        <label for="authEmail">Email</label>
+        <input id="authEmail" class="input auth-input" type="email" placeholder="name@example.com" />
+      </div>
+
+      <div class="field">
+        <label for="authPassword">Password</label>
+        <input id="authPassword" class="input auth-input" type="password" placeholder="Enter password" />
+      </div>
+
+      <div class="auth-actions">
+        <button id="loginBtn" class="btn auth-primary-action" type="button">Login</button>
+        <button id="signupBtn" class="btn-secondary auth-secondary-action" type="button">Request Access</button>
+        <button id="forgotPasswordBtn" class="auth-link-button" type="button">Forgot password?</button>
+      </div>
+    </div>
+
+    <div id="passwordResetBox" class="hidden auth-reset-box">
+      <div class="status-box show status-info">
+        Enter a new password after opening the reset link from your email.
+      </div>
+
+      <div class="field">
+        <label for="newPassword">New password</label>
+        <input id="newPassword" class="input auth-input" type="password" placeholder="New password" />
+      </div>
+
+      <div class="field">
+        <label for="confirmNewPassword">Confirm new password</label>
+        <input id="confirmNewPassword" class="input auth-input" type="password" placeholder="Confirm new password" />
+      </div>
+
+      <div class="auth-actions">
+        <button id="updatePasswordBtn" class="btn auth-primary-action" type="button">Update Password</button>
+        <button id="cancelPasswordResetBtn" class="btn-secondary auth-secondary-action" type="button">Cancel</button>
+      </div>
+    </div>
+
+    <div class="auth-footnote">
+      Request Access creates your account. An admin must approve it before you can enter.
     </div>
   </div>
-
-  <div class="row">
-    <div class="field">
-      <label for="confirmNewPassword">Confirm new password</label>
-      <input id="confirmNewPassword" class="input" type="password" placeholder="Confirm new password" />
-    </div>
-  </div>
-
-  <div class="stack-actions">
-    <button id="updatePasswordBtn" class="btn" type="button">Update Password</button>
-    <button id="cancelPasswordResetBtn" class="btn-secondary" type="button">Cancel</button>
-  </div>
-</div>
-
-<div class="tiny" style="margin-top:10px;">
-  Request Access creates your account. An admin must approve it before you can enter.
-</div>
-    </section>
+</section>
 
     <section id="pendingScreen" class="screen-card hidden">
       <h2 class="section-title">Waiting for Approval</h2>
@@ -1723,24 +5572,44 @@
     </section>
 
     <section id="appScreen" class="hidden">
-      <div class="topbar">
-        <div class="brand-wrap">
-          <h1 class="brand">Mehfil Lyrics Search</h1>
-          <div id="libraryCountText" class="library-count-text">0 songs</div>
-        </div>
+      <div class="app-command-center">
+  <div class="topbar app-topbar">
+    <div class="brand-wrap app-brand-wrap">
+      <div class="app-brand-row">
+        <img class="app-header-logo" src="./assets/icons/icon-192.png" alt="" />
 
-               <div class="account-actions">
-  <div class="sub account-user" id="welcomeLine">Loading...</div>
-  <div class="account-row">
-    <button id="liveMiniBtn" class="live-mini-btn hidden" type="button">LIVE</button>
-    <button id="logoutBtn" class="btn-secondary top-logout-btn" type="button">Logout</button>
+        <div class="app-brand-copy">
+          <h1 class="brand">Mehfil</h1>
+
+          <div class="brand-meta-row">
+            <div class="sub account-user personal-mehfil-line" id="welcomeLine">Loading...</div>
+            <span class="brand-meta-dot">•</span>
+            <div id="libraryCountText" class="library-count-text">0 songs</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="account-actions app-header-actions">
+      <div class="account-row">
+        <button id="liveMiniBtn" class="live-mini-btn hidden" type="button">LIVE</button>
+        <button id="logoutBtn" class="btn-secondary top-logout-btn" type="button">Logout</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="tabs app-main-nav">
+    <button id="tabSearchBtn" class="tab-btn active" type="button">Search</button>
+    <button id="tabListBtn" class="tab-btn" type="button">Songs</button>
+    <button id="tabFavoritesBtn" class="tab-btn" type="button">Favorites</button>
+    <button id="toggleAddBtn" class="tab-btn add-tab-btn hidden" type="button">Add</button>
+    <button id="tabAdminBtn" class="tab-btn hidden" type="button">Admin</button>
   </div>
 </div>
-      </div>
 
-      <div id="appStatus" class="status-box"></div>
-      
-      <div id="liveNowBar" class="status-box">
+<div id="appStatus" class="status-box"></div>
+
+<div id="liveNowBar" class="status-box">
   <div id="liveNowBarContent" class="hidden" style="display:flex; gap:10px; justify-content:space-between; align-items:center; flex-wrap:wrap;">
     <div id="liveNowText" style="font-weight:600;"></div>
     <div style="display:flex; gap:8px; flex-wrap:wrap;">
@@ -1749,14 +5618,6 @@
     </div>
   </div>
 </div>
-
-      <div class="tabs">
-        <button id="tabSearchBtn" class="tab-btn active" type="button">Search</button>
-        <button id="tabListBtn" class="tab-btn" type="button">List of Songs</button>
-        <button id="tabFavoritesBtn" class="tab-btn" type="button">Favorites</button>
-        <button id="toggleAddBtn" class="tab-btn add-tab-btn hidden" type="button">+ Add Song</button>
-        <button id="tabAdminBtn" class="tab-btn hidden" type="button">Admin</button>
-      </div>
 
       <section id="songEditorCard" class="card hidden">
         <h2 id="editorHeading" class="section-title">Add Song</h2>
@@ -2054,6 +5915,10 @@ let fuse = null;
 let editingSongId = null;
 let openSongId = null;
 let lastQuery = "";
+let activeMainTab = "search";
+let idleSuggestionSongId = null;
+let idleSuggestionTimer = null;
+const IDLE_SUGGESTION_ROTATE_MS = 3 * 60 * 1000;
 let activeRecognition = null;
 let expandedGroups = new Set();
 let favoriteSongIds = new Set();
@@ -2381,6 +6246,93 @@ function getFastLyricCandidateScore(song, query) {
       return parts.filter(Boolean).join(" • ");
     }
 
+    function getIdleSuggestionPool() {
+  return preparedSongs
+    .filter(song =>
+      song &&
+      song.id &&
+      String(song.title || "").trim()
+    );
+}
+
+function pickIdleSuggestionSong() {
+  const pool = getIdleSuggestionPool();
+
+  if (!pool.length) return null;
+
+  if (pool.length === 1) {
+    idleSuggestionSongId = Number(pool[0].id);
+    return pool[0];
+  }
+
+  const currentId = Number(idleSuggestionSongId || 0);
+  let next = null;
+
+  for (let attempt = 0; attempt < 8; attempt++) {
+    const candidate = pool[Math.floor(Math.random() * pool.length)];
+    if (Number(candidate.id) !== currentId) {
+      next = candidate;
+      break;
+    }
+  }
+
+  if (!next) {
+    next = pool[Math.floor(Math.random() * pool.length)];
+  }
+
+  idleSuggestionSongId = Number(next.id);
+  return next;
+}
+
+function getIdleSuggestionSong() {
+  const currentId = Number(idleSuggestionSongId || 0);
+
+  if (currentId) {
+    const existing = preparedSongs.find(song => Number(song.id) === currentId);
+    if (existing) return existing;
+  }
+
+  return pickIdleSuggestionSong();
+}
+
+function getIdleSuggestionPreview(song) {
+  const lyrics = cleanLyricsText(song?.lyrics || "");
+
+  if (!lyrics) {
+    return "Tap to open the full lyrics.";
+  }
+
+  const lines = lyrics
+    .split(/\n+/)
+    .map(line => line.trim())
+    .filter(line => line.length >= 8);
+
+  if (!lines.length) {
+    return "Tap to open the full lyrics.";
+  }
+
+  const preview = lines.slice(0, 2).join(" / ");
+
+  if (preview.length <= 120) return preview;
+
+  return preview.slice(0, 120).trim() + "...";
+}
+
+function startIdleSuggestionRotation() {
+  if (idleSuggestionTimer) return;
+
+  idleSuggestionTimer = setInterval(() => {
+    const input = document.getElementById("searchInput");
+    const appScreen = document.getElementById("appScreen");
+
+    if (!appScreen || appScreen.classList.contains("hidden")) return;
+    if (input && input.value.trim()) return;
+
+    idleSuggestionSongId = null;
+    renderResults([], "");
+  }, IDLE_SUGGESTION_ROTATE_MS);
+}
+
     function showStatus(id, message, type = "info") {
       const el = document.getElementById(id);
       if (!el) return;
@@ -2498,7 +6450,7 @@ function setSearchOnlineState(message = "", type = "info") {
       : "Try another title, or type a slightly longer search phrase.";
   }
 
-  el.className = "search-online-state show";
+  el.className = `search-online-state show search-online-state-${type}`;
   el.innerHTML = `
     <div class="search-online-state-row">
       ${leading}
@@ -3048,6 +7000,48 @@ async function lookupDirectProviderLinks(query) {
   }
 }
 
+async function lookupDirectProviderLinksCacheOnly(query) {
+  const base = normalizeLrclibProxyBaseUrl(MEHFIL_LRCLIB_PROXY_URL);
+  const safeQuery = String(query || "").trim();
+
+  if (!base || !safeQuery) return [];
+
+  const url = `${base}/provider-links?q=${encodeURIComponent(safeQuery)}&cacheOnly=1`;
+
+  try {
+    const response = await fetch(url, {
+      headers: {
+        Accept: "application/json"
+      }
+    });
+
+    const data = await response.json().catch(() => null);
+
+    console.log("DIRECT PROVIDER LINKS CACHE-ONLY DEBUG:", {
+      request_url: url,
+      query: safeQuery,
+      status: response.status,
+      ok: response.ok,
+      cached: data?.cached,
+      source: data?.source,
+      count: Array.isArray(data?.links) ? data.links.length : 0,
+      links: data?.links || []
+    });
+
+    if (!response.ok || !data || !Array.isArray(data.links)) {
+      return [];
+    }
+
+    return data.links.filter(link =>
+      link &&
+      link.url &&
+      link.direct === true
+    );
+  } catch (error) {
+    console.warn("Provider direct-link cache-only lookup failed:", error);
+    return [];
+  }
+}
 
 function getProviderDisplayName(provider, label) {
   const value = String(provider || "").toLowerCase();
@@ -4481,6 +8475,42 @@ async function runOnlineLookupForSearch(query, options = {}) {
   function isCurrentRun() {
     return runId === onlineLookupRunId;
   }
+  function showCachedProviderFallback(links) {
+  if (!isCurrentRun()) return;
+  if (shownCandidates.length > 0) return;
+  if (!Array.isArray(links) || !links.length) return;
+
+  providerFallbackVisible = true;
+
+  setSearchOnlineState("");
+
+  const root = document.getElementById("searchOnlineCandidates");
+  if (!root) return;
+
+  searchOnlineCandidatesState = [];
+  root.innerHTML = buildProviderLyricsFallbackHtml(safeQuery, links, false);
+  root.classList.remove("hidden");
+}
+
+lookupDirectProviderLinksCacheOnly(safeQuery)
+  .then(links => {
+    console.log("EARLY PROVIDER CACHE RESULT:", {
+      query: safeQuery,
+      count: Array.isArray(links) ? links.length : 0,
+      links
+    });
+
+    if (!isCurrentRun()) return;
+    if (shownCandidates.length > 0) return;
+    if (providerFallbackVisible) return;
+
+    if (Array.isArray(links) && links.length) {
+      showCachedProviderFallback(links);
+    }
+  })
+  .catch(error => {
+    console.warn("Early provider cache lookup skipped:", error);
+  });
 
   function showProviderFallback() {
     if (!isCurrentRun()) return;
@@ -4518,18 +8548,23 @@ async function runOnlineLookupForSearch(query, options = {}) {
     if (!isCurrentRun()) return;
     if (!directDone || !edgeDone) return;
 
-    if (shownCandidates.length > 0) {
-      providerFallbackVisible = false;
+   if (shownCandidates.length > 0) {
+  providerFallbackVisible = false;
 
-      setSearchOnlineState(
-        `${shownCandidates.length} online match(es) found.`,
-        "success"
-      );
+  setSearchOnlineState(
+    `${shownCandidates.length} online match(es) found.`,
+    "success"
+  );
 
-      return;
-    }
+  return;
+}
 
-    showProviderFallback();
+if (providerFallbackVisible) {
+  setSearchOnlineState("");
+  return;
+}
+
+showProviderFallback();
   }
 
   const cachedCandidates = await readOnlineSongSupabaseCache(safeQuery);
@@ -7700,7 +11735,7 @@ if (lastQuery.trim()) {
   searchRunId++;
   renderResults([], "");
 }
-
+startIdleSuggestionRotation();
   renderSongGroups();
   renderFavorites();
   document.getElementById("libraryCountText").textContent = `${songs.length} songs`;
@@ -9249,9 +13284,64 @@ async function deleteRegisteredUserAccountData(userId, email) {
   const suppressEmptyState = !!options.suppressEmptyState;
 
   if (!query.trim()) {
-    root.innerHTML = `<div class="empty">Search by song, lyric, singer, or movie. Tap a result to open full lyrics.</div>`;
+  const suggestion = getIdleSuggestionSong();
+
+  if (!suggestion) {
+    root.innerHTML = `
+      <div class="search-idle-panel">
+        <div class="search-idle-kicker">Ready to sing</div>
+        <div class="search-idle-title">Search the Mehfil library.</div>
+        <div class="search-idle-text">
+          Type a song title, lyric line, singer, or movie. Matching songs will appear here instantly.
+        </div>
+      </div>
+    `;
     return;
   }
+
+  const meta = joinMeta([suggestion.movie, suggestion.singer]);
+  const preview = getIdleSuggestionPreview(suggestion);
+
+  root.innerHTML = `
+    <div class="search-idle-panel">
+      <div class="search-idle-kicker">From your library</div>
+
+      <div class="search-idle-title">Open a song while you wait.</div>
+
+      <div class="search-idle-text">
+        Here is a rotating suggestion from Mehfil. Tap it to open the lyrics.
+      </div>
+
+      <div
+        class="idle-featured-song"
+        data-song-id="${escapeHtml(suggestion.id)}"
+        role="button"
+        tabindex="0"
+      >
+        <div class="idle-featured-top">
+          <div>
+            <div class="idle-featured-label">Suggested song</div>
+            <div class="idle-featured-title">${escapeHtml(suggestion.title || "")}</div>
+          </div>
+          <div class="idle-featured-arrow">↗</div>
+        </div>
+
+        ${meta ? `<div class="idle-featured-meta">${escapeHtml(meta)}</div>` : ""}
+
+        <div class="idle-featured-preview">
+          ${escapeHtml(preview)}
+        </div>
+
+        <div class="idle-featured-action">Tap to open lyrics</div>
+      </div>
+
+      <div class="search-idle-note">
+        Suggestion refreshes every few minutes. Search results replace this panel automatically.
+      </div>
+    </div>
+  `;
+  return;
+}
 
   if (!results.length) {
     if (suppressEmptyState) {
@@ -9490,12 +13580,34 @@ markInputAutofilled(document.getElementById("songSinger"), false);
     }
 
     function openEditor() {
-      if (!isApproved()) return;
-      document.getElementById("songEditorCard").classList.remove("hidden");
-      checkEditorDuplicateState();
-      document.getElementById("songTitle").focus();
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    }
+  if (!isApproved()) return;
+
+  document.getElementById("songEditorCard").classList.remove("hidden");
+
+  document.getElementById("searchTab").classList.add("hidden");
+  document.getElementById("listTab").classList.add("hidden");
+  document.getElementById("favoritesTab").classList.add("hidden");
+  document.getElementById("adminTab").classList.add("hidden");
+
+  document.getElementById("tabSearchBtn").classList.remove("active");
+  document.getElementById("tabListBtn").classList.remove("active");
+  document.getElementById("tabFavoritesBtn").classList.remove("active");
+  document.getElementById("tabAdminBtn").classList.remove("active");
+
+  const addBtn = document.getElementById("toggleAddBtn");
+  if (addBtn) {
+    addBtn.classList.add("active");
+  }
+
+  checkEditorDuplicateState();
+
+  setTimeout(() => {
+    const titleInput = document.getElementById("songTitle");
+    if (titleInput) titleInput.focus();
+  }, 80);
+
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
 
     function closeEditor() {
       document.getElementById("songEditorCard").classList.add("hidden");
@@ -9521,30 +13633,39 @@ markInputAutofilled(document.getElementById("songSinger"), false);
     }
 
     function activateTab(tabName) {
+  if (tabName !== "add") {
+    activeMainTab = tabName;
+    closeEditor();
+  }
 
-if (tabName !== "search") {
-  closeEditor();
+  const addBtn = document.getElementById("toggleAddBtn");
+
+  document.getElementById("tabSearchBtn").classList.toggle("active", tabName === "search");
+  document.getElementById("tabListBtn").classList.toggle("active", tabName === "list");
+  document.getElementById("tabFavoritesBtn").classList.toggle("active", tabName === "favorites");
+  document.getElementById("tabAdminBtn").classList.toggle("active", tabName === "admin");
+
+  if (addBtn) {
+    addBtn.classList.toggle("active", tabName === "add");
+  }
+
+  document.getElementById("searchTab").classList.toggle("hidden", tabName !== "search");
+  document.getElementById("listTab").classList.toggle("hidden", tabName !== "list");
+  document.getElementById("favoritesTab").classList.toggle("hidden", tabName !== "favorites");
+  document.getElementById("adminTab").classList.toggle("hidden", tabName !== "admin");
+
+  if (tabName === "add") {
+    document.getElementById("songEditorCard").classList.remove("hidden");
+  }
+
+  if (tabName === "favorites") {
+    renderFavorites();
+  }
+
+  if (tabName === "admin" && isAdmin()) {
+    loadPendingUsers();
+  }
 }
-      
-      document.getElementById("tabSearchBtn").classList.toggle("active", tabName === "search");
-      document.getElementById("tabListBtn").classList.toggle("active", tabName === "list");
-      document.getElementById("tabFavoritesBtn").classList.toggle("active", tabName === "favorites");
-      document.getElementById("tabAdminBtn").classList.toggle("active", tabName === "admin");
-
-      document.getElementById("searchTab").classList.toggle("hidden", tabName !== "search");
-      document.getElementById("listTab").classList.toggle("hidden", tabName !== "list");
-      document.getElementById("favoritesTab").classList.toggle("hidden", tabName !== "favorites");
-      document.getElementById("adminTab").classList.toggle("hidden", tabName !== "admin");
-
-     
-      if (tabName === "favorites") {
-        renderFavorites();
-      }
-
-      if (tabName === "admin" && isAdmin()) {
-        loadPendingUsers();
-      }
-    }
 
     function setMicUiState(listening) {
       const micBtn = document.getElementById("micBtn");
@@ -9704,8 +13825,18 @@ if (tabName !== "search") {
     function renderAppShell() {
       if (!profile) return;
 
-      const userLabel = profile.name || profile.email || "User";
-      document.getElementById("welcomeLine").textContent = `Logged in as ${userLabel}${isAdmin() ? " • Admin" : ""}`;
+     const userLabel = profile.name || profile.email || "User";
+const firstName = String(userLabel || "User")
+  .split("@")[0]
+  .trim()
+  .split(/\s+/)[0] || "User";
+
+const appBrandTitle = document.querySelector("#appScreen .brand");
+if (appBrandTitle) {
+  appBrandTitle.textContent = `${firstName}'s Mehfil`;
+}
+
+document.getElementById("welcomeLine").textContent = isAdmin() ? "Admin access" : "Member";
       document.getElementById("toggleAddBtn").classList.toggle("hidden", !isApproved());
       document.getElementById("tabAdminBtn").classList.toggle("hidden", !isAdmin());
       document.getElementById("libraryCountText").textContent = `${songs.length} songs`;
@@ -9802,9 +13933,9 @@ document.getElementById("cancelPasswordResetBtn").addEventListener("click", () =
 });
 
       document.getElementById("toggleAddBtn").addEventListener("click", () => {
-        resetSongForm();
-        openEditor();
-      });
+  resetSongForm();
+  openEditor();
+});
 
     document.getElementById("searchOnlineCandidates").addEventListener("click", (e) => {
   const card = e.target.closest("[data-online-index][data-online-type='search']");
@@ -9891,12 +14022,13 @@ window.addEventListener("focus", async () => {
   markTextareaAutofilled(document.getElementById("songLyrics"), false);
 });
 
-      document.getElementById("closeEditorBtn").addEventListener("click", closeEditor);
+      document.getElementById("closeEditorBtn").addEventListener("click", () => {
+  activateTab(activeMainTab || "search");
+});
       document.getElementById("fetchLyricsBtn").addEventListener("click", fetchLyricsForEditor);
       document.getElementById("cancelEditBtn").addEventListener("click", () => {
-        resetSongForm();
-        closeEditor();
-      });
+  activateTab(activeMainTab || "search");
+});
 
      document.getElementById("songTitle").addEventListener("input", () => {
   markInputAutofilled(document.getElementById("songTitle"), false);
@@ -10011,6 +14143,15 @@ deepSearchTimer = setTimeout(() => {
 
       document.getElementById("micBtn").addEventListener("click", startMicSearch);
 
+      document.getElementById("searchResults").addEventListener("keydown", (e) => {
+  if (e.key !== "Enter" && e.key !== " ") return;
+
+  const card = e.target.closest("[data-song-id]");
+  if (!card) return;
+
+  e.preventDefault();
+  openSong(Number(card.dataset.songId));
+});
       document.getElementById("searchResults").addEventListener("click", async (e) => {
         const bookmarkBtn = e.target.closest("[data-bookmark-id]");
         if (bookmarkBtn) {
