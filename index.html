@@ -6946,6 +6946,180 @@ mark {
   }
 }
 
+/* =========================================================
+   MOBILE INPUT ZOOM FIX — PATCH 28
+   Prevents iPhone/Safari zoom when focusing inputs.
+   Must stay at the very end of CSS.
+   ========================================================= */
+
+@media (max-width: 640px) {
+  input,
+  textarea,
+  select,
+  .input,
+  .textarea,
+  .select,
+  .search-input,
+  #searchTab .search-input,
+  #songEditorCard .input,
+  #songEditorCard .textarea,
+  #adminWarmupInput,
+  #adminWarmupDelayMs,
+  #adminWarmupParallelCount {
+    font-size: 16px !important;
+  }
+
+  #searchTab .search-input {
+    min-height: 43px;
+    padding-top: 8px;
+    padding-bottom: 8px;
+  }
+}
+
+/* =========================================================
+   IPHONE MODAL BOTTOM BLANK FIX — PATCH 29
+   Uses real visual viewport height for song modal.
+   ========================================================= */
+
+html {
+  min-height: 100%;
+  background: #6b7280;
+}
+
+body.song-modal-open {
+  background: #6b7280 !important;
+}
+
+/* Covers iPhone safe-area / home-indicator region if iOS exposes a visual gap */
+body.song-modal-open::after {
+  content: "";
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: calc(env(safe-area-inset-bottom) + 28px);
+  background: rgba(15, 23, 42, 0.62);
+  z-index: 999;
+  pointer-events: none;
+}
+
+#songModal.modal {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: var(--mehfil-vvh, 100dvh) !important;
+  min-height: var(--mehfil-vvh, 100dvh) !important;
+  max-height: var(--mehfil-vvh, 100dvh) !important;
+  overflow: hidden !important;
+  background: rgba(15, 23, 42, 0.62) !important;
+  padding-top: calc(env(safe-area-inset-top) + 10px) !important;
+  padding-right: max(8px, env(safe-area-inset-right)) !important;
+  padding-bottom: calc(env(safe-area-inset-bottom) + 10px) !important;
+  padding-left: max(8px, env(safe-area-inset-left)) !important;
+  align-items: flex-start !important;
+}
+
+#songModal.modal.show {
+  display: flex !important;
+}
+
+@media (max-width: 640px) {
+  #songModal .modal-card {
+    height: calc(
+      var(--mehfil-vvh, 100dvh)
+      - env(safe-area-inset-top)
+      - env(safe-area-inset-bottom)
+      - 20px
+    ) !important;
+
+    max-height: calc(
+      var(--mehfil-vvh, 100dvh)
+      - env(safe-area-inset-top)
+      - env(safe-area-inset-bottom)
+      - 20px
+    ) !important;
+
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    overscroll-behavior: contain !important;
+  }
+}
+/* =========================================================
+   PAGE BACKGROUND + FOOTER FIX — PATCH 30
+   Fixes grey blank area caused by modal safe-area patch.
+   Keeps footer stable on short screens.
+   ========================================================= */
+
+/* Main app background must always stay light outside modals */
+html,
+body {
+  min-height: 100%;
+  background: #f5f6fa !important;
+}
+
+body {
+  background:
+    radial-gradient(circle at 50% -120px, rgba(255, 255, 255, 0.95), rgba(245, 246, 250, 0) 360px),
+    linear-gradient(180deg, #f7f8fb 0%, #f4f6fa 100%) !important;
+}
+
+/* Do not let the modal fix paint the normal app page grey */
+body.song-modal-open {
+  background:
+    radial-gradient(circle at 50% -120px, rgba(255, 255, 255, 0.95), rgba(245, 246, 250, 0) 360px),
+    linear-gradient(180deg, #f7f8fb 0%, #f4f6fa 100%) !important;
+}
+
+/* Kill the body-level dark overlay from the previous modal patch */
+body.song-modal-open::after {
+  content: none !important;
+  display: none !important;
+}
+
+/* Container should fill the visible screen so the footer does not sit above a blank tail */
+.container {
+  min-height: var(--mehfil-vvh, 100dvh);
+  display: flex;
+  flex-direction: column;
+}
+
+/* Active screen stays natural height; footer goes to the bottom on short pages */
+#bootScreen:not(.hidden),
+#authScreen:not(.hidden),
+#pendingScreen:not(.hidden),
+#appScreen:not(.hidden) {
+  flex: 0 0 auto;
+}
+
+/* Footer no longer floats in the middle with blank area below it */
+.footer {
+  margin-top: auto !important;
+  padding-top: 18px;
+  padding-bottom: calc(14px + env(safe-area-inset-bottom));
+}
+
+/* Modal itself owns the dark overlay. Normal page never does. */
+#songModal.modal {
+  background: rgba(15, 23, 42, 0.62) !important;
+}
+
+/* Extra iPhone safe-area cover belongs to the modal only */
+#songModal.modal.show::after {
+  content: "";
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: calc(env(safe-area-inset-bottom) + 28px);
+  background: rgba(15, 23, 42, 0.62);
+  pointer-events: none;
+  z-index: 0;
+}
+
+#songModal.modal.show .modal-card {
+  position: relative;
+  z-index: 1;
+}
   </style>
 </head>
 <body>
@@ -13410,6 +13584,49 @@ const { error } = await supabaseClient
   return `${local}`;
 }
 
+function syncMehfilViewportHeight() {
+  const height = window.visualViewport?.height || window.innerHeight || document.documentElement.clientHeight;
+
+  if (height) {
+    document.documentElement.style.setProperty("--mehfil-vvh", `${Math.round(height)}px`);
+  }
+}
+
+syncMehfilViewportHeight();
+
+window.addEventListener("resize", syncMehfilViewportHeight);
+window.addEventListener("orientationchange", () => {
+  setTimeout(syncMehfilViewportHeight, 250);
+});
+
+if (window.visualViewport) {
+  window.visualViewport.addEventListener("resize", syncMehfilViewportHeight);
+  window.visualViewport.addEventListener("scroll", syncMehfilViewportHeight);
+}
+
+function setupSongModalViewportFix() {
+  const modal = document.getElementById("songModal");
+  if (!modal) return;
+
+  const applyState = () => {
+    const isOpen = modal.classList.contains("show");
+    document.body.classList.toggle("song-modal-open", isOpen);
+
+    if (isOpen) {
+      syncMehfilViewportHeight();
+    }
+  };
+
+  applyState();
+
+  const observer = new MutationObserver(applyState);
+  observer.observe(modal, {
+    attributes: true,
+    attributeFilter: ["class"]
+  });
+}
+
+
 
 function syncHeaderMetaWidth() {
   const brand = document.querySelector("#appScreen .brand");
@@ -15993,6 +16210,7 @@ document.getElementById("appScreen").classList.add("hidden");
     }
 
     function bindEvents() {
+      setupSongModalViewportFix();
       document.getElementById("signupBtn").addEventListener("click", signUpRequest);
       document.getElementById("loginBtn").addEventListener("click", loginUser);
       document.getElementById("logoutBtn").addEventListener("click", logoutUser);
@@ -16004,6 +16222,8 @@ document.getElementById("cancelPasswordResetBtn").addEventListener("click", () =
   hidePasswordResetBox();
   showStatus("authStatus", "", "info");
 });
+
+
 
 document.addEventListener("click", (event) => {
   const legalOpen = event.target.closest("[data-legal-open]");
