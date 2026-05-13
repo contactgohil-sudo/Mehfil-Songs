@@ -6672,6 +6672,280 @@ mark {
   cursor: wait;
 }
 
+/* =========================================================
+   LEGAL / PRIVACY / GUIDELINES UI — PATCH 27
+   Usage, Privacy, Copyright, first-login acceptance.
+   ========================================================= */
+
+.auth-legal-row {
+  margin-top: 10px;
+}
+
+.auth-legal-check {
+  display: grid;
+  grid-template-columns: 18px 1fr;
+  gap: 9px;
+  align-items: start;
+  color: #667085;
+  font-size: 12px;
+  line-height: 1.45;
+  font-weight: 650;
+}
+
+.auth-legal-check input {
+  width: 16px;
+  height: 16px;
+  margin-top: 2px;
+}
+
+.legal-inline-link,
+.auth-legal-links button,
+.footer-legal-link {
+  border: 0;
+  background: transparent;
+  color: #111827;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 850;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+}
+
+.auth-legal-links {
+  margin-top: 10px;
+  display: flex;
+  justify-content: center;
+  gap: 7px;
+  align-items: center;
+  color: #98a2b3;
+  font-size: 12px;
+  line-height: 1.3;
+}
+
+.auth-legal-links button {
+  color: #667085;
+  text-decoration: none;
+}
+
+.auth-legal-links button:hover,
+.footer-legal-link:hover,
+.legal-inline-link:hover {
+  color: #111827;
+}
+
+.footer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+
+.footer-legal-link {
+  color: #667085;
+  text-decoration: none;
+}
+
+/* Legal modal */
+.legal-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 12000;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding:
+    calc(env(safe-area-inset-top) + 14px)
+    max(10px, env(safe-area-inset-right))
+    calc(env(safe-area-inset-bottom) + 14px)
+    max(10px, env(safe-area-inset-left));
+  background: rgba(15, 23, 42, 0.62);
+  backdrop-filter: blur(5px);
+}
+
+.legal-modal.hidden {
+  display: none !important;
+}
+
+.legal-modal-card {
+  width: 100%;
+  max-width: 720px;
+  max-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 28px);
+  overflow: auto;
+  border-radius: 24px;
+  border: 1px solid #e1e6ee;
+  background:
+    radial-gradient(circle at top right, rgba(216, 181, 109, 0.10), transparent 180px),
+    linear-gradient(180deg, #ffffff 0%, #fbfcfd 100%);
+  box-shadow:
+    0 28px 90px rgba(15, 23, 42, 0.34),
+    0 1px 2px rgba(15, 23, 42, 0.12);
+  padding: 17px;
+}
+
+.legal-modal-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+  padding-bottom: 13px;
+  border-bottom: 1px solid #edf0f4;
+}
+
+.legal-modal-title {
+  color: #111827;
+  font-size: 24px;
+  line-height: 1.08;
+  letter-spacing: -0.04em;
+  font-weight: 950;
+}
+
+.legal-modal-subtitle {
+  margin-top: 5px;
+  color: #667085;
+  font-size: 13px;
+  line-height: 1.4;
+  font-weight: 650;
+}
+
+.legal-modal-close {
+  width: 36px;
+  min-width: 36px;
+  height: 36px;
+  border-radius: 13px;
+  border: 1px solid #dfe5ee;
+  background: #ffffff;
+  color: #344054;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.legal-modal-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+  padding: 3px;
+  border-radius: 17px;
+  background: #f2f4f7;
+  border: 1px solid #e4e8ef;
+  margin: 14px 0;
+}
+
+.legal-tab {
+  min-height: 34px;
+  border-radius: 14px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: #344054;
+  font-size: 13px;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.legal-tab.active {
+  background: #111827;
+  color: #ffffff;
+  border-color: #111827;
+}
+
+.legal-modal-body {
+  color: #344054;
+  font-size: 14px;
+  line-height: 1.58;
+}
+
+.legal-section h3 {
+  margin: 0 0 10px;
+  color: #111827;
+  font-size: 21px;
+  line-height: 1.12;
+  letter-spacing: -0.035em;
+  font-weight: 950;
+}
+
+.legal-section h4 {
+  margin: 16px 0 6px;
+  color: #111827;
+  font-size: 14px;
+  line-height: 1.25;
+  font-weight: 950;
+}
+
+.legal-section p {
+  margin: 0 0 10px;
+}
+
+.legal-section ul {
+  margin: 8px 0 12px;
+  padding-left: 20px;
+}
+
+.legal-section li {
+  margin-bottom: 6px;
+}
+
+.legal-section a {
+  color: #111827;
+  font-weight: 850;
+}
+
+.legal-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 9px;
+  flex-wrap: wrap;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid #edf0f4;
+}
+
+.legal-accept-btn,
+.legal-close-footer-btn {
+  min-height: 40px;
+  border-radius: 15px;
+  font-weight: 900;
+}
+
+.legal-accept-btn:disabled {
+  opacity: 0.7;
+  cursor: wait;
+}
+
+@media (max-width: 640px) {
+  .legal-modal-card {
+    border-radius: 22px;
+    padding: 15px;
+  }
+
+  .legal-modal-title {
+    font-size: 22px;
+  }
+
+  .legal-modal-body {
+    font-size: 13px;
+    line-height: 1.55;
+  }
+
+  .legal-tab {
+    font-size: 12px;
+    min-height: 33px;
+  }
+
+  .legal-modal-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .legal-accept-btn,
+  .legal-close-footer-btn {
+    width: 100%;
+  }
+}
+
   </style>
 </head>
 <body>
@@ -6779,6 +7053,26 @@ mark {
         <button id="loginBtn" class="btn auth-primary-action" type="button">Login</button>
         <button id="signupBtn" class="btn-secondary auth-secondary-action" type="button">Request Access</button>
         <button id="forgotPasswordBtn" class="auth-link-button" type="button">Forgot password?</button>
+        <div class="auth-legal-row">
+  <label class="auth-legal-check">
+    <input id="authLegalAgree" type="checkbox" />
+    <span>
+      I agree to the
+      <button class="legal-inline-link" type="button" data-legal-open="usage">Usage Guidelines</button>,
+      <button class="legal-inline-link" type="button" data-legal-open="privacy">Privacy Notice</button>,
+      and
+      <button class="legal-inline-link" type="button" data-legal-open="copyright">Copyright Policy</button>.
+    </span>
+  </label>
+</div>
+
+<div class="auth-legal-links">
+  <button type="button" data-legal-open="usage">Guidelines</button>
+  <span>·</span>
+  <button type="button" data-legal-open="privacy">Privacy</button>
+  <span>·</span>
+  <button type="button" data-legal-open="copyright">Copyright</button>
+</div>
       </div>
     </div>
 
@@ -7096,11 +7390,44 @@ mark {
 </section>
     </section>
 
-    <div class="footer">© 2026 Mehfil. All rights reserved.</div>
+    <div class="footer">
+  © 2026 Mehfil ·
+  <button class="footer-legal-link" type="button" data-legal-open="usage">Guidelines</button>
+  ·
+  <button class="footer-legal-link" type="button" data-legal-open="privacy">Privacy</button>
+  ·
+  <button class="footer-legal-link" type="button" data-legal-open="copyright">Copyright</button>
+</div>
   </div>
 
 </div>
+<div id="legalModal" class="legal-modal hidden" role="dialog" aria-modal="true" aria-labelledby="legalModalTitle">
+  <div class="legal-modal-card">
+    <div class="legal-modal-top">
+      <div>
+        <div id="legalModalTitle" class="legal-modal-title">Mehfil Guidelines</div>
+        <div id="legalModalSubtitle" class="legal-modal-subtitle">
+          Please review before using Mehfil.
+        </div>
+      </div>
 
+      <button id="legalModalCloseBtn" class="legal-modal-close" type="button" aria-label="Close">×</button>
+    </div>
+
+    <div class="legal-modal-tabs">
+      <button class="legal-tab active" type="button" data-legal-tab="usage">Usage</button>
+      <button class="legal-tab" type="button" data-legal-tab="privacy">Privacy</button>
+      <button class="legal-tab" type="button" data-legal-tab="copyright">Copyright</button>
+    </div>
+
+    <div id="legalModalBody" class="legal-modal-body"></div>
+
+    <div class="legal-modal-actions">
+      <button id="legalAcceptBtn" class="btn legal-accept-btn hidden" type="button">Accept & Continue</button>
+      <button id="legalCloseFooterBtn" class="btn-secondary legal-close-footer-btn" type="button">Close</button>
+    </div>
+  </div>
+</div>
   <div id="songModal" class="modal">
     <div class="modal-card">
     <div class="modal-top">
@@ -7216,6 +7543,12 @@ let lastResumeHandledAt = 0;
 
 let deferredInstallPrompt = null;
 let currentProviderLyricsUrl = "";
+const MEHFIL_POLICY_VERSION = "2026-05-terms-v1";
+const MEHFIL_LEGAL_CONTACT_EMAIL = "munichmehfil@gmail.com";
+
+let legalAcceptanceRequired = false;
+let currentLegalSection = "usage";
+
 
 const INSTALL_PROMPT_DISMISSED_KEY = "mehfil_install_prompt_dismissed_until_v1";
 
@@ -12586,6 +12919,13 @@ const best = candidates[0] || null;
     return;
   }
 
+  const legalAgree = document.getElementById("authLegalAgree");
+
+if (!legalAgree || !legalAgree.checked) {
+  showStatus("authStatus", "Please accept the Usage Guidelines and Privacy Notice before requesting access.", "error");
+  return;
+}
+
   showStatus("authStatus", "Creating account request...", "info");
 
   try {
@@ -15333,6 +15673,274 @@ updateHeaderAccessAndCount();
   });
 }
 
+function getLegalSectionHtml(section) {
+  const contact = MEHFIL_LEGAL_CONTACT_EMAIL;
+
+  const usageHtml = `
+    <section class="legal-section">
+      <h3>Usage Guidelines</h3>
+
+      <p>
+        Mehfil is a lyrics library for public users with approval. Access is limited to approved members.
+      </p>
+
+      <h4>Allowed use</h4>
+      <ul>
+        <li>Search, view, save, and organise lyrics inside Mehfil.</li>
+        <li>Add or edit songs only when you are allowed to store or share that content.</li>
+        <li>Use Live mode only for approved Mehfil group activity.</li>
+        <li>Use provider links only to open third-party song pages directly.</li>
+      </ul>
+
+      <h4>Not allowed</h4>
+      <ul>
+        <li>Do not add content that you do not have permission or a valid legal basis to store.</li>
+        <li>Do not upload abusive, hateful, illegal, private, or harmful content.</li>
+        <li>Do not copy lyrics from external providers into Mehfil unless you are allowed to do so.</li>
+        <li>Do not misuse accounts, access, admin tools, or cached data.</li>
+      </ul>
+
+      <h4>Moderation</h4>
+      <p>
+        Admins may approve, reject, edit, remove, or restrict access to users and content when needed.
+      </p>
+    </section>
+  `;
+
+  const privacyHtml = `
+    <section class="legal-section">
+      <h3>Privacy Notice</h3>
+
+      <p>
+        Contact: <a href="mailto:${contact}">${contact}</a>
+      </p>
+
+      <p>
+        Mehfil is operated for approved users connected with Germany and India. The app uses GitHub Pages,
+        Supabase, Cloudflare Worker/cache, and browser storage to provide authentication, lyrics search,
+        favorites, live sharing, cache warmup, and admin features.
+      </p>
+
+      <h4>Data we may process</h4>
+      <ul>
+        <li>Name, email address, login/authentication state, approval status, and role.</li>
+        <li>Songs, lyrics, movie/singer metadata, keys/chords, edits, and saved library content.</li>
+        <li>Favorites/bookmarks and manual favorite order.</li>
+        <li>Live song activity and admin actions.</li>
+        <li>Search queries, online lookup/cache data, provider-link cache, and warmup results.</li>
+        <li>Basic technical logs from Supabase, Cloudflare, GitHub Pages, browser, and service worker/PWA use.</li>
+      </ul>
+
+      <h4>Why we use data</h4>
+      <ul>
+        <li>To run login, approval, and access control.</li>
+        <li>To provide lyrics search, library browsing, favorites, live mode, and admin management.</li>
+        <li>To improve speed through caching and warmup.</li>
+        <li>To maintain security, debug errors, prevent abuse, and operate the app.</li>
+      </ul>
+
+      <h4>Sharing and processors</h4>
+      <p>
+        Mehfil does not sell user data. Data may be processed by services used to run the app, including
+        Supabase, Cloudflare, GitHub Pages, browser/PWA storage, and external providers when users open
+        third-party links.
+      </p>
+
+      <h4>Retention</h4>
+      <p>
+        Account and library data may be kept while the account is approved or needed for the app. Cache data
+        may be kept to improve search performance. You may request correction or deletion by contacting
+        <a href="mailto:${contact}">${contact}</a>.
+      </p>
+
+      <h4>Your rights</h4>
+      <p>
+        Depending on applicable law, including GDPR where it applies, you may have rights to access, correct,
+        delete, restrict, export, or object to processing of your personal data.
+      </p>
+    </section>
+  `;
+
+  const copyrightHtml = `
+    <section class="legal-section">
+      <h3>Copyright & Takedown Policy</h3>
+
+      <p>
+        Mehfil does not claim ownership of third-party lyrics, songs, recordings, movie names, artist names,
+        or provider content. Rights remain with their respective owners.
+      </p>
+
+      <h4>User responsibility</h4>
+      <ul>
+        <li>Admins and approved users can add lyrics.</li>
+        <li>Only add lyrics or content you are allowed to store or share.</li>
+        <li>Do not copy provider content into Mehfil unless you have permission or a valid legal basis.</li>
+      </ul>
+
+      <h4>External provider links</h4>
+      <p>
+        Provider cards open direct third-party song pages in a new tab. Mehfil does not control those sites
+        and does not scrape or embed those provider pages.
+      </p>
+
+      <h4>Takedown requests</h4>
+      <p>
+        Rights holders can request removal by emailing <a href="mailto:${contact}">${contact}</a>.
+        Please include:
+      </p>
+
+      <ul>
+        <li>Your name and contact details.</li>
+        <li>The song/work involved.</li>
+        <li>The specific Mehfil content or title to remove.</li>
+        <li>A statement that you are the rights holder or authorised to act for the rights holder.</li>
+        <li>Any useful proof or explanation.</li>
+      </ul>
+
+      <p>
+        Mehfil may remove or disable content while reviewing a complaint.
+      </p>
+    </section>
+  `;
+
+  if (section === "privacy") return privacyHtml;
+  if (section === "copyright") return copyrightHtml;
+  return usageHtml;
+}
+
+function setLegalSection(section) {
+  currentLegalSection = section || "usage";
+
+  const body = document.getElementById("legalModalBody");
+  const title = document.getElementById("legalModalTitle");
+  const subtitle = document.getElementById("legalModalSubtitle");
+
+  if (body) body.innerHTML = getLegalSectionHtml(currentLegalSection);
+
+  document.querySelectorAll(".legal-tab").forEach(btn => {
+    btn.classList.toggle("active", btn.dataset.legalTab === currentLegalSection);
+  });
+
+  if (title) {
+    title.textContent =
+      currentLegalSection === "privacy"
+        ? "Privacy Notice"
+        : currentLegalSection === "copyright"
+          ? "Copyright & Takedown"
+          : "Usage Guidelines";
+  }
+
+  if (subtitle) {
+    subtitle.textContent = legalAcceptanceRequired
+      ? "Please review and accept to continue using Mehfil."
+      : "Mehfil policy information.";
+  }
+}
+
+function openLegalModal(section = "usage", requireAcceptance = false) {
+  legalAcceptanceRequired = !!requireAcceptance;
+
+  const modal = document.getElementById("legalModal");
+  const closeTop = document.getElementById("legalModalCloseBtn");
+  const closeFooter = document.getElementById("legalCloseFooterBtn");
+  const acceptBtn = document.getElementById("legalAcceptBtn");
+
+  if (!modal) return;
+
+  setLegalSection(section);
+
+  modal.classList.remove("hidden");
+  document.body.style.overflow = "hidden";
+
+  if (closeTop) closeTop.classList.toggle("hidden", legalAcceptanceRequired);
+  if (closeFooter) closeFooter.classList.toggle("hidden", legalAcceptanceRequired);
+  if (acceptBtn) acceptBtn.classList.toggle("hidden", !legalAcceptanceRequired);
+}
+
+function closeLegalModal() {
+  if (legalAcceptanceRequired) return;
+
+  const modal = document.getElementById("legalModal");
+  if (modal) modal.classList.add("hidden");
+
+  document.body.style.overflow = "";
+}
+
+async function hasAcceptedCurrentLegalPolicy() {
+  if (!session?.user) return false;
+
+  try {
+    const { data, error } = await supabaseClient
+      .from("legal_acceptances")
+      .select("id")
+      .eq("user_id", session.user.id)
+      .eq("policy_version", MEHFIL_POLICY_VERSION)
+      .maybeSingle();
+
+    if (error) throw error;
+
+    return !!data?.id;
+  } catch (error) {
+    console.warn("Legal acceptance check failed:", error?.message || error);
+    return false;
+  }
+}
+
+async function saveCurrentLegalAcceptance() {
+  if (!session?.user) return false;
+
+  const acceptBtn = document.getElementById("legalAcceptBtn");
+  const oldText = acceptBtn ? acceptBtn.textContent : "";
+
+  if (acceptBtn) {
+    acceptBtn.disabled = true;
+    acceptBtn.textContent = "Saving...";
+  }
+
+  try {
+    const { error } = await supabaseClient
+      .from("legal_acceptances")
+      .insert([{
+        user_id: session.user.id,
+        policy_version: MEHFIL_POLICY_VERSION,
+        user_agent: String(navigator.userAgent || "").slice(0, 500)
+      }]);
+
+    if (error && !String(error.message || "").toLowerCase().includes("duplicate")) {
+      throw error;
+    }
+
+    legalAcceptanceRequired = false;
+
+    const modal = document.getElementById("legalModal");
+    if (modal) modal.classList.add("hidden");
+
+    document.body.style.overflow = "";
+
+    showTemporaryStatus("appStatus", "Guidelines accepted.", "success", 2200);
+    return true;
+  } catch (error) {
+    console.error("LEGAL ACCEPTANCE SAVE ERROR:", error);
+    showStatus("appStatus", "Could not save guideline acceptance. Please try again.", "error");
+    return false;
+  } finally {
+    if (acceptBtn) {
+      acceptBtn.disabled = false;
+      acceptBtn.textContent = oldText || "Accept & Continue";
+    }
+  }
+}
+
+async function enforceLegalAcceptanceIfNeeded() {
+  if (!session?.user || !profile?.approved) return;
+
+  const accepted = await hasAcceptedCurrentLegalPolicy();
+
+  if (!accepted) {
+    openLegalModal("usage", true);
+  }
+}
+
     async function bootstrap() {
       try {
         showStatus("authStatus", "", "info");
@@ -15369,8 +15977,9 @@ if (!session?.user) return;
         if (!profile.approved) return;
 
         renderAppShell();
-        await loadSongs();
-        activateTab("search");
+await loadSongs();
+activateTab("search");
+await enforceLegalAcceptanceIfNeeded();
       } catch (err) {
         console.error("BOOTSTRAP ERROR:", err);
         const bootScreen = document.getElementById("bootScreen");
@@ -15394,6 +16003,31 @@ document.getElementById("updatePasswordBtn").addEventListener("click", updateRec
 document.getElementById("cancelPasswordResetBtn").addEventListener("click", () => {
   hidePasswordResetBox();
   showStatus("authStatus", "", "info");
+});
+
+document.addEventListener("click", (event) => {
+  const legalOpen = event.target.closest("[data-legal-open]");
+  if (legalOpen) {
+    event.preventDefault();
+    openLegalModal(legalOpen.dataset.legalOpen || "usage", false);
+    return;
+  }
+
+  const legalTab = event.target.closest("[data-legal-tab]");
+  if (legalTab) {
+    event.preventDefault();
+    setLegalSection(legalTab.dataset.legalTab || "usage");
+  }
+});
+
+document.getElementById("legalModalCloseBtn").addEventListener("click", closeLegalModal);
+document.getElementById("legalCloseFooterBtn").addEventListener("click", closeLegalModal);
+document.getElementById("legalAcceptBtn").addEventListener("click", saveCurrentLegalAcceptance);
+
+document.getElementById("legalModal").addEventListener("click", (event) => {
+  if (event.target.id === "legalModal") {
+    closeLegalModal();
+  }
 });
 
       document.getElementById("toggleAddBtn").addEventListener("click", () => {
