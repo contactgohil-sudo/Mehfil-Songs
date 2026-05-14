@@ -7319,6 +7319,28 @@ body.favorite-drag-active * {
   -webkit-touch-callout: none !important;
 }
 
+/* =========================================================
+   MOBILE LANDING MICRO-SCROLL FIX — PATCH 35
+   Prevents empty landing page from being taller than viewport.
+   ========================================================= */
+
+html,
+body {
+  min-height: 100%;
+}
+
+body {
+  min-height: var(--mehfil-vvh, 100dvh) !important;
+  display: flex;
+  flex-direction: column;
+}
+
+body > .container {
+  flex: 1 1 auto;
+  min-height: 0 !important;
+  width: 100%;
+}
+
   </style>
 </head>
 <body>
@@ -7641,10 +7663,9 @@ body.favorite-drag-active * {
       <section id="listTab" class="hidden">
         <div class="card">
           <div class="toolbar">
-            <div class="toolbar-left favorites-toolbar-left">
-  <strong>Favourite Songs</strong>
-  <span class="tiny">Your bookmarked songs</span>
-  <span id="favoriteOrderStatus" class="favorite-order-status" aria-live="polite"></span>
+            <div class="toolbar-left">
+  <strong>Songs</strong>
+  <span class="tiny">Browse your full library</span>
 </div>
 
             <div class="toolbar-right">
@@ -7663,10 +7684,11 @@ body.favorite-drag-active * {
       <section id="favoritesTab" class="hidden">
         <div class="card">
           <div class="toolbar">
-            <div class="toolbar-left">
-              <strong>Favourite Songs</strong>
-              <span class="tiny">Your bookmarked songs</span>
-            </div>
+            <div class="toolbar-left favorites-toolbar-left">
+  <strong>Favourite Songs</strong>
+  <span class="tiny">Your bookmarked songs</span>
+  <span id="favoriteOrderStatus" class="favorite-order-status" aria-live="polite"></span>
+</div>
           </div>
 
           <div id="favoriteSongsList"></div>
