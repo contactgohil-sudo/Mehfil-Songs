@@ -7447,6 +7447,25 @@ body > .container {
   }
 }
 
+/* =========================================================
+   LANDING FOOTER LOWER POSITION — PATCH 36
+   Moves footer visually closer to phone bottom without pushing layout.
+   ========================================================= */
+
+@media (max-width: 640px) {
+  .footer {
+    padding-top: 8px !important;
+    padding-bottom: max(2px, env(safe-area-inset-bottom)) !important;
+    transform: translateY(28px) !important;
+  }
+
+  /* keep legal footer readable after moving down */
+  .footer,
+  .footer button {
+    font-size: 12px !important;
+    line-height: 1.25 !important;
+  }
+}
 
   </style>
 </head>
