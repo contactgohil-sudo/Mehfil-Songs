@@ -8432,6 +8432,8 @@ let appStartupLoadRunning = false;
 let currentProviderLyricsUrl = "";
 const MEHFIL_POLICY_VERSION = "2026-05-terms-v1";
 const MEHFIL_LEGAL_CONTACT_EMAIL = "munichmehfil@gmail.com";
+const MEHFIL_FAST_RETURN_STATE_KEY = "mehfil_fast_return_state_v1";
+const MEHFIL_FAST_RETURN_MAX_AGE_MS = 3 * 60 * 1000;
 
 let legalAcceptanceRequired = false;
 let currentLegalSection = "usage";
@@ -14302,6 +14304,7 @@ if (window.history && window.history.replaceState) {
     }
 
     async function logoutUser() {
+      clearFastReturnState();
       stopActiveRecognition();
       appReadyForInstallPrompt = false;
 hideInstallAppBanner();
@@ -17368,7 +17371,76 @@ async function enforceLegalAcceptanceIfNeeded() {
   }
 }
 
+function saveFastReturnState() {
+  if (!session?.user || !profile?.approved) return;
 
+  try {
+    sessionStorage.setItem(
+      MEHFIL_FAST_RETURN_STATE_KEY,
+      JSON.stringify({
+        at: Date.now(),
+        profile: {
+          id: profile.id || session.user.id,
+          email: profile.email || session.user.email || "",
+          name: profile.name || session.user.email || "User",
+          role: profile.role || "user",
+          approved: true
+        },
+        localLibrarySongCount: Number(localLibrarySongCount || songs.length || 0),
+        onlineCacheSongCount: Number(onlineCacheSongCount || 0)
+      })
+    );
+  } catch (_) {
+    // Ignore storage failure.
+  }
+}
+
+function clearFastReturnState() {
+  try {
+    sessionStorage.removeItem(MEHFIL_FAST_RETURN_STATE_KEY);
+  } catch (_) {
+    // Ignore storage failure.
+  }
+}
+
+function paintFastReturnShell() {
+  if (passwordRecoveryMode || urlLooksLikePasswordRecovery()) return false;
+
+  let snapshot = null;
+
+  try {
+    snapshot = JSON.parse(sessionStorage.getItem(MEHFIL_FAST_RETURN_STATE_KEY) || "null");
+  } catch (_) {
+    snapshot = null;
+  }
+
+  if (!snapshot?.profile?.approved) return false;
+  if (!snapshot.at || Date.now() - snapshot.at > MEHFIL_FAST_RETURN_MAX_AGE_MS) return false;
+
+  session = {
+    user: {
+      id: snapshot.profile.id,
+      email: snapshot.profile.email || ""
+    }
+  };
+
+  profile = {
+    ...snapshot.profile,
+    approved: true
+  };
+
+  localLibrarySongCount = Number(snapshot.localLibrarySongCount || 0);
+  onlineCacheSongCount = Number(snapshot.onlineCacheSongCount || 0);
+
+  renderScreens();
+  renderAppShell();
+  activateTab("search");
+  renderInstantIdlePanel();
+  updateHeaderAccessAndCount();
+  showStatus("appStatus", "", "info");
+
+  return true;
+}
 
     async function bootstrap() {
       try {
@@ -17524,9 +17596,13 @@ document.getElementById("editorLookupCandidates").addEventListener("click", asyn
       
       document.addEventListener("visibilitychange", async () => {
   if (document.visibilityState === "hidden") {
-    lastHiddenAt = Date.now();
-    return;
-  }
+  lastHiddenAt = Date.now();
+  saveFastReturnState();
+  return;
+}
+window.addEventListener("pagehide", () => {
+  saveFastReturnState();
+});
 
   try {
     await handleResumeFromBackground();
@@ -17949,6 +18025,8 @@ document.getElementById("registeredUsersList").addEventListener("click", handleA
   setupAuthRecoveryListener();
   setupInstallAppPrompt();
   setupProviderLyricsFallbackEvents();
+
+  paintFastReturnShell();
 
   bootstrap().catch(err => {
         console.error("INITIAL START ERROR:", err);
