@@ -7632,6 +7632,75 @@ body.song-modal-open {
 }
 
 /* =========================================================
+   SONG MODAL HEIGHT TUNING — PATCH 36
+   Gives opened lyrics more vertical space on iPhone/mobile.
+   Must stay at the very end of CSS.
+   ========================================================= */
+
+@media (max-width: 640px) {
+  #songModal.modal.show {
+    padding-top: calc(env(safe-area-inset-top) + 8px) !important;
+    padding-bottom: calc(env(safe-area-inset-bottom) + 4px) !important;
+  }
+
+  #songModal.modal.show .modal-card {
+    height: calc(
+      100vh
+      - env(safe-area-inset-top)
+      - env(safe-area-inset-bottom)
+      - 12px
+    ) !important;
+
+    max-height: calc(
+      100vh
+      - env(safe-area-inset-top)
+      - env(safe-area-inset-bottom)
+      - 12px
+    ) !important;
+  }
+}
+
+@supports (height: 100dvh) {
+  @media (max-width: 640px) {
+    #songModal.modal.show .modal-card {
+      height: calc(
+        100dvh
+        - env(safe-area-inset-top)
+        - env(safe-area-inset-bottom)
+        - 12px
+      ) !important;
+
+      max-height: calc(
+        100dvh
+        - env(safe-area-inset-top)
+        - env(safe-area-inset-bottom)
+        - 12px
+      ) !important;
+    }
+  }
+}
+
+@supports (height: 100svh) {
+  @media (max-width: 640px) {
+    #songModal.modal.show .modal-card {
+      height: calc(
+        100svh
+        - env(safe-area-inset-top)
+        - env(safe-area-inset-bottom)
+        - 12px
+      ) !important;
+
+      max-height: calc(
+        100svh
+        - env(safe-area-inset-top)
+        - env(safe-area-inset-bottom)
+        - 12px
+      ) !important;
+    }
+  }
+}
+
+/* =========================================================
    LANDING FOOTER LOWER POSITION — PATCH 36
    Moves footer visually closer to phone bottom without pushing layout.
    ========================================================= */
