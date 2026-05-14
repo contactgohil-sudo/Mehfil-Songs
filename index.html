@@ -7733,6 +7733,91 @@ body.song-modal-open {
   }
 }
 
+/* =========================================================
+   LIVE NOTIFICATION ABOVE LYRICS MODAL — PATCH
+   Makes shared-live alert visible even when song modal is open.
+   ========================================================= */
+
+#liveNowBar.status-box {
+  display: none;
+}
+
+#liveNowBar.status-box.show {
+  position: fixed !important;
+  left: 50% !important;
+  top: calc(env(safe-area-inset-top) + 12px) !important;
+  transform: translateX(-50%) !important;
+  z-index: 14000 !important;
+
+  display: block !important;
+  width: min(calc(100vw - 24px), 620px) !important;
+  margin: 0 !important;
+
+  border-radius: 18px !important;
+  padding: 12px 14px !important;
+
+  background: #fffdf8 !important;
+  color: #5d4315 !important;
+  border: 1px solid #ead7a8 !important;
+
+  box-shadow:
+    0 18px 50px rgba(15, 23, 42, 0.24),
+    0 1px 2px rgba(15, 23, 42, 0.10) !important;
+
+  animation: liveNowToastIn 0.18s ease-out;
+}
+
+#liveNowBar #liveNowBarContent {
+  align-items: center !important;
+}
+
+#liveNowBar #liveNowText {
+  font-size: 13px;
+  line-height: 1.35;
+  font-weight: 900;
+}
+
+#liveNowBar .btn-secondary {
+  min-height: 34px;
+  padding: 7px 11px;
+  border-radius: 13px;
+  font-size: 12px;
+  font-weight: 850;
+  background: #ffffff;
+  color: #111827;
+  border: 1px solid #dfe5ee;
+}
+
+@keyframes liveNowToastIn {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+@media (max-width: 640px) {
+  #liveNowBar.status-box.show {
+    top: calc(env(safe-area-inset-top) + 10px) !important;
+    width: calc(100vw - 20px) !important;
+    border-radius: 17px !important;
+    padding: 11px 12px !important;
+  }
+
+  #liveNowBar #liveNowText {
+    font-size: 12px;
+  }
+
+  #liveNowBar .btn-secondary {
+    min-height: 32px;
+    padding: 6px 10px;
+    font-size: 12px;
+  }
+}
 
   </style>
 </head>
@@ -8350,6 +8435,10 @@ const MEHFIL_LEGAL_CONTACT_EMAIL = "munichmehfil@gmail.com";
 
 let legalAcceptanceRequired = false;
 let currentLegalSection = "usage";
+let mehfilBackNavigationBound = false;
+let mehfilBackNavigationReady = false;
+let mehfilBackHandlingPop = false;
+let mehfilLastTopBackAt = 0;
 
 
 const INSTALL_PROMPT_DISMISSED_KEY = "mehfil_install_prompt_dismissed_until_v1";
@@ -8798,6 +8887,182 @@ function nextPaint() {
   });
 }
 
+function isMehfilElementVisible(id) {
+  const el = document.getElementById(id);
+  if (!el) return false;
+
+  return (
+    !el.classList.contains("hidden") &&
+    getComputedStyle(el).display !== "none"
+  );
+}
+
+function armMehfilBackNavigation() {
+  if (!session?.user || !profile?.approved) return;
+  if (mehfilBackHandlingPop) return;
+
+  try {
+    if (history.state?.mehfilGuard === true) return;
+
+    history.pushState(
+      {
+        mehfilApp: true,
+        mehfilGuard: true,
+        at: Date.now()
+      },
+      "",
+      window.location.href
+    );
+  } catch (error) {
+    console.warn("Mehfil back guard could not be armed:", error);
+  }
+}
+
+function setupMehfilBackNavigation() {
+  if (!session?.user || !profile?.approved) return;
+
+  try {
+    if (!mehfilBackNavigationReady) {
+      history.replaceState(
+        {
+          mehfilApp: true,
+          mehfilBase: true,
+          at: Date.now()
+        },
+        "",
+        window.location.href
+      );
+
+      mehfilBackNavigationReady = true;
+    }
+  } catch (error) {
+    console.warn("Mehfil back base state failed:", error);
+  }
+
+  if (!mehfilBackNavigationBound) {
+    window.addEventListener("popstate", handleMehfilBackNavigation);
+    mehfilBackNavigationBound = true;
+  }
+
+  armMehfilBackNavigation();
+}
+
+function handleMehfilInternalBackStep() {
+  const legalModal = document.getElementById("legalModal");
+  const songModal = document.getElementById("songModal");
+  const searchInput = document.getElementById("searchInput");
+
+  if (legalModal && !legalModal.classList.contains("hidden")) {
+    if (legalAcceptanceRequired) {
+      showTemporaryStatus(
+        "appStatus",
+        "Accept the guidelines to continue.",
+        "warn",
+        2500
+      );
+      return true;
+    }
+
+    closeLegalModal();
+    return true;
+  }
+
+  if (songModal && songModal.classList.contains("show")) {
+    closeSongModal();
+    return true;
+  }
+
+  if (isMehfilElementVisible("songEditorCard")) {
+    activateTab(activeMainTab || "search");
+    return true;
+  }
+
+  if (isMehfilElementVisible("adminTab")) {
+    activateTab("search");
+    return true;
+  }
+
+  if (isMehfilElementVisible("favoritesTab")) {
+    activateTab("search");
+    return true;
+  }
+
+  if (isMehfilElementVisible("listTab")) {
+    activateTab("search");
+    return true;
+  }
+
+  if (searchInput && searchInput.value.trim()) {
+    if (searchInputTimer) {
+      clearTimeout(searchInputTimer);
+      searchInputTimer = null;
+    }
+
+    if (deepSearchTimer) {
+      clearTimeout(deepSearchTimer);
+      deepSearchTimer = null;
+    }
+
+    searchRunId++;
+
+    searchInput.value = "";
+    lastQuery = "";
+    clearSearchOnlineUi();
+    renderResults([], "");
+    return true;
+  }
+
+  return false;
+}
+
+function handleMehfilBackNavigation() {
+  if (!session?.user || !profile?.approved) return;
+  if (mehfilBackHandlingPop) return;
+
+  const handledInsideApp = handleMehfilInternalBackStep();
+
+  if (handledInsideApp) {
+    mehfilLastTopBackAt = 0;
+
+    mehfilBackHandlingPop = true;
+    setTimeout(() => {
+      mehfilBackHandlingPop = false;
+      armMehfilBackNavigation();
+    }, 0);
+
+    return;
+  }
+
+  const now = Date.now();
+
+  if (now - mehfilLastTopBackAt < 1600) {
+    mehfilLastTopBackAt = 0;
+
+    setTimeout(() => {
+      try {
+        history.back();
+      } catch (_) {}
+    }, 0);
+
+    return;
+  }
+
+  mehfilLastTopBackAt = now;
+
+  showTemporaryStatus(
+    "appStatus",
+    "Swipe back again to close Mehfil.",
+    "info",
+    1600
+  );
+
+  mehfilBackHandlingPop = true;
+  setTimeout(() => {
+    mehfilBackHandlingPop = false;
+    armMehfilBackNavigation();
+  }, 0);
+}
+
 function markAppReadyForInstallPrompt(delayMs = 1500) {
   appReadyForInstallPrompt = true;
 
@@ -8809,9 +9074,10 @@ function markAppReadyForInstallPrompt(delayMs = 1500) {
 async function startApprovedAppShell() {
   if (!profile?.approved) return;
 
-  renderAppShell();
+renderAppShell();
 activateTab("search");
 renderInstantIdlePanel();
+setupMehfilBackNavigation();
 
 showStatus("appStatus", "Opening Mehfil library...", "info");
 
@@ -17101,6 +17367,8 @@ async function enforceLegalAcceptanceIfNeeded() {
     openLegalModal("usage", true);
   }
 }
+
+
 
     async function bootstrap() {
       try {
