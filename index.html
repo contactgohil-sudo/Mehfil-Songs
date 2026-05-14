@@ -7467,6 +7467,20 @@ body > .container {
   }
 }
 
+/* =========================================================
+   LIVE BUTTON MOBILE VISIBILITY FIX — PATCH 37
+   Keeps LIVE visible on narrow Android phones.
+   ========================================================= */
+
+@media (max-width: 380px) {
+  #appScreen .live-mini-btn {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+}
+
+
   </style>
 </head>
 <body>
