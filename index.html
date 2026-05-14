@@ -7821,6 +7821,49 @@ body.song-modal-open {
   }
 }
 
+/* =========================================================
+   IPHONE LYRICS MODAL HEIGHT TUNE — PATCH 36
+   iPhone-only. Stretches opened lyrics box slightly downward.
+   Does not touch Android or swipe-back logic.
+   ========================================================= */
+
+@supports (-webkit-touch-callout: none) {
+  @media (max-width: 640px) {
+    #songModal.modal.show {
+      padding-top: calc(env(safe-area-inset-top) + 8px) !important;
+      padding-bottom: calc(env(safe-area-inset-bottom) + 4px) !important;
+    }
+
+    #songModal.modal.show .modal-card {
+      height: calc(
+        var(--mehfil-vvh, 100dvh)
+        - env(safe-area-inset-top)
+        - env(safe-area-inset-bottom)
+        - 12px
+      ) !important;
+
+      max-height: calc(
+        var(--mehfil-vvh, 100dvh)
+        - env(safe-area-inset-top)
+        - env(safe-area-inset-bottom)
+        - 12px
+      ) !important;
+
+      padding-bottom: calc(13px + env(safe-area-inset-bottom)) !important;
+    }
+
+    #songModal .modal-top {
+      margin-bottom: 10px !important;
+      padding-bottom: 10px !important;
+    }
+
+    #songModal .lyrics-full {
+      padding-bottom: calc(18px + env(safe-area-inset-bottom)) !important;
+    }
+  }
+}
+
+
   </style>
 </head>
 <body>
