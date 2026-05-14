@@ -7448,6 +7448,190 @@ body > .container {
 }
 
 /* =========================================================
+   IPHONE SONG MODAL BOTTOM GAP FIX — PATCH 35A
+   Fixes white strip / uncovered bottom area on iPhone.
+   Must stay at the very end of CSS.
+   ========================================================= */
+
+body.song-modal-open {
+  overflow: hidden !important;
+}
+
+/* Let fixed inset stretch the modal fully.
+   Do NOT force height with --mehfil-vvh here. */
+#songModal.modal.show {
+  position: fixed !important;
+  inset: 0 !important;
+  top: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  left: 0 !important;
+
+  width: 100vw !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+
+  z-index: 12000 !important;
+  overflow: hidden !important;
+
+  display: flex !important;
+  align-items: flex-start !important;
+  justify-content: center !important;
+
+  background: transparent !important;
+
+  padding-top: calc(env(safe-area-inset-top) + 10px) !important;
+  padding-right: max(8px, env(safe-area-inset-right)) !important;
+  padding-bottom: calc(env(safe-area-inset-bottom) + 10px) !important;
+  padding-left: max(8px, env(safe-area-inset-left)) !important;
+}
+
+/* Full dark overlay, extended below viewport to kill iPhone white strip */
+#songModal.modal.show::before {
+  content: "";
+  position: fixed;
+  top: -2px;
+  right: 0;
+  bottom: -120px;
+  left: 0;
+  background: rgba(15, 23, 42, 0.62);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Disable older bottom-cover patch so it cannot fight this one */
+#songModal.modal.show::after {
+  content: none !important;
+  display: none !important;
+}
+
+#songModal.modal.show .modal-card {
+  position: relative !important;
+  z-index: 1 !important;
+
+  height: auto !important;
+  max-height: calc(100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 24px) !important;
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+  overscroll-behavior: contain !important;
+}
+
+@supports (height: 100dvh) {
+  #songModal.modal.show .modal-card {
+    max-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 24px) !important;
+  }
+}
+
+@supports (height: 100svh) {
+  #songModal.modal.show .modal-card {
+    max-height: calc(100svh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 24px) !important;
+  }
+}
+
+/* =========================================================
+   SONGS SECTION READABILITY FIX — PATCH 35B
+   Makes group/movie name, song title, and details easier to distinguish.
+   ========================================================= */
+
+#listTab .group-head {
+  position: relative;
+  padding-left: 18px !important;
+  background:
+    linear-gradient(180deg, #ffffff 0%, #f8fafc 100%) !important;
+}
+
+#listTab .group-head::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 5px;
+  background: #d8b56d;
+  opacity: 0.95;
+}
+
+#listTab .group-head strong {
+  font-size: 18px !important;
+  line-height: 1.15 !important;
+  font-weight: 950 !important;
+  letter-spacing: -0.025em !important;
+  color: #111827 !important;
+}
+
+#listTab .group-count {
+  display: inline-flex !important;
+  width: fit-content;
+  margin-top: 6px !important;
+  padding: 4px 8px !important;
+  border-radius: 999px !important;
+  background: #f8f1df !important;
+  border: 1px solid #ead7a8 !important;
+  color: #795719 !important;
+  font-size: 11px !important;
+  line-height: 1 !important;
+  font-weight: 900 !important;
+}
+
+#listTab .song-row {
+  align-items: center !important;
+  background: #ffffff !important;
+}
+
+#listTab .song-row .result-main {
+  display: grid;
+  gap: 5px;
+}
+
+#listTab .song-row .song-title {
+  font-size: 17px !important;
+  line-height: 1.18 !important;
+  font-weight: 950 !important;
+  letter-spacing: -0.025em !important;
+  color: #111827 !important;
+}
+
+#listTab .song-row .song-meta {
+  margin-top: 2px !important;
+  padding-top: 6px !important;
+  border-top: 1px dashed #e5e9f0 !important;
+  color: #667085 !important;
+  font-size: 12px !important;
+  line-height: 1.35 !important;
+  font-weight: 700 !important;
+}
+
+#listTab .song-row .song-meta::before {
+  content: "DETAILS";
+  display: inline-flex;
+  margin-right: 7px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: #f2f4f7;
+  color: #667085;
+  font-size: 9px;
+  line-height: 1;
+  font-weight: 950;
+  letter-spacing: 0.06em;
+  vertical-align: middle;
+}
+
+@media (max-width: 640px) {
+  #listTab .group-head strong {
+    font-size: 17px !important;
+  }
+
+  #listTab .song-row .song-title {
+    font-size: 16px !important;
+  }
+
+  #listTab .song-row .song-meta {
+    font-size: 12px !important;
+  }
+}
+
+/* =========================================================
    LANDING FOOTER LOWER POSITION — PATCH 36
    Moves footer visually closer to phone bottom without pushing layout.
    ========================================================= */
