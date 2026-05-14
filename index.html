@@ -8443,6 +8443,7 @@ let mehfilBackNavigationBound = false;
 let mehfilBackNavigationReady = false;
 let mehfilBackHandlingPop = false;
 let mehfilLastTopBackAt = 0;
+let mehfilClosingModalFromHistory = false;
 
 
 const INSTALL_PROMPT_DISMISSED_KEY = "mehfil_install_prompt_dismissed_until_v1";
@@ -8922,6 +8923,27 @@ function armMehfilBackNavigation() {
   }
 }
 
+function pushSongModalHistoryState() {
+  if (!session?.user || !profile?.approved) return;
+  if (mehfilBackHandlingPop) return;
+
+  try {
+    if (history.state?.mehfilSongModal === true) return;
+
+    history.pushState(
+      {
+        mehfilApp: true,
+        mehfilSongModal: true,
+        at: Date.now()
+      },
+      "",
+      window.location.href
+    );
+  } catch (error) {
+    console.warn("Mehfil song modal history state failed:", error);
+  }
+}
+
 function setupMehfilBackNavigation() {
   if (!session?.user || !profile?.approved) return;
 
@@ -8972,9 +8994,9 @@ function handleMehfilInternalBackStep() {
   }
 
   if (songModal && songModal.classList.contains("show")) {
-    closeSongModal();
-    return true;
-  }
+  closeSongModal({ fromHistory: true });
+  return true;
+}
 
   if (isMehfilElementVisible("songEditorCard")) {
     activateTab(activeMainTab || "search");
@@ -9022,6 +9044,19 @@ function handleMehfilInternalBackStep() {
 function handleMehfilBackNavigation() {
   if (!session?.user || !profile?.approved) return;
   if (mehfilBackHandlingPop) return;
+
+  if (mehfilClosingModalFromHistory) {
+    mehfilClosingModalFromHistory = false;
+    mehfilLastTopBackAt = 0;
+
+    mehfilBackHandlingPop = true;
+    setTimeout(() => {
+      mehfilBackHandlingPop = false;
+      armMehfilBackNavigation();
+    }, 0);
+
+    return;
+  }
 
   const handledInsideApp = handleMehfilInternalBackStep();
 
@@ -11701,7 +11736,8 @@ async function openOnlineCandidate(candidate) {
   document.getElementById("modalDeleteBtn").classList.add("hidden");
 
   document.getElementById("songModal").classList.add("show");
-  document.body.style.overflow = "hidden";
+document.body.style.overflow = "hidden";
+pushSongModalHistoryState();
 
   return;
 }
@@ -11767,7 +11803,8 @@ async function openOnlineCandidate(candidate) {
   }
 
   document.getElementById("songModal").classList.add("show");
-  document.body.style.overflow = "hidden";
+document.body.style.overflow = "hidden";
+pushSongModalHistoryState();
 
   try {
     const fullSong = embeddedSong || await fetchOnlineSongDetail(candidate);
@@ -16608,7 +16645,9 @@ modalBookmarkBtn.dataset.songId = String(songId);
       document.body.style.overflow = "hidden";
     }
 
- function closeSongModal() {
+ function closeSongModal(options = {}) {
+  const fromHistory = !!options.fromHistory;
+
   onlineModalLoadToken++;
   openSongId = null;
   openModalKind = "local";
@@ -16619,6 +16658,16 @@ modalBookmarkBtn.dataset.songId = String(songId);
 
   document.getElementById("songModal").classList.remove("show");
   document.body.style.overflow = "";
+
+  if (!fromHistory && history.state?.mehfilSongModal === true) {
+    mehfilClosingModalFromHistory = true;
+
+    setTimeout(() => {
+      try {
+        history.back();
+      } catch (_) {}
+    }, 0);
+  }
 }
 
     function resetSongForm() {
@@ -18054,210 +18103,5 @@ document.getElementById("registeredUsersList").addEventListener("click", handleA
 registerMehfilServiceWorker();
 
   </script>
-<script>
-/* Mehfil mobile polish:
-   1) Hide "Opening your library..." splash during back/swipe restore
-   2) Stretch opened lyrics card slightly on iPhone only
-*/
-(function () {
-  "use strict";
-
-  const IOS_PHONE = /iPhone|iPod/i.test(navigator.userAgent);
-  const RESTORE_FLAG = "mehfil_skip_boot_on_restore";
-
-  const style = document.createElement("style");
-  style.textContent = `
-    html.mehfil-back-restore [id*="splash" i],
-    html.mehfil-back-restore [class*="splash" i],
-    html.mehfil-back-restore [id*="loader" i],
-    html.mehfil-back-restore [class*="loader" i],
-    html.mehfil-back-restore [id*="loading" i],
-    html.mehfil-back-restore [class*="loading" i],
-    html.mehfil-back-restore [id*="opening" i],
-    html.mehfil-back-restore [class*="opening" i] {
-      opacity: 0 !important;
-      pointer-events: none !important;
-      transition: none !important;
-    }
-
-    html.mehfil-iphone .mehfil-lyrics-card-tall {
-      max-height: calc(100dvh - 34px) !important;
-      overflow-y: auto !important;
-      -webkit-overflow-scrolling: touch !important;
-      margin-top: max(10px, env(safe-area-inset-top)) !important;
-      margin-bottom: max(10px, env(safe-area-inset-bottom)) !important;
-      padding-bottom: max(18px, env(safe-area-inset-bottom)) !important;
-    }
-  `;
-  document.head.appendChild(style);
-
-  if (IOS_PHONE) {
-    document.documentElement.classList.add("mehfil-iphone");
-  }
-
-  function isBackForwardNavigation() {
-    const nav = performance.getEntriesByType &&
-      performance.getEntriesByType("navigation")[0];
-
-    return !!(nav && nav.type === "back_forward");
-  }
-
-  function hideOpeningLibrarySplash() {
-    document.documentElement.classList.add("mehfil-back-restore");
-
-    const loaderText = /Opening your library/i;
-
-    const nodes = Array.from(document.querySelectorAll("body *")).filter((el) =>
-      loaderText.test(el.textContent || "")
-    );
-
-    nodes.forEach((el) => {
-      let target = null;
-
-      // Prefer hiding the full fixed splash overlay.
-      for (let n = el; n && n !== document.body; n = n.parentElement) {
-        const cs = getComputedStyle(n);
-        const r = n.getBoundingClientRect();
-
-        if (
-          cs.position === "fixed" &&
-          r.width > window.innerWidth * 0.45 &&
-          r.height > window.innerHeight * 0.45
-        ) {
-          target = n;
-          break;
-        }
-      }
-
-      // Fallback: hide only the visible loader card.
-      if (!target) {
-        for (let n = el; n && n !== document.body; n = n.parentElement) {
-          const r = n.getBoundingClientRect();
-          const idClass = `${n.id || ""} ${n.className || ""}`.toLowerCase();
-
-          if (
-            /splash|loader|loading|opening|boot/.test(idClass) ||
-            (
-              r.width > 180 &&
-              r.width < window.innerWidth * 0.92 &&
-              r.height > 60 &&
-              r.height < window.innerHeight * 0.35
-            )
-          ) {
-            target = n;
-          }
-        }
-      }
-
-      if (target) {
-        target.style.setProperty("display", "none", "important");
-        target.style.setProperty("opacity", "0", "important");
-        target.style.setProperty("pointer-events", "none", "important");
-        target.setAttribute("aria-hidden", "true");
-      }
-    });
-  }
-
-  function markReturnPath() {
-    sessionStorage.setItem(RESTORE_FLAG, "1");
-  }
-
-  window.addEventListener("pagehide", markReturnPath, { capture: true });
-  window.addEventListener("beforeunload", markReturnPath, { capture: true });
-
-  window.addEventListener("popstate", () => {
-    markReturnPath();
-    hideOpeningLibrarySplash();
-    requestAnimationFrame(hideOpeningLibrarySplash);
-  });
-
-  window.addEventListener("pageshow", (event) => {
-    if (
-      event.persisted ||
-      isBackForwardNavigation() ||
-      sessionStorage.getItem(RESTORE_FLAG) === "1"
-    ) {
-      hideOpeningLibrarySplash();
-      requestAnimationFrame(hideOpeningLibrarySplash);
-      setTimeout(hideOpeningLibrarySplash, 80);
-      setTimeout(hideOpeningLibrarySplash, 180);
-
-      setTimeout(() => {
-        sessionStorage.removeItem(RESTORE_FLAG);
-        document.documentElement.classList.remove("mehfil-back-restore");
-      }, 900);
-    }
-  });
-
-  function findLyricsCard() {
-    const closeBtn = Array.from(
-      document.querySelectorAll("button, [role='button']")
-    ).find((btn) => /^\s*Close\s*$/i.test(btn.textContent || ""));
-
-    if (!closeBtn) return null;
-
-    let best = null;
-
-    for (let n = closeBtn; n && n !== document.body; n = n.parentElement) {
-      const r = n.getBoundingClientRect();
-      const cs = getComputedStyle(n);
-      const text = n.textContent || "";
-
-      const hasSongControls =
-        /Put Live/i.test(text) &&
-        /Edit/i.test(text) &&
-        /Delete/i.test(text);
-
-      const looksLikeCard =
-        r.width > window.innerWidth * 0.72 &&
-        r.height > window.innerHeight * 0.45 &&
-        cs.display !== "none" &&
-        cs.visibility !== "hidden";
-
-      if (hasSongControls && looksLikeCard) {
-        best = n;
-      }
-    }
-
-    return best;
-  }
-
-  function stretchIphoneLyricsCard() {
-    if (!IOS_PHONE) return;
-
-    const card = findLyricsCard();
-    if (!card) return;
-
-    card.classList.add("mehfil-lyrics-card-tall");
-    card.style.setProperty("max-height", "calc(100dvh - 34px)", "important");
-    card.style.setProperty("overflow-y", "auto", "important");
-    card.style.setProperty("-webkit-overflow-scrolling", "touch", "important");
-  }
-
-  const observer = new MutationObserver(() => {
-    stretchIphoneLyricsCard();
-
-    if (sessionStorage.getItem(RESTORE_FLAG) === "1") {
-      hideOpeningLibrarySplash();
-    }
-  });
-
-  observer.observe(document.documentElement, {
-    childList: true,
-    subtree: true,
-    attributes: true,
-    attributeFilter: ["class", "style"]
-  });
-
-  window.addEventListener("resize", stretchIphoneLyricsCard);
-
-  window.addEventListener("orientationchange", () => {
-    setTimeout(stretchIphoneLyricsCard, 250);
-  });
-
-  setTimeout(stretchIphoneLyricsCard, 250);
-})();
-</script>
-
 </body>
 </html>
