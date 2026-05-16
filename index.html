@@ -9311,7 +9311,7 @@ activateTab("search");
 renderInstantIdlePanel();
 setupMehfilBackNavigation();
 
-showStatus("appStatus", "Opening Mehfil library...", "info");
+showStatus("appStatus", "", "info");
 
   await nextPaint();
 
@@ -12881,6 +12881,42 @@ function getStrongQueryVariants(query) {
   });
 }
 
+function yieldToBrowser() {
+  return new Promise(resolve => setTimeout(resolve, 0));
+}
+
+async function rebuildFuseAsync(batchSize = 12) {
+  preparedSongs = [];
+
+  for (let i = 0; i < songs.length; i += batchSize) {
+    const chunk = songs.slice(i, i + batchSize).map(buildPreparedSong);
+    preparedSongs.push(...chunk);
+
+    if (i + batchSize < songs.length) {
+      await yieldToBrowser();
+    }
+  }
+
+  await yieldToBrowser();
+
+  buildLyricIndexes();
+
+  await yieldToBrowser();
+
+  fuse = new Fuse(preparedSongs, {
+    includeScore: true,
+    threshold: 0.34,
+    ignoreLocation: true,
+    minMatchCharLength: 2,
+    keys: [
+      { name: "_searchText", weight: 0.82 },
+      { name: "_titleSearch", weight: 0.10 },
+      { name: "_movieSearch", weight: 0.04 },
+      { name: "_singerSearch", weight: 0.04 }
+    ]
+  });
+}
+
     function buildWorkerSongIndex() {
   return preparedSongs.map(song => ({
     id: Number(song.id),
@@ -14944,7 +14980,7 @@ if (!lastQuery.trim()) {
   renderResults([], "");
 }
 
-rebuildFuse();
+await rebuildFuseAsync(12);
 
 libraryReadyForIdleSuggestion = true;
 
@@ -14952,8 +14988,11 @@ libraryReadyForIdleSuggestion = true;
 scheduleWorkerIndexSync(250);
 
 await loadBookmarks();
-refreshSuggestionLists();
-checkEditorDuplicateState();
+
+setTimeout(() => {
+  refreshSuggestionLists();
+  checkEditorDuplicateState();
+}, 350);
 
 markLibraryViewsDirty();
 
@@ -14961,7 +15000,10 @@ if (lastQuery.trim()) {
   scheduleSearchRender(lastQuery, { mode: "deep", showSnippets: true });
 } else {
   searchRunId++;
-  renderResults([], "");
+
+  requestAnimationFrame(() => {
+    renderResults([], "");
+  });
 }
 
 startIdleSuggestionRotation();
