@@ -8346,6 +8346,284 @@ body.song-modal-open {
   }
 }
 
+/* =========================================================
+   PROVIDER FALLBACK ACTION BUTTONS — CLASSY UI PATCH
+   Makes "Check source links" and "Paste lyrics manually" match Mehfil.
+   ========================================================= */
+
+.provider-manual-row {
+  margin-top: 14px !important;
+  padding-top: 14px !important;
+  border-top: 1px solid #edf0f4 !important;
+  display: grid !important;
+  grid-template-columns: 1fr 1fr !important;
+  gap: 10px !important;
+}
+
+.provider-manual-row .provider-lyrics-btn {
+  width: 100% !important;
+  min-height: 46px !important;
+  border-radius: 18px !important;
+  padding: 11px 14px !important;
+  font-size: 14px !important;
+  line-height: 1 !important;
+  font-weight: 900 !important;
+  letter-spacing: -0.01em !important;
+  box-shadow:
+    0 7px 18px rgba(15, 23, 42, 0.055),
+    inset 0 1px 0 rgba(255, 255, 255, 0.72) !important;
+  transition:
+    transform 0.12s ease,
+    border-color 0.12s ease,
+    box-shadow 0.12s ease,
+    background 0.12s ease !important;
+}
+
+.provider-manual-row .provider-lyrics-btn:active {
+  transform: translateY(1px) !important;
+}
+
+/* Primary action: uses Brave only after user taps */
+.provider-manual-row .provider-lyrics-btn[data-provider-fresh-query] {
+  background:
+    radial-gradient(circle at top right, rgba(216, 181, 109, 0.20), transparent 120px),
+    linear-gradient(180deg, #fffdf8 0%, #ffffff 100%) !important;
+  color: #795719 !important;
+  border: 1px solid #ead7a8 !important;
+}
+
+.provider-manual-row .provider-lyrics-btn[data-provider-fresh-query]::before {
+  content: "↗";
+  margin-right: 8px;
+  font-weight: 950;
+}
+
+.provider-manual-row .provider-lyrics-btn[data-provider-fresh-query]:hover,
+.provider-manual-row .provider-lyrics-btn[data-provider-fresh-query]:focus {
+  background:
+    radial-gradient(circle at top right, rgba(216, 181, 109, 0.28), transparent 120px),
+    linear-gradient(180deg, #fffaf0 0%, #ffffff 100%) !important;
+  border-color: #d8b56d !important;
+  box-shadow:
+    0 10px 24px rgba(121, 87, 25, 0.11),
+    0 0 0 4px rgba(216, 181, 109, 0.12) !important;
+}
+
+/* Secondary action: manual paste */
+.provider-manual-row .provider-lyrics-btn.secondary,
+.provider-manual-row .provider-lyrics-btn[data-provider-manual-query] {
+  background:
+    linear-gradient(180deg, #ffffff 0%, #f9fafb 100%) !important;
+  color: #344054 !important;
+  border: 1px solid #dfe5ee !important;
+}
+
+.provider-manual-row .provider-lyrics-btn.secondary::before,
+.provider-manual-row .provider-lyrics-btn[data-provider-manual-query]::before {
+  content: "✎";
+  margin-right: 8px;
+  font-weight: 950;
+}
+
+.provider-manual-row .provider-lyrics-btn.secondary:hover,
+.provider-manual-row .provider-lyrics-btn.secondary:focus,
+.provider-manual-row .provider-lyrics-btn[data-provider-manual-query]:hover,
+.provider-manual-row .provider-lyrics-btn[data-provider-manual-query]:focus {
+  background: #ffffff !important;
+  border-color: #cfd6e2 !important;
+  color: #111827 !important;
+  box-shadow:
+    0 10px 24px rgba(15, 23, 42, 0.075),
+    0 0 0 4px rgba(17, 24, 39, 0.035) !important;
+}
+
+/* Note below buttons */
+.provider-lyrics-note {
+  margin-top: 11px !important;
+  color: #8a94a6 !important;
+  font-size: 12px !important;
+  line-height: 1.4 !important;
+}
+
+/* Mobile: stack nicely */
+@media (max-width: 640px) {
+  .provider-manual-row {
+    grid-template-columns: 1fr !important;
+    gap: 9px !important;
+    margin-top: 13px !important;
+    padding-top: 13px !important;
+  }
+
+  .provider-manual-row .provider-lyrics-btn {
+    min-height: 44px !important;
+    border-radius: 17px !important;
+    font-size: 13px !important;
+  }
+}
+
+/* =========================================================
+   CLOUD WARMUP UI — queue/progress controls
+   ========================================================= */
+
+.cloud-warmup-table {
+  min-width: 780px !important;
+}
+
+.cloud-warmup-progress-wrap {
+  width: 120px;
+  height: 9px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #edf0f4;
+  border: 1px solid #e1e6ee;
+  margin-bottom: 6px;
+}
+
+.cloud-warmup-progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #d8b56d, #111827);
+}
+
+.cloud-warmup-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 150px;
+}
+
+.cloud-warmup-mini-btn {
+  min-height: 32px !important;
+  padding: 6px 9px !important;
+  border-radius: 12px !important;
+  font-size: 11px !important;
+  font-weight: 900 !important;
+}
+
+#adminCloudWarmupRefreshBtn,
+#adminWarmupStartBtn,
+#adminWarmupStopBtn,
+#adminWarmupClearBtn {
+  white-space: nowrap;
+}
+
+@media (max-width: 640px) {
+  #adminWarmupPanel .admin-warmup-options {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 9px !important;
+  }
+
+  #adminCloudWarmupRefreshBtn,
+  #adminWarmupStartBtn,
+  #adminWarmupStopBtn,
+  #adminWarmupClearBtn,
+  #adminWarmupImportCsvBtn,
+  #adminWarmupExportTemplateBtn,
+  #adminWarmupExportResultsBtn {
+    width: 100% !important;
+  }
+
+  .cloud-warmup-table {
+    min-width: 760px !important;
+  }
+
+  .cloud-warmup-progress-wrap {
+    width: 110px;
+  }
+}
+
+/* =========================================================
+   CLOUD WARMUP DETAILS DROPDOWN
+   ========================================================= */
+
+.cloud-warmup-details-row > td {
+  background: #fbfcfd !important;
+  padding: 0 8px 12px !important;
+}
+
+.cloud-warmup-details-panel {
+  border: 1px solid #e1e6ee;
+  border-radius: 18px;
+  background: #ffffff;
+  padding: 12px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.9);
+}
+
+.cloud-warmup-details-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+
+.cloud-warmup-details-title {
+  color: #111827;
+  font-size: 15px;
+  line-height: 1.2;
+  font-weight: 950;
+}
+
+.cloud-warmup-details-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  align-items: center;
+}
+
+.cloud-warmup-filter {
+  min-height: 32px !important;
+  width: 130px !important;
+  border-radius: 12px !important;
+  font-size: 12px !important;
+  padding: 6px 10px !important;
+}
+
+.cloud-warmup-details-table-wrap {
+  max-height: 520px;
+  overflow: auto;
+  border-radius: 14px;
+  border: 1px solid #edf0f4;
+  -webkit-overflow-scrolling: touch;
+}
+
+.cloud-warmup-details-table {
+  min-width: 900px !important;
+  margin-top: 0 !important;
+}
+
+.cloud-warmup-details-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: #f8fafc;
+}
+
+@media (max-width: 640px) {
+  .cloud-warmup-details-head {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .cloud-warmup-details-controls {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .cloud-warmup-filter,
+  .cloud-warmup-details-controls button {
+    width: 100% !important;
+  }
+
+  .cloud-warmup-details-table-wrap {
+    max-height: 420px;
+  }
+}
+
+
+
   </style>
 </head>
 <body>
@@ -8740,7 +9018,7 @@ body.song-modal-open {
     <div id="adminWarmupPanel" class="hidden">
   <div class="admin-warmup-grid">
     <div class="status-box show">
-      Paste one song per line. This warms Cloudflare/LRCLIB + Supabase online cache so future searches are faster.
+      Paste one song per line. This creates a cloud queue in Supabase. You can close the app after the queue is created; Cloudflare Cron will process it.
     </div>
 
     <div class="field">
@@ -8753,31 +9031,21 @@ body.song-modal-open {
     </div>
 
     <div class="admin-warmup-options">
-      <label class="admin-warmup-option">
-        <input id="adminWarmupForceRefresh" type="checkbox" />
-        Force refresh existing cache
-      </label>
+  <label class="admin-warmup-option">
+    <input id="adminWarmupForceRefresh" type="checkbox" />
+    Force refresh existing cache
+  </label>
 
-      <label class="admin-warmup-option">
-        Delay:
-        <input id="adminWarmupDelayMs" class="input input-thin" type="number" value="1200" min="500" max="10000" step="100" style="width:100px;" />
-        ms
-      </label>
-      <label class="admin-warmup-option">
-  Parallel:
-  <input id="adminWarmupParallelCount" class="input input-thin" type="number" value="3" min="1" max="5" step="1" style="width:70px;" />
-  songs
-</label>
+  <button id="adminWarmupStartBtn" class="btn" type="button">Start Cloud Warmup</button>
+  <button id="adminCloudWarmupRefreshBtn" class="btn-secondary" type="button">Refresh Progress</button>
+  <button id="adminWarmupStopBtn" class="btn-secondary" type="button" disabled>Pause Active</button>
+  <button id="adminWarmupClearBtn" class="btn-secondary" type="button">Clean Finished</button>
 
-      <button id="adminWarmupStartBtn" class="btn" type="button">Start Warmup</button>
-<button id="adminWarmupStopBtn" class="btn-secondary" type="button" disabled>Stop</button>
-<button id="adminWarmupClearBtn" class="btn-secondary" type="button">Clear Results</button>
-
-<input id="adminWarmupCsvInput" type="file" accept=".csv,text/csv" class="hidden" />
-<button id="adminWarmupImportCsvBtn" class="btn-secondary" type="button">Import CSV</button>
-<button id="adminWarmupExportTemplateBtn" class="btn-secondary" type="button">Export Template</button>
-<button id="adminWarmupExportResultsBtn" class="btn-secondary" type="button">Export Results</button>
-    </div>
+  <input id="adminWarmupCsvInput" type="file" accept=".csv,text/csv" class="hidden" />
+  <button id="adminWarmupImportCsvBtn" class="btn-secondary" type="button">Import CSV</button>
+  <button id="adminWarmupExportTemplateBtn" class="btn-secondary" type="button">Export Template</button>
+  <button id="adminWarmupExportResultsBtn" class="btn-secondary" type="button">Export Progress</button>
+</div>
 
     <div id="adminWarmupStatus" class="status-box"></div>
 
@@ -8918,6 +9186,8 @@ let activeMainTab = "search";
 let idleSuggestionSongId = null;
 let idleSuggestionTimer = null;
 let libraryReadyForIdleSuggestion = false;
+let fastReturnIdleSuggestionSnapshot = null;
+let startupIdleCardProtectedUntil = 0;
 const IDLE_SUGGESTION_ROTATE_MS = 3 * 60 * 1000;
 let activeRecognition = null;
 let micListening = false;
@@ -9049,6 +9319,22 @@ function readStartupProfileCacheForUser(userId) {
   }
 }
 
+function readFastReturnIdleSuggestionSnapshot() {
+  try {
+    const snapshot = JSON.parse(
+      localStorage.getItem(MEHFIL_FAST_RETURN_STATE_KEY) || "null"
+    );
+
+    if (!snapshot?.profile?.approved) return null;
+    if (!snapshot.at || Date.now() - snapshot.at > MEHFIL_FAST_RETURN_MAX_AGE_MS) return null;
+    if (!snapshot.idleSuggestion?.id) return null;
+
+    return snapshot.idleSuggestion;
+  } catch (_) {
+    return null;
+  }
+}
+
 function renderStartupShellFromCachedProfile(cachedProfile) {
   if (!cachedProfile?.approved) return;
 
@@ -9058,11 +9344,18 @@ function renderStartupShellFromCachedProfile(cachedProfile) {
     profile = cachedProfile;
 
     renderScreens();
-    renderAppShell();
-    activateTab("search");
-    renderInstantIdlePanel();
+renderAppShell();
+activateTab("search");
 
-    showStatus("appStatus", "Opening Mehfil library...", "info");
+const idleSnapshot = readFastReturnIdleSuggestionSnapshot();
+
+if (idleSnapshot?.id) {
+  renderFastReturnIdleSuggestion(idleSnapshot);
+} else {
+  renderInstantIdlePanel();
+}
+
+showStatus("appStatus", "", "info");
   } catch (error) {
     console.warn("Cached startup shell skipped:", error);
   } finally {
@@ -9406,14 +9699,52 @@ function getFastReturnIdleSuggestionSnapshot() {
       title: String(song.title || ""),
       movie: String(song.movie || ""),
       singer: String(song.singer || ""),
-      lyrics: String(song.lyrics || "").slice(0, 1600)
+      lyrics: String(song.lyrics || "").slice(0, 12000),
+original_key: String(song.original_key || ""),
+chord: String(song.chord || "")
     };
   } catch (_) {
     return null;
   }
 }
 
+function protectStartupIdleCard(ms = 9000) {
+  startupIdleCardProtectedUntil = Date.now() + ms;
+}
+
+function isStartupIdleCardProtected() {
+  if (!startupIdleCardProtectedUntil) return false;
+  if (Date.now() > startupIdleCardProtectedUntil) return false;
+
+  const root = document.getElementById("searchResults");
+  if (!root) return false;
+
+  return !!root.querySelector(".idle-featured-song");
+}
+
+function clearStartupIdleCardProtection() {
+  startupIdleCardProtectedUntil = 0;
+}
+
+function readFastReturnIdleSuggestionSnapshot() {
+  try {
+    const snapshot = JSON.parse(
+      localStorage.getItem(MEHFIL_FAST_RETURN_STATE_KEY) || "null"
+    );
+
+    if (!snapshot?.profile?.approved) return null;
+    if (!snapshot.at || Date.now() - snapshot.at > MEHFIL_FAST_RETURN_MAX_AGE_MS) return null;
+    if (!snapshot.idleSuggestion?.id) return null;
+
+    return snapshot.idleSuggestion;
+  } catch (_) {
+    return null;
+  }
+}
+
 function renderFastReturnIdleSuggestion(snapshot) {
+  fastReturnIdleSuggestionSnapshot = snapshot?.id ? { ...snapshot } : null;
+
   const root = document.getElementById("searchResults");
   if (!root) return;
 
@@ -9421,6 +9752,8 @@ function renderFastReturnIdleSuggestion(snapshot) {
     renderInstantIdlePanel();
     return;
   }
+  idleSuggestionSongId = Number(snapshot.id) || idleSuggestionSongId;
+protectStartupIdleCard(9000);
 
   const meta = joinMeta([snapshot.movie, snapshot.singer]);
   const preview = getIdleSuggestionPreview(snapshot);
@@ -9810,7 +10143,15 @@ async function startApprovedAppShell() {
 
 renderAppShell();
 activateTab("search");
-renderInstantIdlePanel();
+
+const startupIdleSnapshot = readFastReturnIdleSuggestionSnapshot();
+
+if (startupIdleSnapshot?.id) {
+  renderFastReturnIdleSuggestion(startupIdleSnapshot);
+} else {
+  renderInstantIdlePanel();
+}
+
 setupMehfilBackNavigation();
 
 showStatus("appStatus", "", "info");
@@ -9899,11 +10240,24 @@ function hideSearchOnlineBanner() {
   setSearchOnlineState("");
 }
 
+function setOnlineSearchButtonBusy(isBusy) {
+  const btn = document.getElementById("onlineSearchBtn");
+  if (!btn) return;
+
+  btn.disabled = !!isBusy;
+  btn.classList.toggle("online-search-btn-busy", !!isBusy);
+}
+
+function unlockOnlineSearchButton() {
+  setOnlineSearchButtonBusy(false);
+}
+
 function clearSearchOnlineUi() {
   onlineLookupRunId++;
   searchOnlineCandidatesState = [];
   setSearchOnlineState("");
   renderSearchOnlineCandidates([]);
+  unlockOnlineSearchButton();
 }
 
 function setSearchOnlineState(message = "", type = "info") {
@@ -10529,6 +10883,8 @@ function getProviderDisplayName(provider, label) {
   if (value === "genius") return "Genius";
   if (value === "shazam") return "Shazam";
   if (value === "smule") return "Smule";
+    if (value === "hindigeetmala") return "HindiGeetMala";
+  if (value === "hindilyrics4u") return "HindiLyrics4u";
   if (value === "gaana") return "Gaana";
   if (value === "musixmatch") return "Musixmatch";
 
@@ -10541,6 +10897,8 @@ function getProviderDisplayName(provider, label) {
   if (value === "genius") return "Genius";
   if (value === "shazam") return "Shazam";
   if (value === "smule") return "Smule";
+    if (value === "hindigeetmala") return "HindiGeetMala";
+  if (value === "hindilyrics4u") return "HindiLyrics4u";
   if (value === "gaana") return "Gaana";
   if (value === "musixmatch") return "Musixmatch";
 
@@ -10584,9 +10942,10 @@ function cleanProviderCardDescription(value) {
   return text.slice(0, 150).trim() + "...";
 }
 
-function buildProviderLyricsFallbackHtml(query, links = [], isLoading = false) {
+function buildProviderLyricsFallbackHtml(query, links = [], isLoading = false, options = {}) {
   const safeQuery = String(query || "").trim();
   const safeLinks = Array.isArray(links) ? links : [];
+  const allowFreshSearch = options.allowFreshSearch !== false;
 
   return `
     <div class="provider-lyrics-fallback">
@@ -10596,10 +10955,10 @@ function buildProviderLyricsFallbackHtml(query, links = [], isLoading = false) {
         Mehfil checked the local library and LRCLIB but did not find usable lyrics.
         ${
           isLoading
-            ? "Finding strong direct song-page matches..."
+            ? "Checking saved source links..."
             : safeLinks.length
-              ? "Strong direct song-page matches are available below."
-              : "No strong direct song-page match was found yet."
+              ? "Saved direct source links are available below."
+              : "No saved source link was found yet. Use one fresh source search only if needed."
         }
       </div>
 
@@ -10647,6 +11006,20 @@ function buildProviderLyricsFallbackHtml(query, links = [], isLoading = false) {
       }
 
       <div class="provider-manual-row">
+        ${
+          !safeLinks.length && !isLoading && allowFreshSearch
+            ? `
+              <button
+                class="provider-lyrics-btn"
+                type="button"
+                data-provider-fresh-query="${escapeHtml(safeQuery)}"
+              >
+                Check source links
+              </button>
+            `
+            : ""
+        }
+
         <button
           class="provider-lyrics-btn secondary"
           type="button"
@@ -10657,7 +11030,7 @@ function buildProviderLyricsFallbackHtml(query, links = [], isLoading = false) {
       </div>
 
       <div class="provider-lyrics-note">
-        Only strong direct song-page matches are shown.
+        Fresh source search uses Brave only when you tap “Check source links”.
       </div>
     </div>
   `;
@@ -10671,9 +11044,71 @@ function renderProviderLyricsFallback(query) {
   const fallbackRunId = onlineLookupRunId;
 
   searchOnlineCandidatesState = [];
-  root.innerHTML = buildProviderLyricsFallbackHtml(safeQuery, [], true);
+  root.innerHTML = buildProviderLyricsFallbackHtml(
+    safeQuery,
+    [],
+    true,
+    { allowFreshSearch: false }
+  );
   root.classList.remove("hidden");
 
+  /*
+    Token-safe:
+    This checks only saved provider-link cache.
+    It does NOT trigger Brave fresh search.
+  */
+  lookupDirectProviderLinksCacheOnly(safeQuery)
+    .then(links => {
+      unlockOnlineSearchButton();
+      if (fallbackRunId !== onlineLookupRunId) return;
+
+      root.innerHTML = buildProviderLyricsFallbackHtml(
+        safeQuery,
+        links,
+        false,
+        { allowFreshSearch: true }
+      );
+
+      root.classList.remove("hidden");
+    })
+    .catch(error => {
+      unlockOnlineSearchButton();
+      console.warn("Provider cache fallback render failed:", error);
+
+      if (fallbackRunId !== onlineLookupRunId) return;
+
+      root.innerHTML = buildProviderLyricsFallbackHtml(
+        safeQuery,
+        [],
+        false,
+        { allowFreshSearch: true }
+      );
+
+      root.classList.remove("hidden");
+    });
+}
+
+function renderProviderLyricsFreshSearch(query) {
+  const root = document.getElementById("searchOnlineCandidates");
+  if (!root) return;
+
+  const safeQuery = String(query || "").trim();
+  const fallbackRunId = onlineLookupRunId;
+
+  searchOnlineCandidatesState = [];
+  root.innerHTML = buildProviderLyricsFallbackHtml(
+    safeQuery,
+    [],
+    true,
+    { allowFreshSearch: false }
+  );
+  root.classList.remove("hidden");
+
+  /*
+    Token-using path:
+    This may use Brave if cache has no result.
+    Only runs after user taps Check source links.
+  */
   lookupDirectProviderLinks(safeQuery)
     .then(links => {
       if (fallbackRunId !== onlineLookupRunId) return;
@@ -10681,20 +11116,22 @@ function renderProviderLyricsFallback(query) {
       root.innerHTML = buildProviderLyricsFallbackHtml(
         safeQuery,
         links,
-        false
+        false,
+        { allowFreshSearch: true }
       );
 
       root.classList.remove("hidden");
     })
     .catch(error => {
-      console.warn("Provider fallback render failed:", error);
+      console.warn("Fresh provider fallback render failed:", error);
 
       if (fallbackRunId !== onlineLookupRunId) return;
 
       root.innerHTML = buildProviderLyricsFallbackHtml(
         safeQuery,
         [],
-        false
+        false,
+        { allowFreshSearch: true }
       );
 
       root.classList.remove("hidden");
@@ -10755,6 +11192,13 @@ function setupProviderLyricsFallbackEvents() {
         );
       }
 
+      return;
+    }
+
+    const freshButton = event.target.closest("[data-provider-fresh-query]");
+    if (freshButton) {
+      const query = freshButton.getAttribute("data-provider-fresh-query") || "";
+      renderProviderLyricsFreshSearch(query);
       return;
     }
 
@@ -11599,6 +12043,66 @@ async function lookupLrclibBrowserDirectFresh(payload = {}) {
   return sanitizeOnlineCacheCandidates(candidates);
 }
 
+const LRCLIB_MISS_CACHE_TTL_MS = 6 * 60 * 60 * 1000;
+const lrclibMissMemoryCache = new Map();
+
+function getLrclibMissKey(query) {
+  return `mehfil_lrclib_miss:${normalizeText(query || "")}`;
+}
+
+function hasRecentLrclibMiss(query) {
+  const key = getLrclibMissKey(query);
+
+  if (!key || key.endsWith(":")) return false;
+
+  const memoryAt = Number(lrclibMissMemoryCache.get(key) || 0);
+
+  if (memoryAt && Date.now() - memoryAt < LRCLIB_MISS_CACHE_TTL_MS) {
+    return true;
+  }
+
+  try {
+    const storedAt = Number(localStorage.getItem(key) || 0);
+
+    if (storedAt && Date.now() - storedAt < LRCLIB_MISS_CACHE_TTL_MS) {
+      lrclibMissMemoryCache.set(key, storedAt);
+      return true;
+    }
+
+    if (storedAt) {
+      localStorage.removeItem(key);
+    }
+  } catch {}
+
+  return false;
+}
+
+function rememberLrclibMiss(query) {
+  const key = getLrclibMissKey(query);
+
+  if (!key || key.endsWith(":")) return;
+
+  const now = Date.now();
+
+  lrclibMissMemoryCache.set(key, now);
+
+  try {
+    localStorage.setItem(key, String(now));
+  } catch {}
+}
+
+function forgetLrclibMiss(query) {
+  const key = getLrclibMissKey(query);
+
+  if (!key || key.endsWith(":")) return;
+
+  lrclibMissMemoryCache.delete(key);
+
+  try {
+    localStorage.removeItem(key);
+  } catch {}
+}
+
 async function lookupLrclibDirect(payload = {}) {
   const requestBody = {
     limit: 6,
@@ -11608,8 +12112,17 @@ async function lookupLrclibDirect(payload = {}) {
   };
 
   const query = requestBody.query || requestBody.title || "";
-  const limit = Math.max(1, Math.min(Number(requestBody.limit || 6), 8));
-  const shouldForceRefresh = requestBody.forceRefresh === true;
+const limit = Math.max(1, Math.min(Number(requestBody.limit || 6), 8));
+const shouldForceRefresh = requestBody.forceRefresh === true;
+
+if (shouldForceRefresh) {
+  forgetLrclibMiss(query);
+}
+
+if (!shouldForceRefresh && hasRecentLrclibMiss(query)) {
+  console.log("LRCLIB recent miss cache hit:", query);
+  return [];
+}
 
   let cachedCandidates = [];
 
@@ -11646,10 +12159,16 @@ async function lookupLrclibDirect(payload = {}) {
   });
 
   if (Array.isArray(workerCandidates) && workerCandidates.length) {
-    freshCandidates = workerCandidates;
-  } else {
-    freshCandidates = await lookupLrclibBrowserDirectFresh(requestBody);
-  }
+  freshCandidates = workerCandidates;
+} else if (shouldForceRefresh) {
+  /*
+    Only forced/manual refresh gets the extra browser-direct LRCLIB attempt.
+    Normal user search must not wait twice for the same missing song.
+  */
+  freshCandidates = await lookupLrclibBrowserDirectFresh(requestBody);
+} else {
+  freshCandidates = [];
+}
 
   const merged = mergeOnlineCandidates(
     cachedCandidates,
@@ -11657,12 +12176,17 @@ async function lookupLrclibDirect(payload = {}) {
   ).slice(0, limit);
 
   if (merged.length) {
-    setCachedDirectLrclibLookup(requestBody, merged);
-    saveOnlineSongSupabaseCache(query, merged);
-    return merged;
-  }
+  forgetLrclibMiss(query);
+  setCachedDirectLrclibLookup(requestBody, merged);
+  saveOnlineSongSupabaseCache(query, merged);
+  return merged;
+}
 
-  return cachedCandidates.slice(0, limit);
+if (!shouldForceRefresh && !cachedCandidates.length) {
+  rememberLrclibMiss(query);
+}
+
+return cachedCandidates.slice(0, limit);
 }
 
 async function lookupSongOnline(payload = {}) {
@@ -12170,25 +12694,26 @@ showProviderFallback();
     setSearchOnlineState("LRCLIB is slow today. Still waiting for first online result...", "pending");
   }, 7000);
 
-  setTimeout(() => {
+      setTimeout(() => {
     if (!isCurrentRun()) return;
     if (shownCandidates.length > 0) return;
     if (providerFallbackVisible) return;
 
     /*
-      After 10 seconds, stop showing an annoying spinner.
-      Show useful provider options instead, but keep LRCLIB running.
+      After 4.5 seconds, stop showing a dead waiting state.
+      This does not spend Brave tokens.
+      Fresh source links still require the user to tap Check source links.
       If LRCLIB returns later, showMergedCandidates() will replace this fallback.
     */
     showProviderFallback();
-  }, 10000);
+  }, 4500);
 
   await Promise.allSettled([edgePromise, directPromise]);
 
   finishIfBothDone();
 }
 
-async function runForcedOnlineSearch() {
+function runForcedOnlineSearch() {
   const input = document.getElementById("searchInput");
   const btn = document.getElementById("onlineSearchBtn");
 
@@ -12207,24 +12732,52 @@ async function runForcedOnlineSearch() {
   }
 
   searchRunId++;
+  const buttonRunId = String(searchRunId);
 
   if (!query || query.length < 3) {
     setSearchOnlineState("Type a song title first, then tap 🔎.", "error");
     input.focus();
+    unlockOnlineSearchButton();
     return;
   }
 
   if (btn) {
-    btn.disabled = true;
+    btn.dataset.busyRunId = buttonRunId;
+    setOnlineSearchButtonBusy(true);
   }
 
-  try {
-    await runOnlineLookupForSearch(query, { force: true, useCache: false });
-  } finally {
-    if (btn) {
-      btn.disabled = false;
+  /*
+    Important:
+    Do not lock the search button for the whole LRCLIB/online lookup.
+    LRCLIB can be slow. The user must be able to edit the query
+    and search again while the previous request is still finishing.
+  */
+  setTimeout(() => {
+    const currentBtn = document.getElementById("onlineSearchBtn");
+
+    if (currentBtn && currentBtn.dataset.busyRunId === buttonRunId) {
+      unlockOnlineSearchButton();
     }
-  }
+  }, 900);
+
+  runOnlineLookupForSearch(query, {
+    force: true,
+    useCache: false
+  })
+    .catch(error => {
+      console.error("FORCED ONLINE SEARCH ERROR:", error);
+      setSearchOnlineState(
+        `Online lookup failed: ${error?.message || error || "Unknown error"}`,
+        "error"
+      );
+    })
+    .finally(() => {
+      const currentBtn = document.getElementById("onlineSearchBtn");
+
+      if (currentBtn && currentBtn.dataset.busyRunId === buttonRunId) {
+        unlockOnlineSearchButton();
+      }
+    });
 }
 
 
@@ -15478,7 +16031,7 @@ libraryReadyForIdleSuggestion = false;
 updateHeaderAccessAndCount();
 
 // Keep the first page stable while indexing happens.
-if (!lastQuery.trim()) {
+if (!lastQuery.trim() && !isStartupIdleCardProtected()) {
   renderResults([], "");
 }
 
@@ -15521,6 +16074,7 @@ setTimeout(() => {
 }, 700);
 
 lastSongsRefreshAt = Date.now();
+saveFastReturnState();
 
   if (!silent) {
     showStatus("appStatus", "", "info");
@@ -16325,9 +16879,24 @@ showTemporaryStatus("appStatus", "Song deleted.", "success", 4500);
 };
 
 let adminUsersActiveSubtab = "pending";
+
+/*
+  Cloud warmup UI state.
+  adminWarmupRunning now means: "the browser is creating the cloud queue".
+  Actual song processing happens in Supabase + Cloudflare Cron.
+*/
 let adminWarmupStopRequested = false;
 let adminWarmupRunning = false;
 let adminWarmupRows = [];
+let adminCloudWarmupAutoRefreshTimer = null;
+let adminCloudWarmupOpenDetailsJobId = null;
+let adminCloudWarmupDetailsByJobId = {};
+let adminCloudWarmupDetailsLoadingJobId = null;
+
+const CLOUD_WARMUP_WORKER_SEARCH_URL = "https://mehfil-lrclib-proxy.contact-gohil.workers.dev/search";
+const CLOUD_WARMUP_INSERT_CHUNK_SIZE = 500;
+const CLOUD_WARMUP_DETAILS_PAGE_SIZE = 500;
+
 let adminCacheDashboardRows = [];
 let adminCacheDashboardTotalCount = 0;
 const ADMIN_CACHE_DASHBOARD_LIMIT = 100;
@@ -16393,26 +16962,73 @@ function setAdminUsersSubtab(tabName) {
 
   if (adminUsersActiveSubtab === "warmup") {
   renderAdminWarmupRows();
+  loadAdminCloudWarmupProgress(true);
+  startAdminCloudWarmupAutoRefresh();
   loadOnlineCacheDashboard();
   return;
 }
 
-  renderAdminUsers();
+stopAdminCloudWarmupAutoRefresh();
+renderAdminUsers();
+}
+
+function warmupItemToLine(item) {
+  const title = String(item?.title || "").trim();
+  const singer = String(item?.singer || "").trim();
+
+  return singer ? `${title} | ${singer}` : title;
 }
 
 function parseAdminWarmupQueries() {
   const input = document.getElementById("adminWarmupInput");
+  const raw = String(input?.value || "").trim();
 
-  const raw = String(input?.value || "");
+  if (!raw) return [];
 
-  return Array.from(
-    new Set(
-      raw
-        .split(/\n|,/)
-        .map(value => value.trim())
-        .filter(value => value.length >= 3)
-    )
-  );
+  const sourceLines = raw.includes("\n") || raw.includes("\r")
+    ? raw.split(/\r?\n/)
+    : raw.split(",");
+
+  const seen = new Set();
+  const items = [];
+
+  for (const rawLine of sourceLines) {
+    const line = String(rawLine || "").trim();
+
+    if (!line) continue;
+
+    let title = "";
+    let singer = "";
+
+    if (line.includes("|")) {
+      const parts = line.split("|");
+      title = String(parts[0] || "").trim();
+      singer = String(parts.slice(1).join("|") || "").trim();
+    } else if (line.includes("\t")) {
+      const parts = line.split("\t");
+      title = String(parts[0] || "").trim();
+      singer = String(parts[1] || "").trim();
+    } else {
+      title = line;
+    }
+
+    if (title.length < 2) continue;
+
+    const key = typeof normalizeText === "function"
+      ? normalizeText(`${title} ${singer}`)
+      : `${title} ${singer}`.toLowerCase().replace(/\s+/g, " ").trim();
+
+    if (!key || seen.has(key)) continue;
+
+    seen.add(key);
+
+    items.push({
+      title,
+      singer
+    });
+  }
+
+  return items;
 }
 
 function setAdminWarmupStatus(message, type = "info") {
@@ -16438,6 +17054,167 @@ function setAdminWarmupStatus(message, type = "info") {
   el.textContent = message;
 }
 
+function getCloudWarmupStatusClass(status) {
+  if (status === "done") return "admin-warmup-status-ok";
+  if (status === "error" || status === "cancelled") return "admin-warmup-status-error";
+  return "admin-warmup-status-empty";
+}
+
+function getLatestActiveCloudWarmupJob() {
+  const rows = Array.isArray(adminWarmupRows) ? adminWarmupRows : [];
+
+  return rows.find(row =>
+    row &&
+    (
+      row.status === "pending" ||
+      row.status === "running"
+    )
+  );
+}
+
+function renderCloudWarmupProgressBar(percent) {
+  const safePercent = Math.max(0, Math.min(Number(percent || 0), 100));
+
+  return `
+    <div class="cloud-warmup-progress-wrap">
+      <div class="cloud-warmup-progress-fill" style="width:${safePercent}%;"></div>
+    </div>
+    <div class="admin-cache-muted">${safePercent.toFixed(1)}%</div>
+  `;
+}
+
+function getCloudWarmupDetailState(jobId) {
+  const id = String(jobId || "");
+
+  if (!adminCloudWarmupDetailsByJobId[id]) {
+    adminCloudWarmupDetailsByJobId[id] = {
+      rows: [],
+      loaded: 0,
+      total: null,
+      hasMore: true,
+      filter: "all"
+    };
+  }
+
+  return adminCloudWarmupDetailsByJobId[id];
+}
+
+function getCloudWarmupItemStatusClass(status) {
+  if (status === "cached") return "admin-warmup-status-ok";
+  if (status === "error") return "admin-warmup-status-error";
+  if (status === "no_result") return "admin-warmup-status-empty";
+  return "";
+}
+
+function renderCloudWarmupDetailsPanel(jobId) {
+  const state = getCloudWarmupDetailState(jobId);
+  const rows = Array.isArray(state.rows) ? state.rows : [];
+  const filter = state.filter || "all";
+
+  const visibleRows = filter === "all"
+    ? rows
+    : rows.filter(row => row.status === filter);
+
+  const loading = adminCloudWarmupDetailsLoadingJobId === String(jobId);
+
+  return `
+    <tr class="cloud-warmup-details-row">
+      <td colspan="6">
+        <div class="cloud-warmup-details-panel">
+          <div class="cloud-warmup-details-head">
+            <div>
+              <div class="cloud-warmup-details-title">Song-level results</div>
+              <div class="admin-cache-muted">
+                Loaded ${rows.length}${state.total !== null ? ` / ${state.total}` : ""} rows
+                ${filter !== "all" ? ` • Filter: ${filter}` : ""}
+              </div>
+            </div>
+
+            <div class="cloud-warmup-details-controls">
+              <select
+                class="input input-thin cloud-warmup-filter"
+                data-cloud-warmup-action="filter-details"
+                data-job-id="${escapeHtml(jobId)}"
+              >
+                <option value="all" ${filter === "all" ? "selected" : ""}>All</option>
+                <option value="cached" ${filter === "cached" ? "selected" : ""}>Cached</option>
+                <option value="no_result" ${filter === "no_result" ? "selected" : ""}>No result</option>
+                <option value="error" ${filter === "error" ? "selected" : ""}>Error</option>
+                <option value="pending" ${filter === "pending" ? "selected" : ""}>Pending</option>
+                <option value="running" ${filter === "running" ? "selected" : ""}>Running</option>
+              </select>
+
+              <button
+                class="btn-secondary cloud-warmup-mini-btn"
+                type="button"
+                data-cloud-warmup-action="load-more-details"
+                data-job-id="${escapeHtml(jobId)}"
+                ${loading || !state.hasMore ? "disabled" : ""}
+              >
+                ${loading ? "Loading..." : state.hasMore ? "Load More" : "All Loaded"}
+              </button>
+
+              <button
+                class="btn-secondary cloud-warmup-mini-btn"
+                type="button"
+                data-cloud-warmup-action="load-all-details"
+                data-job-id="${escapeHtml(jobId)}"
+                ${loading || !state.hasMore ? "disabled" : ""}
+              >
+                Load All
+              </button>
+
+              <button
+                class="btn-secondary cloud-warmup-mini-btn"
+                type="button"
+                data-cloud-warmup-action="export-details"
+                data-job-id="${escapeHtml(jobId)}"
+              >
+                Export Details
+              </button>
+            </div>
+          </div>
+
+          ${
+            !rows.length
+              ? `<div class="empty">${loading ? "Loading details..." : "No detail rows loaded yet."}</div>`
+              : `
+                <div class="cloud-warmup-details-table-wrap">
+                  <table class="admin-warmup-table cloud-warmup-details-table">
+                    <thead>
+                      <tr>
+                        <th>#</th>
+                        <th>Song</th>
+                        <th>Singer</th>
+                        <th>Status</th>
+                        <th>Results</th>
+                        <th>Top match</th>
+                        <th>Error</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      ${visibleRows.map(row => `
+                        <tr>
+                          <td>${Number(row.row_no || 0)}</td>
+                          <td class="admin-cache-query">${escapeHtml(row.title || "")}</td>
+                          <td>${escapeHtml(row.singer || "")}</td>
+                          <td class="${getCloudWarmupItemStatusClass(row.status)}">${escapeHtml(row.status || "")}</td>
+                          <td>${Number(row.candidate_count || 0)}</td>
+                          <td>${escapeHtml(row.first_title || "")}</td>
+                          <td>${escapeHtml(row.last_error || "")}</td>
+                        </tr>
+                      `).join("")}
+                    </tbody>
+                  </table>
+                </div>
+              `
+          }
+        </div>
+      </td>
+    </tr>
+  `;
+}
+
 function renderAdminWarmupRows() {
   const summary = document.getElementById("adminWarmupSummary");
   const root = document.getElementById("adminWarmupResults");
@@ -16445,59 +17222,112 @@ function renderAdminWarmupRows() {
   if (!summary || !root) return;
 
   const rows = Array.isArray(adminWarmupRows) ? adminWarmupRows : [];
+  const activeJob = getLatestActiveCloudWarmupJob();
+
+  const startBtn = document.getElementById("adminWarmupStartBtn");
+  const pauseBtn = document.getElementById("adminWarmupStopBtn");
+  const cleanBtn = document.getElementById("adminWarmupClearBtn");
+
+  if (startBtn) startBtn.disabled = !!adminWarmupRunning;
+  if (pauseBtn) pauseBtn.disabled = !activeJob || !!adminWarmupRunning;
+  if (cleanBtn) cleanBtn.disabled = !!adminWarmupRunning;
 
   if (!rows.length) {
     summary.textContent = adminWarmupRunning
-      ? "Warmup running..."
-      : "No warmup results yet.";
+      ? "Creating cloud queue..."
+      : "No cloud warmup jobs yet.";
 
-    root.innerHTML = "";
+    root.innerHTML = `<div class="empty">Create a cloud warmup job. Once the queue is created, the app can be closed.</div>`;
     return;
   }
 
-  const okCount = rows.filter(row => row.status === "cached").length;
-  const emptyCount = rows.filter(row => row.status === "no_results").length;
-  const errorCount = rows.filter(row => row.status === "error").length;
+  const latest = rows[0];
+  const activeCount = rows.filter(row => row.status === "pending" || row.status === "running").length;
 
-  summary.textContent = `${rows.length} processed • ${okCount} cached • ${emptyCount} no results • ${errorCount} error(s)`;
+  summary.textContent =
+    `Latest: ${latest?.status || "unknown"} • ${Number(latest?.progress_percent || 0).toFixed(1)}% • ` +
+    `${Number(latest?.total_items || 0)} songs • ${activeCount} active job(s)`;
 
   root.innerHTML = `
-    <table class="admin-warmup-table">
+    <table class="admin-warmup-table cloud-warmup-table">
       <thead>
         <tr>
-          <th>#</th>
-          <th>Query</th>
+          <th>Job</th>
           <th>Status</th>
-          <th>Results</th>
-          <th>Time</th>
-          <th>Top match</th>
+          <th>Progress</th>
+          <th>Counts</th>
+          <th>Created</th>
+          <th>Actions</th>
         </tr>
       </thead>
       <tbody>
-        ${rows.map((row, index) => {
-          const statusClass =
-            row.status === "cached"
-              ? "admin-warmup-status-ok"
-              : row.status === "error"
-                ? "admin-warmup-status-error"
-                : "admin-warmup-status-empty";
+        ${rows.map(row => {
+          const status = String(row.status || "");
+          const created = row.created_at
+            ? new Date(row.created_at).toLocaleString()
+            : "";
 
-          const statusText =
-            row.status === "cached"
-              ? "Cached"
-              : row.status === "error"
-                ? "Error"
-                : "No results";
+          const canPause = status === "pending" || status === "running";
+          const canResume = status === "paused";
+          const canCancel = status === "pending" || status === "running" || status === "paused";
+          const canClean = status === "done" || status === "cancelled" || status === "error";
+
+          const detailsOpen = adminCloudWarmupOpenDetailsJobId === String(row.id);
+
+const actions = [
+  `<button class="btn-secondary cloud-warmup-mini-btn" type="button" data-cloud-warmup-action="toggle-details" data-job-id="${escapeHtml(row.id)}">${detailsOpen ? "Hide Details" : "Details"}</button>`,
+
+  canPause
+    ? `<button class="btn-secondary cloud-warmup-mini-btn" type="button" data-cloud-warmup-action="pause" data-job-id="${escapeHtml(row.id)}">Pause</button>`
+    : "",
+
+  canResume
+    ? `<button class="btn-secondary cloud-warmup-mini-btn" type="button" data-cloud-warmup-action="resume" data-job-id="${escapeHtml(row.id)}">Resume</button>`
+    : "",
+
+  canCancel
+    ? `<button class="btn-secondary cloud-warmup-mini-btn" type="button" data-cloud-warmup-action="cancel" data-job-id="${escapeHtml(row.id)}">Cancel</button>`
+    : "",
+
+  canClean
+    ? `<button class="btn-danger cloud-warmup-mini-btn" type="button" data-cloud-warmup-action="clean" data-job-id="${escapeHtml(row.id)}">Clean</button>`
+    : ""
+].filter(Boolean).join("");
 
           return `
             <tr>
-              <td>${index + 1}</td>
-              <td>${escapeHtml(row.query || "")}</td>
-              <td class="${statusClass}">${escapeHtml(statusText)}</td>
-              <td>${Number(row.count || 0)}</td>
-              <td>${Number(row.ms || 0)}ms</td>
-              <td>${escapeHtml(row.first || row.error || "")}</td>
-            </tr>
+              <td>
+                <div class="admin-cache-query">${escapeHtml(row.title || "Cloud Warmup")}</div>
+                <div class="admin-cache-muted">${escapeHtml(row.id || "")}</div>
+              </td>
+
+              <td class="${getCloudWarmupStatusClass(status)}">
+                ${escapeHtml(status || "unknown")}
+              </td>
+
+              <td>
+                ${renderCloudWarmupProgressBar(row.progress_percent)}
+              </td>
+
+              <td>
+                <div><strong>${Number(row.total_items || 0)}</strong> total</div>
+                <div class="admin-cache-muted">
+                  ${Number(row.cached_count || 0)} cached •
+                  ${Number(row.no_result_count || 0)} no result •
+                  ${Number(row.error_count || 0)} error •
+                  ${Number(row.pending_count || 0)} pending
+                </div>
+              </td>
+
+              <td>${escapeHtml(created)}</td>
+
+              <td>
+                <div class="cloud-warmup-actions">
+                  ${actions || `<span class="admin-cache-muted">No action</span>`}
+                </div>
+              </td>
+                       </tr>
+            ${detailsOpen ? renderCloudWarmupDetailsPanel(row.id) : ""}
           `;
         }).join("")}
       </tbody>
@@ -16505,171 +17335,474 @@ function renderAdminWarmupRows() {
   `;
 }
 
-async function warmSingleAdminQuery(query, options = {}) {
-  const started = performance.now();
+async function loadAdminCloudWarmupProgress(showLoading = false) {
+  if (!isAdmin()) return;
 
-  const candidates = await lookupLrclibDirect({
-    query,
-    title: query,
-    limit: 6,
-    deep: true,
-    forceRefresh: !!options.forceRefresh
-  });
-
-  const safeCandidates = sanitizeOnlineCacheCandidates(candidates);
-  const count = safeCandidates.length;
-
-  if (count > 0) {
-    await saveOnlineSongSupabaseCache(query, safeCandidates);
+  if (showLoading) {
+    setAdminWarmupStatus("Loading cloud warmup progress...", "info");
   }
 
-  return {
-    query,
-    count,
-    ms: Math.round(performance.now() - started),
-    first: safeCandidates?.[0]?.title || null,
-    status: count > 0 ? "cached" : "no_results"
-  };
+  try {
+    const { data, error } = await supabaseClient
+      .from("cloud_warmup_job_progress")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(10);
+
+    if (error) throw error;
+
+    adminWarmupRows = Array.isArray(data) ? data : [];
+    renderAdminWarmupRows();
+
+    if (showLoading) {
+      setAdminWarmupStatus(`${adminWarmupRows.length} cloud warmup job(s) loaded.`, "success");
+    }
+  } catch (error) {
+    console.error("LOAD CLOUD WARMUP PROGRESS ERROR:", error);
+    setAdminWarmupStatus(`Could not load cloud warmup progress: ${error?.message || error}`, "error");
+  }
+}
+
+function startAdminCloudWarmupAutoRefresh() {
+  if (adminCloudWarmupAutoRefreshTimer) return;
+
+  adminCloudWarmupAutoRefreshTimer = setInterval(() => {
+    if (adminUsersActiveSubtab === "warmup") {
+      loadAdminCloudWarmupProgress(false);
+    }
+  }, 15000);
+}
+
+function stopAdminCloudWarmupAutoRefresh() {
+  if (!adminCloudWarmupAutoRefreshTimer) return;
+
+  clearInterval(adminCloudWarmupAutoRefreshTimer);
+  adminCloudWarmupAutoRefreshTimer = null;
 }
 
 async function startAdminCacheWarmup() {
   if (!isAdmin()) {
-    setAdminWarmupStatus("Only admins can warm cache.", "error");
+    setAdminWarmupStatus("Only admins can create cloud warmup jobs.", "error");
     return;
   }
 
   if (adminWarmupRunning) {
-    setAdminWarmupStatus("Warmup is already running.", "warn");
+    setAdminWarmupStatus("Cloud queue creation is already running.", "warn");
     return;
   }
 
-  const queries = parseAdminWarmupQueries();
+  const items = parseAdminWarmupQueries();
 
-  if (!queries.length) {
+  if (!items.length) {
     setAdminWarmupStatus("Paste at least one song title.", "warn");
     return;
   }
 
-  const forceRefresh = !!document.getElementById("adminWarmupForceRefresh")?.checked;
-
-  const delayMs = Math.max(
-    500,
-    Math.min(Number(document.getElementById("adminWarmupDelayMs")?.value || 1200), 10000)
-  );
-
-  const parallelCount = Math.max(
-    1,
-    Math.min(Number(document.getElementById("adminWarmupParallelCount")?.value || 3), 5)
-  );
-
-  adminWarmupRows = [];
-  adminWarmupRunning = true;
-  adminWarmupStopRequested = false;
-
-  document.getElementById("adminWarmupStartBtn").disabled = true;
-  document.getElementById("adminWarmupStopBtn").disabled = false;
-
-  setAdminWarmupStatus(
-    `Starting warmup for ${queries.length} song(s), ${parallelCount} at a time...`,
-    "info"
-  );
-
-  renderAdminWarmupRows();
-
-  let processed = 0;
-
-  for (let batchStart = 0; batchStart < queries.length; batchStart += parallelCount) {
-    if (adminWarmupStopRequested) {
-      setAdminWarmupStatus(`Stopped after ${adminWarmupRows.length}/${queries.length} song(s).`, "warn");
-      break;
-    }
-
-    const batch = queries.slice(batchStart, batchStart + parallelCount);
-
-    setAdminWarmupStatus(
-      `Warming ${batchStart + 1}-${batchStart + batch.length}/${queries.length}: ${batch.join(", ")}`,
-      "info"
-    );
-
-    const batchResults = await Promise.allSettled(
-      batch.map(async query => {
-        const row = await warmSingleAdminQuery(query, { forceRefresh });
-        return row;
-      })
-    );
-
-    for (let index = 0; index < batchResults.length; index++) {
-      const result = batchResults[index];
-      const query = batch[index];
-
-      processed++;
-
-      if (result.status === "fulfilled") {
-        adminWarmupRows.push(result.value);
-      } else {
-        adminWarmupRows.push({
-          query,
-          count: 0,
-          ms: 0,
-          first: null,
-          status: "error",
-          error: String(result.reason?.message || result.reason || "Unknown error")
-        });
-      }
-    }
-
-    renderAdminWarmupRows();
-
-    if (adminWarmupStopRequested) {
-      setAdminWarmupStatus(`Stopped after ${adminWarmupRows.length}/${queries.length} song(s).`, "warn");
-      break;
-    }
-
-    if (batchStart + parallelCount < queries.length) {
-      setAdminWarmupStatus(
-        `Processed ${processed}/${queries.length}. Waiting ${delayMs}ms before next batch...`,
-        "info"
-      );
-
-      await new Promise(resolve => setTimeout(resolve, delayMs));
-    }
-  }
-
-  adminWarmupRunning = false;
-  adminWarmupStopRequested = false;
-
-  document.getElementById("adminWarmupStartBtn").disabled = false;
-  document.getElementById("adminWarmupStopBtn").disabled = true;
-
-  const okCount = adminWarmupRows.filter(row => row.status === "cached").length;
-  const emptyCount = adminWarmupRows.filter(row => row.status === "no_results").length;
-  const errorCount = adminWarmupRows.filter(row => row.status === "error").length;
-
-  setAdminWarmupStatus(
-    `Warmup finished. ${okCount} cached, ${emptyCount} no result(s), ${errorCount} error(s).`,
-    errorCount ? "warn" : "success"
-  );
-
-  renderAdminWarmupRows();
-  loadOnlineCacheDashboard();
-}
-
-function stopAdminCacheWarmup() {
-  if (!adminWarmupRunning) return;
-
-  adminWarmupStopRequested = true;
-  setAdminWarmupStatus("Stopping after the current song finishes...", "warn");
-}
-
-function clearAdminWarmupResults() {
-  if (adminWarmupRunning) {
-    setAdminWarmupStatus("Stop the running warmup before clearing results.", "warn");
+  if (items.length > 12000) {
+    setAdminWarmupStatus("Too many titles in one job. Keep it around 10K or less.", "warn");
     return;
   }
 
-  adminWarmupRows = [];
-  setAdminWarmupStatus("");
+  const activeJob = getLatestActiveCloudWarmupJob();
+
+  if (activeJob) {
+    const confirmed = confirm(
+      `There is already an active cloud warmup job:\n\n${activeJob.title || activeJob.id}\n\nCreate another job anyway?`
+    );
+
+    if (!confirmed) return;
+  }
+
+  if (items.length > 500) {
+    const confirmed = confirm(
+      `Create a cloud warmup queue with ${items.length} song(s)?\n\nAfter the queue is created, you can close the app. Cloudflare Cron will process it in the background.`
+    );
+
+    if (!confirmed) return;
+  }
+
+  const forceRefresh = !!document.getElementById("adminWarmupForceRefresh")?.checked;
+
+  adminWarmupRunning = true;
   renderAdminWarmupRows();
+
+  const startBtn = document.getElementById("adminWarmupStartBtn");
+  if (startBtn) startBtn.disabled = true;
+
+  let createdJob = null;
+
+  try {
+    const { data: userData } = await supabaseClient.auth.getUser();
+    const userId = userData?.user?.id || null;
+
+    const jobTitle = `Cloud Warmup - ${items.length} Songs - ${new Date().toLocaleString()}`;
+
+    setAdminWarmupStatus(`Creating cloud job for ${items.length} song(s)...`, "info");
+
+    const { data: job, error: jobError } = await supabaseClient
+      .from("cloud_warmup_jobs")
+      .insert({
+        title: jobTitle,
+        status: "pending",
+        created_by: userId,
+        result_limit: 6,
+        deep: true,
+        force_refresh: forceRefresh,
+        worker_url: CLOUD_WARMUP_WORKER_SEARCH_URL
+      })
+      .select("id, title")
+      .single();
+
+    if (jobError) throw jobError;
+
+    createdJob = job;
+
+    const rows = items.map((item, index) => ({
+      job_id: job.id,
+      row_no: index + 1,
+      title: item.title,
+      singer: item.singer || ""
+    }));
+
+    for (let start = 0; start < rows.length; start += CLOUD_WARMUP_INSERT_CHUNK_SIZE) {
+      const chunk = rows.slice(start, start + CLOUD_WARMUP_INSERT_CHUNK_SIZE);
+
+      setAdminWarmupStatus(
+        `Creating queue rows ${start + 1}-${start + chunk.length}/${rows.length}...`,
+        "info"
+      );
+
+      const { error: itemError } = await supabaseClient
+        .from("cloud_warmup_items")
+        .insert(chunk);
+
+      if (itemError) throw itemError;
+    }
+
+    setAdminWarmupStatus(
+      `Cloud warmup queue created: ${items.length} song(s). You can close the app now. Progress will continue in the cloud.`,
+      "success"
+    );
+
+    await loadAdminCloudWarmupProgress(false);
+  } catch (error) {
+    console.error("CREATE CLOUD WARMUP ERROR:", error);
+
+    if (createdJob?.id) {
+      await supabaseClient
+        .from("cloud_warmup_jobs")
+        .update({
+          status: "error",
+          last_error: String(error?.message || error || "Queue creation failed.").slice(0, 500),
+          updated_at: new Date().toISOString()
+        })
+        .eq("id", createdJob.id);
+    }
+
+    setAdminWarmupStatus(`Cloud warmup creation failed: ${error?.message || error}`, "error");
+    await loadAdminCloudWarmupProgress(false);
+  } finally {
+    adminWarmupRunning = false;
+
+    if (startBtn) startBtn.disabled = false;
+
+    renderAdminWarmupRows();
+  }
+}
+
+async function updateCloudWarmupJobStatus(jobId, status) {
+  if (!isAdmin()) return;
+
+  const safeJobId = String(jobId || "").trim();
+
+  if (!safeJobId) {
+    setAdminWarmupStatus("Missing cloud warmup job ID.", "error");
+    return;
+  }
+
+  const { error } = await supabaseClient.rpc("set_cloud_warmup_job_status", {
+    p_job_id: safeJobId,
+    p_status: status
+  });
+
+  if (error) throw error;
+
+  await loadAdminCloudWarmupProgress(false);
+}
+
+async function cleanCloudWarmupJob(jobId) {
+  if (!isAdmin()) return;
+
+  const safeJobId = String(jobId || "").trim();
+
+  if (!safeJobId) {
+    setAdminWarmupStatus("Missing cloud warmup job ID.", "error");
+    return;
+  }
+
+  const { error } = await supabaseClient.rpc("clean_cloud_warmup_job", {
+    p_job_id: safeJobId
+  });
+
+  if (error) throw error;
+
+  await loadAdminCloudWarmupProgress(false);
+}
+
+async function stopAdminCacheWarmup() {
+  const activeJob = getLatestActiveCloudWarmupJob();
+
+  if (!activeJob) {
+    setAdminWarmupStatus("No active cloud warmup job to pause.", "warn");
+    return;
+  }
+
+  try {
+    await updateCloudWarmupJobStatus(activeJob.id, "paused");
+    setAdminWarmupStatus("Cloud warmup paused. Current in-flight batch may finish first.", "success");
+  } catch (error) {
+    setAdminWarmupStatus(`Could not pause cloud warmup: ${error?.message || error}`, "error");
+  }
+}
+
+async function clearAdminWarmupResults() {
+  const rows = Array.isArray(adminWarmupRows) ? adminWarmupRows : [];
+
+  const cleanable = rows.filter(row =>
+    row.status === "done" ||
+    row.status === "cancelled" ||
+    row.status === "error"
+  );
+
+  if (!cleanable.length) {
+    setAdminWarmupStatus("No finished/cancelled/error cloud jobs to clean.", "warn");
+    return;
+  }
+
+  const confirmed = confirm(
+    `Clean ${cleanable.length} finished/cancelled/error cloud warmup job(s)?\n\nThis deletes queue/progress rows only. Cached lyrics stay in online_song_cache.`
+  );
+
+  if (!confirmed) return;
+
+  try {
+    for (const job of cleanable) {
+      await cleanCloudWarmupJob(job.id);
+    }
+
+    setAdminWarmupStatus("Cleaned finished cloud warmup job(s).", "success");
+    await loadAdminCloudWarmupProgress(false);
+  } catch (error) {
+    setAdminWarmupStatus(`Could not clean cloud warmup jobs: ${error?.message || error}`, "error");
+  }
+}
+
+async function loadCloudWarmupJobDetails(jobId, mode = "next") {
+  if (!isAdmin()) return;
+
+  const safeJobId = String(jobId || "").trim();
+
+  if (!safeJobId) return;
+
+  const state = getCloudWarmupDetailState(safeJobId);
+
+  if (mode === "reset") {
+    state.rows = [];
+    state.loaded = 0;
+    state.total = null;
+    state.hasMore = true;
+  }
+
+  if (!state.hasMore && mode !== "all") return;
+
+  adminCloudWarmupDetailsLoadingJobId = safeJobId;
+  renderAdminWarmupRows();
+
+  try {
+    let keepGoing = true;
+
+    while (keepGoing) {
+      const from = state.rows.length;
+      const to = from + CLOUD_WARMUP_DETAILS_PAGE_SIZE - 1;
+
+      const { data, error, count } = await supabaseClient
+        .from("cloud_warmup_items")
+        .select(
+          "id, job_id, row_no, title, singer, status, candidate_count, source, first_title, last_error, attempt_count, updated_at, finished_at",
+          { count: "exact" }
+        )
+        .eq("job_id", safeJobId)
+        .order("row_no", { ascending: true })
+        .range(from, to);
+
+      if (error) throw error;
+
+      const newRows = Array.isArray(data) ? data : [];
+
+      state.total = Number(count || state.total || 0);
+      state.rows.push(...newRows);
+      state.loaded = state.rows.length;
+      state.hasMore = state.total ? state.rows.length < state.total : newRows.length === CLOUD_WARMUP_DETAILS_PAGE_SIZE;
+
+      if (mode !== "all") {
+        keepGoing = false;
+      } else {
+        keepGoing = state.hasMore && newRows.length > 0;
+
+        /*
+          Small pause so the browser stays responsive while loading thousands of rows.
+        */
+        if (keepGoing) {
+          await new Promise(resolve => setTimeout(resolve, 40));
+        }
+      }
+    }
+  } catch (error) {
+    console.error("LOAD CLOUD WARMUP DETAILS ERROR:", error);
+    setAdminWarmupStatus(`Could not load job details: ${error?.message || error}`, "error");
+  } finally {
+    adminCloudWarmupDetailsLoadingJobId = null;
+    renderAdminWarmupRows();
+  }
+}
+
+async function exportCloudWarmupJobDetailsCsv(jobId) {
+  const safeJobId = String(jobId || "").trim();
+
+  if (!safeJobId) return;
+
+  const state = getCloudWarmupDetailState(safeJobId);
+
+  if (state.hasMore) {
+    await loadCloudWarmupJobDetails(safeJobId, "all");
+  }
+
+  const rows = getCloudWarmupDetailState(safeJobId).rows || [];
+
+  const header = [
+    "row_no",
+    "title",
+    "singer",
+    "status",
+    "candidate_count",
+    "source",
+    "first_title",
+    "last_error",
+    "attempt_count",
+    "updated_at",
+    "finished_at"
+  ];
+
+  const csvRows = rows.map(row => [
+    Number(row.row_no || 0),
+    row.title || "",
+    row.singer || "",
+    row.status || "",
+    Number(row.candidate_count || 0),
+    row.source || "",
+    row.first_title || "",
+    row.last_error || "",
+    Number(row.attempt_count || 0),
+    row.updated_at || "",
+    row.finished_at || ""
+  ]);
+
+  const csv = [header, ...csvRows]
+    .map(cols => cols.map(value => `"${String(value).replace(/"/g, '""')}"`).join(","))
+    .join("\n");
+
+  downloadAdminTextFile(`mehfil-cloud-warmup-details-${safeJobId}.csv`, csv, "text/csv;charset=utf-8");
+}
+
+async function handleCloudWarmupResultClick(event) {
+  const control = event.target.closest("[data-cloud-warmup-action][data-job-id]");
+if (!control) return;
+
+const action = control.dataset.cloudWarmupAction;
+const jobId = control.dataset.jobId;
+
+  try {
+    if (action === "toggle-details") {
+  if (adminCloudWarmupOpenDetailsJobId === String(jobId)) {
+    adminCloudWarmupOpenDetailsJobId = null;
+    renderAdminWarmupRows();
+    return;
+  }
+
+  adminCloudWarmupOpenDetailsJobId = String(jobId);
+  renderAdminWarmupRows();
+
+  const state = getCloudWarmupDetailState(jobId);
+
+  if (!state.rows.length) {
+    await loadCloudWarmupJobDetails(jobId, "reset");
+  }
+
+  return;
+}
+
+if (action === "load-more-details") {
+  await loadCloudWarmupJobDetails(jobId, "next");
+  return;
+}
+
+if (action === "load-all-details") {
+  const confirmed = confirm(
+    "Load all detail rows into the page?\n\nFor a 10K warmup this is okay on laptop, but it may take a few seconds."
+  );
+
+  if (!confirmed) return;
+
+  await loadCloudWarmupJobDetails(jobId, "all");
+  return;
+}
+
+if (action === "export-details") {
+  await exportCloudWarmupJobDetailsCsv(jobId);
+  return;
+}
+
+if (action === "filter-details") {
+  const state = getCloudWarmupDetailState(jobId);
+  state.filter = control.value || "all";
+  renderAdminWarmupRows();
+  return;
+}
+
+    if (action === "pause") {
+      await updateCloudWarmupJobStatus(jobId, "paused");
+      setAdminWarmupStatus("Cloud warmup paused. Current in-flight batch may finish first.", "success");
+      return;
+    }
+
+    if (action === "resume") {
+      await updateCloudWarmupJobStatus(jobId, "pending");
+      setAdminWarmupStatus("Cloud warmup resumed.", "success");
+      return;
+    }
+
+    if (action === "cancel") {
+      const confirmed = confirm("Cancel this cloud warmup job? Current in-flight batch may finish first.");
+      if (!confirmed) return;
+
+      await updateCloudWarmupJobStatus(jobId, "cancelled");
+      setAdminWarmupStatus("Cloud warmup cancelled.", "success");
+      return;
+    }
+
+    if (action === "clean") {
+      const confirmed = confirm(
+        "Clean this cloud warmup queue?\n\nThis deletes queue/progress rows only. Cached lyrics stay in online_song_cache."
+      );
+
+      if (!confirmed) return;
+
+      await cleanCloudWarmupJob(jobId);
+      setAdminWarmupStatus("Cloud warmup queue cleaned.", "success");
+    }
+  } catch (error) {
+    setAdminWarmupStatus(`Cloud warmup action failed: ${error?.message || error}`, "error");
+  }
 }
 
 function downloadAdminTextFile(filename, content, mimeType = "text/plain;charset=utf-8") {
@@ -16693,69 +17826,95 @@ function parseWarmupCsvText(text) {
 
   if (!raw) return [];
 
-  return Array.from(
-    new Set(
-      raw
-        .split(/\r?\n/)
-        .map(line => line.trim())
-        .filter(Boolean)
-        .map(line => {
-          // Simple CSV support: use first column only.
-          // Accepts:
-          // query
-          // "query"
-          // query,notes
-          const firstColumn = line.split(",")[0] || "";
-          return firstColumn
-            .replace(/^"|"$/g, "")
-            .trim();
-        })
-        .filter(value => value.length >= 3)
-        .filter(value => !/^query$/i.test(value))
-    )
-  );
+  const rows = [];
+  const seen = new Set();
+
+  raw
+    .split(/\r?\n/)
+    .map(line => line.trim())
+    .filter(Boolean)
+    .forEach((line, index) => {
+      if (index === 0 && /^title\s*,/i.test(line)) return;
+      if (/^query$/i.test(line)) return;
+
+      const cols = line
+        .split(",")
+        .map(value => value.replace(/^"|"$/g, "").replace(/""/g, '"').trim());
+
+      const title = String(cols[0] || "").trim();
+      const singer = String(cols[1] || "").trim();
+
+      if (title.length < 2) return;
+
+      const display = singer ? `${title} | ${singer}` : title;
+      const key = display.toLowerCase().replace(/\s+/g, " ").trim();
+
+      if (!key || seen.has(key)) return;
+
+      seen.add(key);
+      rows.push(display);
+    });
+
+  return rows;
 }
 
 function exportAdminWarmupTemplateCsv() {
   const csv = [
-    "query",
-    "kajra re",
-    "o rangrez",
-    "aaoge jab tum",
-    "tum hi ho",
-    "channa mereya",
-    "agar tum saath ho"
+    "title,singer",
+    "Tum Hi Ho,Arijit Singh",
+    "Aao Karle Aisa Wada,",
+    "O Rangrez,",
+    "Aaoge Jab Tum,",
+    "Channa Mereya,Arijit Singh"
   ].join("\n");
 
-  downloadAdminTextFile("mehfil-cache-warmup-template.csv", csv, "text/csv;charset=utf-8");
+  downloadAdminTextFile("mehfil-cloud-warmup-template.csv", csv, "text/csv;charset=utf-8");
 }
 
 function exportAdminWarmupResultsCsv() {
   const rows = Array.isArray(adminWarmupRows) ? adminWarmupRows : [];
 
   const header = [
-    "query",
+    "job_id",
+    "title",
     "status",
-    "count",
-    "ms",
-    "top_match",
-    "error"
+    "total_items",
+    "pending_count",
+    "running_count",
+    "cached_count",
+    "no_result_count",
+    "error_count",
+    "skipped_count",
+    "progress_percent",
+    "created_at",
+    "updated_at",
+    "finished_at",
+    "last_error"
   ];
 
   const csvRows = rows.map(row => [
-    row.query || "",
+    row.id || "",
+    row.title || "",
     row.status || "",
-    Number(row.count || 0),
-    Number(row.ms || 0),
-    row.first || "",
-    row.error || ""
+    Number(row.total_items || 0),
+    Number(row.pending_count || 0),
+    Number(row.running_count || 0),
+    Number(row.cached_count || 0),
+    Number(row.no_result_count || 0),
+    Number(row.error_count || 0),
+    Number(row.skipped_count || 0),
+    Number(row.progress_percent || 0),
+    row.created_at || "",
+    row.updated_at || "",
+    row.finished_at || "",
+    row.last_error || ""
   ]);
 
   const csv = [header, ...csvRows]
     .map(cols => cols.map(value => `"${String(value).replace(/"/g, '""')}"`).join(","))
     .join("\n");
 
-  downloadAdminTextFile("mehfil-cache-warmup-results.csv", csv, "text/csv;charset=utf-8");
+  downloadAdminTextFile("mehfil-cloud-warmup-progress.csv", csv, "text/csv;charset=utf-8");
 }
 
 async function handleAdminWarmupCsvImport(event) {
@@ -16765,21 +17924,21 @@ async function handleAdminWarmupCsvImport(event) {
 
   try {
     const text = await file.text();
-    const queries = parseWarmupCsvText(text);
+    const importedLines = parseWarmupCsvText(text);
 
-    if (!queries.length) {
+    if (!importedLines.length) {
       setAdminWarmupStatus("CSV did not contain any valid song titles.", "warn");
       return;
     }
 
     const input = document.getElementById("adminWarmupInput");
-    const existing = parseAdminWarmupQueries();
+    const existingLines = parseAdminWarmupQueries().map(warmupItemToLine);
 
-    const merged = Array.from(new Set([...existing, ...queries]));
+    const merged = Array.from(new Set([...existingLines, ...importedLines]));
 
     input.value = merged.join("\n");
 
-    setAdminWarmupStatus(`Imported ${queries.length} song(s) from CSV. Total list: ${merged.length}.`, "success");
+    setAdminWarmupStatus(`Imported ${importedLines.length} song(s) from CSV. Total list: ${merged.length}.`, "success");
   } catch (error) {
     setAdminWarmupStatus(`CSV import failed: ${error?.message || error}`, "error");
   } finally {
@@ -17369,6 +18528,8 @@ async function deleteRegisteredUserAccountData(userId, email) {
 
   if (!query.trim()) {
   if (!libraryReadyForIdleSuggestion) {
+    if (isStartupIdleCardProtected()) return;
+
     renderInstantIdlePanel();
     return;
   }
@@ -17616,6 +18777,60 @@ function renderLibraryViewsIfVisible() {
   if (isTabCurrentlyVisible("favoritesTab")) {
     renderFavoritesIfNeeded();
   }
+}
+
+function openFastReturnSnapshotSong(songId) {
+  const snapshot = fastReturnIdleSuggestionSnapshot;
+
+  if (!snapshot || Number(snapshot.id) !== Number(songId)) {
+    return false;
+  }
+
+  const lyrics = cleanLyricsText(snapshot.lyrics || "");
+
+  if (!lyrics) {
+    return false;
+  }
+
+  openModalKind = "local";
+  openOnlineCandidateData = null;
+  openSongId = Number(snapshot.id);
+
+  document.getElementById("modalSaveBtn").classList.add("hidden");
+  setSaveButtonHighlight(false);
+
+  document.getElementById("modalTitle").textContent = snapshot.title || "";
+  document.getElementById("modalMeta").textContent = joinMeta([snapshot.movie, snapshot.singer]);
+
+  const modalExtraMeta = document.getElementById("modalExtraMeta");
+  const extraLines = [];
+
+  if (snapshot.original_key) {
+    extraLines.push(`<div><strong>Original Key:</strong> ${escapeHtml(snapshot.original_key)}</div>`);
+  }
+
+  if (snapshot.chord) {
+    extraLines.push(`<div><strong>Chord:</strong> ${escapeHtml(snapshot.chord)}</div>`);
+  }
+
+  extraLines.push(`<div><strong>Fast open:</strong> Library is refreshing quietly. Full actions return once the library is ready.</div>`);
+
+  modalExtraMeta.innerHTML = extraLines.join("");
+  modalExtraMeta.classList.remove("hidden");
+
+  document.getElementById("modalLyrics").innerHTML = escapeHtml(lyrics);
+
+  const modalBookmarkBtn = document.getElementById("modalBookmarkBtn");
+  modalBookmarkBtn.classList.add("hidden");
+
+  document.getElementById("modalShareNowBtn").classList.add("hidden");
+  document.getElementById("modalEditBtn").classList.add("hidden");
+  document.getElementById("modalDeleteBtn").classList.add("hidden");
+
+  document.getElementById("songModal").classList.add("show");
+  document.body.style.overflow = "hidden";
+
+  return true;
 }
 
     function openSong(songId) {
@@ -18519,18 +19734,18 @@ function paintFastReturnShell() {
   pendingLiveEventByMe = false;
 
   renderScreens();
-  renderAppShell();
-  activateTab("search");
+renderAppShell();
+activateTab("search");
 
-  if (snapshot.idleSuggestion?.id) {
-    renderFastReturnIdleSuggestion(snapshot.idleSuggestion);
-  } else {
-    renderInstantIdlePanel();
-  }
+const startupIdleSnapshot = readFastReturnIdleSuggestionSnapshot();
 
-  updateHeaderAccessAndCount();
-  updateLiveMiniButton();
-  showStatus("appStatus", "", "info");
+if (startupIdleSnapshot?.id) {
+  renderFastReturnIdleSuggestion(startupIdleSnapshot);
+} else {
+  renderInstantIdlePanel();
+}
+
+showStatus("appStatus", "", "info");
 
   return true;
 }
@@ -18769,6 +19984,17 @@ document.getElementById("adminWarmupSubtabBtn").addEventListener("click", () => 
 document.getElementById("adminWarmupStartBtn").addEventListener("click", startAdminCacheWarmup);
 document.getElementById("adminWarmupStopBtn").addEventListener("click", stopAdminCacheWarmup);
 document.getElementById("adminWarmupClearBtn").addEventListener("click", clearAdminWarmupResults);
+
+const adminCloudWarmupRefreshBtn = document.getElementById("adminCloudWarmupRefreshBtn");
+if (adminCloudWarmupRefreshBtn) {
+  adminCloudWarmupRefreshBtn.addEventListener("click", () => loadAdminCloudWarmupProgress(true));
+}
+
+const adminWarmupResultsRoot = document.getElementById("adminWarmupResults");
+if (adminWarmupResultsRoot) {
+  adminWarmupResultsRoot.addEventListener("click", handleCloudWarmupResultClick);
+}
+
 document.getElementById("adminWarmupImportCsvBtn").addEventListener("click", () => {
   document.getElementById("adminWarmupCsvInput").click();
 });
@@ -18820,8 +20046,9 @@ if (mehfilRegularsPanel) {
 
     document.getElementById("searchInput").addEventListener("input", (e) => {
   const nextValue = e.target.value;
-  lastQuery = nextValue;
-      clearSearchOnlineUi();
+lastQuery = nextValue;
+    clearSearchOnlineUi();
+    unlockOnlineSearchButton();
 
   if (searchInputTimer) {
     clearTimeout(searchInputTimer);
@@ -18900,7 +20127,16 @@ deepSearchTimer = setTimeout(() => {
         }
 
         const card = e.target.closest("[data-song-id]");
-        if (card) openSong(Number(card.dataset.songId));
+if (card) {
+  const songId = Number(card.dataset.songId);
+  const librarySongReady = preparedSongs.some(song => Number(song.id) === songId);
+
+  if (librarySongReady) {
+    openSong(songId);
+  } else {
+    openFastReturnSnapshotSong(songId);
+  }
+}
       });
 
       document.getElementById("songGroups").addEventListener("click", async (e) => {
