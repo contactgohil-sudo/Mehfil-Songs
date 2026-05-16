@@ -7863,6 +7863,488 @@ body.song-modal-open {
   }
 }
 
+/* =========================================================
+   SONGS MINI TABS — PATCH
+   ========================================================= */
+
+#listTab .songs-subtab-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin: -44px 0 20px auto;
+  min-height: 38px;
+}
+
+#listTab .songs-subtab-btn {
+  min-height: 38px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid #e1e6ee;
+  background: #ffffff;
+  color: #667085;
+  font-size: 13px;
+  line-height: 1;
+  font-weight: 900;
+  cursor: pointer;
+  box-shadow:
+    0 4px 12px rgba(15, 23, 42, 0.035),
+    0 1px 2px rgba(15, 23, 42, 0.025);
+}
+
+#listTab .songs-subtab-btn.active {
+  border-color: #111827;
+  background: #111827;
+  color: #ffffff;
+}
+
+@media (max-width: 640px) {
+  #listTab .songs-subtab-row {
+    justify-content: stretch;
+    margin: 12px 0 14px;
+  }
+
+  #listTab .songs-subtab-btn {
+    flex: 1;
+    padding: 9px 10px;
+    font-size: 12px;
+  }
+}
+
+/* =========================================================
+   MEHFIL REGULARS — PATCH
+   Shows songs repeatedly put live in the last 90 days.
+   ========================================================= */
+
+#listTab .mehfil-regulars-panel {
+  margin: 0;
+  padding: 15px;
+  border-radius: 22px;
+  border: 1px solid #e1e6ee;
+  background:
+    radial-gradient(circle at top right, rgba(216, 181, 109, 0.12), transparent 190px),
+    linear-gradient(180deg, #ffffff 0%, #fbfcfd 100%);
+  box-shadow:
+    0 10px 26px rgba(15, 23, 42, 0.055),
+    0 1px 2px rgba(15, 23, 42, 0.025);
+}
+
+#listTab .mehfil-regulars-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 11px;
+  margin-bottom: 11px;
+  border-bottom: 1px solid #edf0f4;
+}
+
+#listTab .mehfil-regulars-title {
+  color: #111827;
+  font-size: 21px;
+  line-height: 1.08;
+  letter-spacing: -0.04em;
+  font-weight: 950;
+}
+
+#listTab .mehfil-regulars-subtitle {
+  margin-top: 4px;
+  color: #667085;
+  font-size: 12px;
+  line-height: 1.35;
+  font-weight: 700;
+}
+
+#listTab .mehfil-regulars-list {
+  display: grid;
+  gap: 9px;
+}
+
+#listTab .mehfil-regular-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 11px;
+  min-height: 66px;
+  padding: 11px 12px;
+  border-radius: 18px;
+  border: 1px solid #e1e6ee;
+  background: #ffffff;
+  cursor: pointer;
+  box-shadow:
+    0 6px 16px rgba(15, 23, 42, 0.04),
+    0 1px 2px rgba(15, 23, 42, 0.02);
+}
+
+#listTab .mehfil-regular-row:hover {
+  border-color: #cfd6e2;
+  box-shadow:
+    0 10px 22px rgba(15, 23, 42, 0.06),
+    0 0 0 4px rgba(17, 24, 39, 0.025);
+}
+
+#listTab .mehfil-regular-rank {
+  min-width: 42px;
+  height: 28px;
+  padding: 0 9px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #f8f1df;
+  border: 1px solid #ead7a8;
+  color: #795719;
+  font-size: 12px;
+  line-height: 1;
+  font-weight: 950;
+}
+
+#listTab .mehfil-regular-title {
+  color: #111827;
+  font-size: 16px;
+  line-height: 1.18;
+  font-weight: 950;
+  letter-spacing: -0.02em;
+}
+
+#listTab .mehfil-regular-meta {
+  margin-top: 4px;
+  color: #667085;
+  font-size: 12px;
+  line-height: 1.35;
+  font-weight: 700;
+}
+
+#listTab .mehfil-regular-count {
+  margin-top: 5px;
+  color: #795719;
+  font-size: 12px;
+  line-height: 1.2;
+  font-weight: 950;
+}
+
+#listTab .mehfil-regular-actions {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+#listTab .mehfil-regular-open {
+  width: 34px;
+  min-width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  border: 1px solid #111827;
+  background: #111827;
+  color: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  font-weight: 950;
+}
+
+#listTab .mehfil-regular-remove {
+  min-height: 34px;
+  padding: 7px 10px;
+  border-radius: 13px;
+  border: 1px solid #fecaca;
+  background: #fff7f7;
+  color: #b91c1c;
+  font-size: 12px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+@media (max-width: 640px) {
+  #listTab .mehfil-regulars-panel {
+    padding: 13px;
+    border-radius: 21px;
+  }
+
+  #listTab .mehfil-regulars-title {
+    font-size: 20px;
+  }
+
+  #listTab .mehfil-regular-row {
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 10px;
+    padding: 11px;
+  }
+
+  #listTab .mehfil-regular-actions {
+    grid-column: 1 / -1;
+    justify-content: flex-end;
+  }
+
+  #listTab .mehfil-regular-title {
+    font-size: 15px;
+  }
+
+  #listTab .mehfil-regular-remove {
+    min-height: 32px;
+  }
+}
+
+/* =========================================================
+   SONGS SUBTAB CLEAN LAYOUT — PATCH
+   Hides old Songs heading and keeps Sort/Group only under Full Library.
+   ========================================================= */
+
+#listTab .songs-old-heading-hidden {
+  display: none !important;
+}
+
+#listTab .songs-subtab-row {
+  width: 100% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: stretch !important;
+  gap: 10px !important;
+  margin: 0 0 14px !important;
+  min-height: auto !important;
+}
+
+#listTab .songs-subtab-btn {
+  flex: 1 !important;
+  min-height: 48px !important;
+  padding: 12px 14px !important;
+  border-radius: 999px !important;
+  font-size: 15px !important;
+}
+
+#listTab #fullLibraryTools {
+  margin: 0 0 16px !important;
+}
+
+#listTab #fullLibraryTools.hidden {
+  display: none !important;
+}
+
+#listTab #mehfilRegularsPanel.hidden,
+#listTab #songGroups.hidden {
+  display: none !important;
+}
+
+@media (max-width: 640px) {
+  #listTab .songs-subtab-row {
+    margin: 0 0 14px !important;
+    gap: 9px !important;
+  }
+
+  #listTab .songs-subtab-btn {
+    min-height: 46px !important;
+    font-size: 13px !important;
+    padding: 11px 10px !important;
+  }
+
+  #listTab #fullLibraryTools {
+    margin: 0 0 14px !important;
+  }
+}
+
+/* =========================================================
+   SONGS SUBTAB + SORT CONTROL — CLASSY COMPACT POLISH
+   ========================================================= */
+
+#listTab .songs-subtab-row {
+  gap: 12px !important;
+  margin: 0 0 18px !important;
+}
+
+#listTab .songs-subtab-btn {
+  min-height: 42px !important;
+  padding: 9px 14px !important;
+  border-radius: 22px !important;
+  border: 1px solid #dfe5ee !important;
+  background: rgba(255, 255, 255, 0.92) !important;
+  color: #667085 !important;
+  font-size: 14px !important;
+  line-height: 1 !important;
+  font-weight: 850 !important;
+  letter-spacing: -0.01em !important;
+  box-shadow:
+    0 5px 14px rgba(15, 23, 42, 0.045),
+    inset 0 1px 0 rgba(255, 255, 255, 0.85) !important;
+}
+
+#listTab .songs-subtab-btn.active {
+  border-color: #111827 !important;
+  background: #111827 !important;
+  color: #ffffff !important;
+  box-shadow:
+    0 8px 18px rgba(15, 23, 42, 0.13),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+}
+
+#listTab #fullLibraryTools {
+  margin: 0 0 18px !important;
+}
+
+#listTab #fullLibraryTools label,
+#listTab #fullLibraryTools .field-label,
+#listTab #fullLibraryTools .form-label {
+  color: #667085 !important;
+  font-size: 13px !important;
+  font-weight: 850 !important;
+  letter-spacing: -0.01em !important;
+}
+
+#listTab #groupMode {
+  min-height: 42px !important;
+  height: 42px !important;
+  padding: 8px 42px 8px 16px !important;
+  border-radius: 18px !important;
+  border: 1px solid #dfe5ee !important;
+  background-color: rgba(255, 255, 255, 0.94) !important;
+  color: #111827 !important;
+  font-size: 17px !important;
+  font-weight: 850 !important;
+  letter-spacing: -0.02em !important;
+  box-shadow:
+    0 5px 14px rgba(15, 23, 42, 0.04),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
+}
+
+@media (max-width: 640px) {
+  #listTab .songs-subtab-row {
+    gap: 10px !important;
+    margin: 0 0 16px !important;
+  }
+
+  #listTab .songs-subtab-btn {
+    min-height: 41px !important;
+    padding: 9px 10px !important;
+    border-radius: 21px !important;
+    font-size: 13px !important;
+  }
+
+  #listTab #groupMode {
+    min-height: 40px !important;
+    height: 40px !important;
+    border-radius: 17px !important;
+    font-size: 16px !important;
+  }
+}
+
+/* =========================================================
+   SONGS MODE SWITCH — FINAL COMPACT SEGMENTED UI
+   ========================================================= */
+
+#listTab .songs-subtab-row {
+  width: 100% !important;
+  display: grid !important;
+  grid-template-columns: 1fr 1fr !important;
+  gap: 0 !important;
+  margin: 0 0 14px !important;
+  padding: 5px !important;
+  border-radius: 20px !important;
+  border: 1px solid #dfe5ee !important;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.96), rgba(246,248,251,0.96)) !important;
+  box-shadow:
+    inset 0 1px 2px rgba(15, 23, 42, 0.035),
+    0 8px 22px rgba(15, 23, 42, 0.045) !important;
+}
+
+#listTab .songs-subtab-btn {
+  width: 100% !important;
+  min-height: 39px !important;
+  height: 39px !important;
+  padding: 0 10px !important;
+  border: 0 !important;
+  border-radius: 15px !important;
+  background: transparent !important;
+  color: #667085 !important;
+  font-size: 13px !important;
+  line-height: 1 !important;
+  font-weight: 900 !important;
+  letter-spacing: -0.01em !important;
+  box-shadow: none !important;
+  cursor: pointer !important;
+}
+
+#listTab .songs-subtab-btn.active {
+  background: #111827 !important;
+  color: #ffffff !important;
+  box-shadow:
+    0 7px 15px rgba(15, 23, 42, 0.16),
+    inset 0 1px 0 rgba(255,255,255,0.08) !important;
+}
+
+#listTab .songs-subtab-btn:not(.active):hover {
+  background: rgba(255,255,255,0.72) !important;
+  color: #111827 !important;
+}
+
+/* Full Library sort row: lighter, tighter, less bulky */
+#listTab #fullLibraryTools {
+  margin: 0 0 14px !important;
+  padding: 0 2px !important;
+}
+
+#listTab #fullLibraryTools > * {
+  margin-top: 0 !important;
+}
+
+#listTab #fullLibraryTools label,
+#listTab #fullLibraryTools .field-label,
+#listTab #fullLibraryTools .form-label {
+  color: #667085 !important;
+  font-size: 12px !important;
+  font-weight: 850 !important;
+  letter-spacing: -0.01em !important;
+}
+
+#listTab #groupMode {
+  min-height: 38px !important;
+  height: 38px !important;
+  max-width: 210px !important;
+  padding: 6px 38px 6px 14px !important;
+  border-radius: 15px !important;
+  border: 1px solid #dfe5ee !important;
+  background-color: rgba(255,255,255,0.96) !important;
+  color: #111827 !important;
+  font-size: 16px !important;
+  font-weight: 850 !important;
+  letter-spacing: -0.02em !important;
+  box-shadow:
+    0 5px 13px rgba(15, 23, 42, 0.035),
+    inset 0 1px 0 rgba(255,255,255,0.9) !important;
+}
+
+/* Slightly reduce the empty vertical feeling before cards */
+#listTab #songGroups,
+#listTab #mehfilRegularsPanel {
+  margin-top: 0 !important;
+}
+
+@media (max-width: 640px) {
+  #listTab .songs-subtab-row {
+    margin: 0 0 13px !important;
+    padding: 4px !important;
+    border-radius: 18px !important;
+  }
+
+  #listTab .songs-subtab-btn {
+    min-height: 37px !important;
+    height: 37px !important;
+    border-radius: 14px !important;
+    font-size: 12.5px !important;
+  }
+
+  #listTab #fullLibraryTools {
+    margin: 0 0 13px !important;
+  }
+
+  #listTab #groupMode {
+    min-height: 37px !important;
+    height: 37px !important;
+    max-width: 190px !important;
+    border-radius: 14px !important;
+    font-size: 15px !important;
+  }
+}
 
   </style>
 </head>
@@ -8200,7 +8682,19 @@ body.song-modal-open {
             </div>
           </div>
 
-          <div id="songGroups"></div>
+          <div class="songs-subtab-row" id="songsSubtabRow">
+  <button class="songs-subtab-btn active" type="button" data-songs-subtab="library">
+    Full Library
+  </button>
+
+  <button class="songs-subtab-btn" type="button" data-songs-subtab="regulars">
+    Mehfil Regulars
+  </button>
+</div>
+
+<div id="mehfilRegularsPanel" class="mehfil-regulars-panel hidden"></div>
+
+<div id="songGroups"></div>
         </div>
       </section>
 
@@ -8450,6 +8944,14 @@ let lastLiveEventId = null;
 let pendingLiveSongId = null;
 let pendingLiveEventByMe = false;
 let currentLiveSongId = null;
+
+let mehfilRegulars = [];
+let mehfilRegularsDirty = true;
+let mehfilRegularsRefreshTimer = null;
+let activeSongsSubtab = "library";
+
+const MEHFIL_REGULARS_DAYS = 90;
+const MEHFIL_REGULARS_LIMIT = 12;
     let openModalKind = "local";
 let openOnlineCandidateData = null;
 
@@ -14988,6 +15490,7 @@ libraryReadyForIdleSuggestion = true;
 scheduleWorkerIndexSync(250);
 
 await loadBookmarks();
+await loadMehfilRegulars();
 
 setTimeout(() => {
   refreshSuggestionLists();
@@ -15260,6 +15763,7 @@ async function shareSongNow(songId) {
 updateLiveMiniButton();
 
 showStatus("appStatus", `Shared live: ${song.title}`, "success");
+refreshMehfilRegularsSoon(350);
 
 setTimeout(() => {
   const appStatusEl = document.getElementById("appStatus");
@@ -15298,6 +15802,7 @@ function handleIncomingLiveSongEvent(payload) {
   pendingLiveEventByMe = false;
   currentLiveSongId = null;
   updateLiveMiniButton();
+  refreshMehfilRegularsSoon(350);
   showLiveNowBar("A live song was shared.", "success", {
     showOpen: false,
     showDismiss: true
@@ -15415,7 +15920,293 @@ function subscribeToLiveSongChannel() {
     console.error("RESTORE LIVE SONG EXCEPTION:", error);
   }
 }
-    
+    function findLibrarySongById(songId) {
+  const id = Number(songId);
+
+  return (
+    preparedSongs.find(song => Number(song.id) === id) ||
+    songs.find(song => Number(song.id) === id) ||
+    null
+  );
+}
+
+function refreshMehfilRegularsSoon(delay = 500) {
+  mehfilRegularsDirty = true;
+
+  if (mehfilRegularsRefreshTimer) {
+    clearTimeout(mehfilRegularsRefreshTimer);
+  }
+
+  mehfilRegularsRefreshTimer = setTimeout(() => {
+    mehfilRegularsRefreshTimer = null;
+
+    if (isTabCurrentlyVisible("listTab")) {
+      loadMehfilRegulars();
+    }
+  }, delay);
+}
+
+async function loadMehfilRegulars() {
+  if (!session?.user || !isApproved()) {
+    mehfilRegulars = [];
+    mehfilRegularsDirty = true;
+    renderMehfilRegulars();
+    return;
+  }
+
+  const sinceDate = new Date(Date.now() - MEHFIL_REGULARS_DAYS * 24 * 60 * 60 * 1000);
+
+  try {
+    const { data, error } = await supabaseClient
+      .from("live_song_events")
+      .select("id, song_id, created_at")
+      .gte("created_at", sinceDate.toISOString())
+      .order("created_at", { ascending: false })
+      .limit(2000);
+
+    if (error) {
+      console.warn("MEHFIL REGULARS LOAD ERROR:", error);
+      mehfilRegulars = [];
+      mehfilRegularsDirty = true;
+      renderMehfilRegulars();
+      return;
+    }
+
+    const counts = new Map();
+
+    (data || []).forEach(row => {
+      const songId = Number(row.song_id);
+      if (!songId) return;
+
+      counts.set(songId, (counts.get(songId) || 0) + 1);
+    });
+
+    mehfilRegulars = Array.from(counts.entries())
+      .map(([songId, count]) => {
+        return {
+          songId,
+          count,
+          song: findLibrarySongById(songId)
+        };
+      })
+      .filter(item => item.song)
+      .sort((a, b) => {
+        if (b.count !== a.count) return b.count - a.count;
+        return String(a.song.title || "").localeCompare(String(b.song.title || ""));
+      })
+      .slice(0, MEHFIL_REGULARS_LIMIT);
+
+    mehfilRegularsDirty = false;
+    renderMehfilRegulars();
+  } catch (error) {
+    console.warn("MEHFIL REGULARS EXCEPTION:", error);
+    mehfilRegulars = [];
+    mehfilRegularsDirty = true;
+    renderMehfilRegulars();
+  }
+}
+
+function renderMehfilRegulars() {
+  const root = document.getElementById("mehfilRegularsPanel");
+  if (!root) return;
+
+  if (!isApproved() || !mehfilRegulars.length) {
+    root.innerHTML = "";
+    root.classList.add("hidden");
+    return;
+  }
+
+  root.classList.remove("hidden");
+
+  root.innerHTML = `
+    <div class="mehfil-regulars-head">
+      <div>
+        <div class="mehfil-regulars-title">Mehfil Regulars</div>
+        <div class="mehfil-regulars-subtitle">Most put live in the last ${MEHFIL_REGULARS_DAYS} days</div>
+      </div>
+    </div>
+
+    <div class="mehfil-regulars-list">
+      ${mehfilRegulars.map((item, index) => {
+        const song = item.song;
+        const meta = joinMeta([song.movie, song.singer]);
+        const removeButton = isAdmin()
+          ? `<button class="mehfil-regular-remove" type="button" data-regular-remove-song-id="${item.songId}" title="Remove from Mehfil Regulars">Remove</button>`
+          : "";
+
+        return `
+          <div class="mehfil-regular-row" data-regular-song-id="${item.songId}">
+            <div class="mehfil-regular-rank">#${index + 1}</div>
+
+            <div class="mehfil-regular-main">
+              <div class="mehfil-regular-title">${escapeHtml(song.title || "")}</div>
+              <div class="mehfil-regular-meta">${escapeHtml(meta || "No movie / singer details")}</div>
+              <div class="mehfil-regular-count">${item.count} live time${item.count > 1 ? "s" : ""}</div>
+            </div>
+
+            <div class="mehfil-regular-actions">
+              ${removeButton}
+              <span class="mehfil-regular-open">↗</span>
+            </div>
+          </div>
+        `;
+      }).join("")}
+    </div>
+  `;
+}
+function getSongsSortControlBlock() {
+  const groupMode = document.getElementById("groupMode");
+  if (!groupMode) return null;
+
+  return (
+    groupMode.closest(".field-row") ||
+    groupMode.closest(".form-row") ||
+    groupMode.closest(".sort-row") ||
+    groupMode.closest(".control-row") ||
+    groupMode.parentElement
+  );
+}
+
+function setupSongsSubtabLayout() {
+  const listTab = document.getElementById("listTab");
+  const subtabRow = document.getElementById("songsSubtabRow");
+  const songGroups = document.getElementById("songGroups");
+  const regularsPanel = document.getElementById("mehfilRegularsPanel");
+  const sortBlock = getSongsSortControlBlock();
+
+  if (!listTab || !subtabRow) return;
+
+  let toolsWrap = document.getElementById("fullLibraryTools");
+
+  if (!toolsWrap) {
+    toolsWrap = document.createElement("div");
+    toolsWrap.id = "fullLibraryTools";
+    toolsWrap.className = "full-library-tools";
+  }
+
+  if (subtabRow.parentElement !== listTab) {
+    listTab.insertBefore(subtabRow, listTab.firstElementChild);
+  }
+
+  if (toolsWrap.parentElement !== listTab) {
+    listTab.insertBefore(toolsWrap, subtabRow.nextSibling);
+  } else if (toolsWrap.previousElementSibling !== subtabRow) {
+    listTab.insertBefore(toolsWrap, subtabRow.nextSibling);
+  }
+
+  if (sortBlock && sortBlock.parentElement !== toolsWrap) {
+    toolsWrap.appendChild(sortBlock);
+  }
+
+  if (regularsPanel && regularsPanel.parentElement !== listTab) {
+    listTab.insertBefore(regularsPanel, toolsWrap.nextSibling);
+  }
+
+  if (songGroups && songGroups.parentElement !== listTab) {
+    listTab.appendChild(songGroups);
+  }
+
+  const oldHeader = Array.from(listTab.children).find(el => {
+    if (!el) return false;
+    if (el === subtabRow) return false;
+    if (el === toolsWrap) return false;
+    if (el.id === "mehfilRegularsPanel") return false;
+    if (el.id === "songGroups") return false;
+
+    const text = String(el.textContent || "").replace(/\s+/g, " ").trim();
+
+    return (
+      text.includes("Browse your full library") ||
+      /^Songs\s+Browse your full library/i.test(text)
+    );
+  });
+
+  if (oldHeader) {
+    oldHeader.classList.add("songs-old-heading-hidden");
+  }
+}
+
+function setSongsSubtab(tabName) {
+  setupSongsSubtabLayout();
+
+  activeSongsSubtab = tabName === "regulars" ? "regulars" : "library";
+
+  document.querySelectorAll("[data-songs-subtab]").forEach(btn => {
+    btn.classList.toggle("active", btn.dataset.songsSubtab === activeSongsSubtab);
+  });
+
+  const regularsPanel = document.getElementById("mehfilRegularsPanel");
+  const songGroups = document.getElementById("songGroups");
+  const fullLibraryTools = document.getElementById("fullLibraryTools");
+
+  if (activeSongsSubtab === "regulars") {
+    if (songGroups) songGroups.classList.add("hidden");
+    if (fullLibraryTools) fullLibraryTools.classList.add("hidden");
+
+    if (regularsPanel) regularsPanel.classList.remove("hidden");
+
+    renderMehfilRegularsIfNeeded();
+    return;
+  }
+
+  if (regularsPanel) regularsPanel.classList.add("hidden");
+  if (songGroups) songGroups.classList.remove("hidden");
+  if (fullLibraryTools) fullLibraryTools.classList.remove("hidden");
+
+  renderSongGroupsIfNeeded();
+}
+
+function renderMehfilRegularsIfNeeded(force = false) {
+  if (!force && !mehfilRegularsDirty) {
+    renderMehfilRegulars();
+    return;
+  }
+
+  loadMehfilRegulars();
+}
+
+async function removeMehfilRegularSong(songId) {
+  if (!isAdmin()) return;
+
+  const id = Number(songId);
+  const song = findLibrarySongById(id);
+
+  if (!id || !song) {
+    showStatus("appStatus", "Could not find this song.", "error");
+    return;
+  }
+
+  const ok = confirm(
+    `Remove "${song.title}" from Mehfil Regulars?\n\nThis deletes its live history entries only. The song will stay in your Songs library.`
+  );
+
+  if (!ok) return;
+
+  try {
+    const { error } = await supabaseClient
+      .from("live_song_events")
+      .delete()
+      .eq("song_id", id);
+
+    if (error) {
+      console.error("REMOVE MEHFIL REGULAR ERROR:", error);
+      showStatus("appStatus", error.message || "Could not remove from Mehfil Regulars.", "error");
+      return;
+    }
+
+    mehfilRegulars = mehfilRegulars.filter(item => Number(item.songId) !== id);
+    mehfilRegularsDirty = true;
+
+    renderMehfilRegulars();
+    await restoreCurrentLiveSong();
+    await loadMehfilRegulars();
+
+    showTemporaryStatus("appStatus", "Removed from Mehfil Regulars.", "success", 3500);
+  } catch (error) {
+    console.error("REMOVE MEHFIL REGULAR EXCEPTION:", error);
+    showStatus("appStatus", error?.message || "Could not remove from Mehfil Regulars.", "error");
+  }
+}
     async function saveSong(event) {
       event.preventDefault();
 
@@ -16800,6 +17591,7 @@ function isTabCurrentlyVisible(id) {
 function markLibraryViewsDirty() {
   songGroupsDirty = true;
   favoritesDirty = true;
+  mehfilRegularsDirty = true;
 }
 
 function renderSongGroupsIfNeeded(force = false) {
@@ -16818,7 +17610,7 @@ function renderFavoritesIfNeeded(force = false) {
 
 function renderLibraryViewsIfVisible() {
   if (isTabCurrentlyVisible("listTab")) {
-    renderSongGroupsIfNeeded();
+    setSongsSubtab(activeSongsSubtab);
   }
 
   if (isTabCurrentlyVisible("favoritesTab")) {
@@ -17011,9 +17803,9 @@ window.addEventListener("resize", syncHeaderMetaWidth);
     document.getElementById("songEditorCard").classList.remove("hidden");
   }
 
-  if (tabName === "list") {
-    renderSongGroupsIfNeeded();
-  }
+    if (tabName === "list") {
+  setSongsSubtab(activeSongsSubtab);
+}
 
   if (tabName === "favorites") {
     renderFavoritesIfNeeded();
@@ -17997,6 +18789,35 @@ document.getElementById("liveNowDismissBtn").addEventListener("click", dismissPe
   renderSongGroupsIfNeeded(true);
 });
 
+const songsSubtabRow = document.getElementById("songsSubtabRow");
+if (songsSubtabRow) {
+  songsSubtabRow.addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-songs-subtab]");
+    if (!btn) return;
+
+    setSongsSubtab(btn.dataset.songsSubtab);
+  });
+}
+
+const mehfilRegularsPanel = document.getElementById("mehfilRegularsPanel");
+if (mehfilRegularsPanel) {
+  mehfilRegularsPanel.addEventListener("click", async (e) => {
+
+  const removeBtn = e.target.closest("[data-regular-remove-song-id]");
+  if (removeBtn) {
+    e.preventDefault();
+    e.stopPropagation();
+    await removeMehfilRegularSong(removeBtn.dataset.regularRemoveSongId);
+    return;
+  }
+
+  const row = e.target.closest("[data-regular-song-id]");
+  if (!row) return;
+
+  openSong(Number(row.dataset.regularSongId));
+  });
+}
+
     document.getElementById("searchInput").addEventListener("input", (e) => {
   const nextValue = e.target.value;
   lastQuery = nextValue;
@@ -18330,6 +19151,7 @@ document.getElementById("registeredUsersList").addEventListener("click", handleA
 
     document.addEventListener("DOMContentLoaded", () => {
   bindEvents();
+  setupSongsSubtabLayout();
   setupAuthRecoveryListener();
   setupInstallAppPrompt();
   setupProviderLyricsFallbackEvents();
