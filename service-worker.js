@@ -1,4 +1,4 @@
-const CACHE_NAME = "mehfil-pwa-cache-v3";
+const CACHE_NAME = "mehfil-pwa-cache-v4";
 
 const CORE_ASSETS = [
   "./",
@@ -55,14 +55,38 @@ self.addEventListener("fetch", event => {
 
   const url = new URL(request.url);
 
-  if (request.mode === "navigate") {
+    if (request.mode === "navigate") {
     event.respondWith(
-      fetch(request).catch(async () => {
-        return (
-          await caches.match("./index-mehfil-worker-ready-fixed.html") ||
-          await caches.match("./")
-        );
-      })
+      (async () => {
+        const cache = await caches.open(CACHE_NAME);
+
+        const cached =
+          await cache.match("./index-mehfil-worker-ready-fixed.html") ||
+          await cache.match("./") ||
+          await cache.match(request);
+
+        const networkPromise = fetch(request)
+          .then(response => {
+            if (response && response.ok) {
+              cache.put("./index-mehfil-worker-ready-fixed.html", response.clone()).catch(() => {});
+              cache.put(request, response.clone()).catch(() => {});
+            }
+
+            return response;
+          })
+          .catch(() => cached);
+
+        if (!cached) {
+          return networkPromise;
+        }
+
+        return Promise.race([
+          networkPromise,
+          new Promise(resolve => {
+            setTimeout(() => resolve(cached), 900);
+          })
+        ]);
+      })()
     );
     return;
   }
