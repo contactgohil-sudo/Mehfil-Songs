@@ -1,4 +1,4 @@
-const CACHE_NAME = "mehfil-pwa-cache-v4";
+const CACHE_NAME = "mehfil-pwa-cache-v5";
 
 const CORE_ASSETS = [
   "./",
@@ -56,40 +56,44 @@ self.addEventListener("fetch", event => {
   const url = new URL(request.url);
 
     if (request.mode === "navigate") {
-    event.respondWith(
-      (async () => {
-        const cache = await caches.open(CACHE_NAME);
+  event.respondWith(
+    (async () => {
+      const cache = await caches.open(CACHE_NAME);
 
-        const cached =
-          await cache.match("./index-mehfil-worker-ready-fixed.html") ||
-          await cache.match("./") ||
-          await cache.match(request);
+      const cached =
+        await cache.match("./index-mehfil-worker-ready-fixed.html") ||
+        await cache.match("./") ||
+        await cache.match(request);
 
-        const networkPromise = fetch(request)
-          .then(response => {
-            if (response && response.ok) {
-              cache.put("./index-mehfil-worker-ready-fixed.html", response.clone()).catch(() => {});
-              cache.put(request, response.clone()).catch(() => {});
-            }
+      const networkUpdate = fetch(request)
+        .then(response => {
+          if (response && response.ok) {
+            cache.put("./index-mehfil-worker-ready-fixed.html", response.clone()).catch(() => {});
+            cache.put(request, response.clone()).catch(() => {});
+          }
 
-            return response;
-          })
-          .catch(() => cached);
+          return response;
+        })
+        .catch(() => null);
 
-        if (!cached) {
-          return networkPromise;
+      if (cached) {
+        event.waitUntil(networkUpdate);
+        return cached;
+      }
+
+      const network = await networkUpdate;
+
+      return network || new Response("Mehfil is offline. Please open once with internet.", {
+        status: 503,
+        headers: {
+          "Content-Type": "text/plain"
         }
+      });
+    })()
+  );
 
-        return Promise.race([
-          networkPromise,
-          new Promise(resolve => {
-            setTimeout(() => resolve(cached), 900);
-          })
-        ]);
-      })()
-    );
-    return;
-  }
+  return;
+}
 
   if (url.origin !== self.location.origin) {
     return;
