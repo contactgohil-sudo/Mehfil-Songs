@@ -8,8 +8,8 @@
 <meta name="theme-color" content="#111827" />
 <meta name="mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
-<meta name="apple-mobile-web-app-title" content="Mehfil" />
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="theme-color" content="#f5f6fa" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
 
 <link rel="manifest" href="./manifest.webmanifest" />
 <link rel="apple-touch-icon" href="./assets/icons/icon-192.png" />
@@ -8382,7 +8382,7 @@ body.song-modal-open {
   <script>
     const SUPABASE_URL = "https://fppyrhsnqgisfxkdbkka.supabase.co";
     const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZwcHlyaHNucWdpc2Z4a2Ria2thIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM1MzAxMjMsImV4cCI6MjA4OTEwNjEyM30.pXf_6qzEVw_fQpalyWsfxXgHrlbs1IA9BBmwfqmurDo";
-    const REDIRECT_URL = "https://contactgohil-sudo.github.io/Mehfil-Songs/";
+    const REDIRECT_URL = "https://mehfilapp.pages.dev/";
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     // Cloudflare Worker LRCLIB proxy. Do not add a trailing slash.
@@ -8476,9 +8476,10 @@ let appReadyForInstallPrompt = false;
 let appStartupLoadRunning = false;
 let currentProviderLyricsUrl = "";
 const MEHFIL_POLICY_VERSION = "2026-05-terms-v1";
-const MEHFIL_LEGAL_CONTACT_EMAIL = "munichmehfil@gmail.com";
+const MEHFIL_LEGAL_CONTACT_EMAIL = "mehfilmunich@gmail.com";
+const MEHFIL_STARTUP_PROFILE_CACHE_KEY = "mehfil_startup_profile_v1";
 const MEHFIL_FAST_RETURN_STATE_KEY = "mehfil_fast_return_state_v1";
-const MEHFIL_FAST_RETURN_MAX_AGE_MS = 3 * 60 * 1000;
+const MEHFIL_FAST_RETURN_MAX_AGE_MS = 12 * 60 * 60 * 1000;
 
 let legalAcceptanceRequired = false;
 let currentLegalSection = "usage";
@@ -8490,6 +8491,82 @@ let mehfilClosingModalFromHistory = false;
 
 
 const INSTALL_PROMPT_DISMISSED_KEY = "mehfil_install_prompt_dismissed_until_v1";
+
+function saveStartupProfileCache() {
+  try {
+    if (!session?.user || !profile?.approved) return;
+
+    localStorage.setItem(
+      MEHFIL_STARTUP_PROFILE_CACHE_KEY,
+      JSON.stringify({
+        id: session.user.id,
+        email: profile.email || session.user.email || "",
+        name: profile.name || session.user.email || "User",
+        role: profile.role || "user",
+        approved: !!profile.approved,
+        cached_at: Date.now()
+      })
+    );
+  } catch (_) {
+    // Ignore startup cache failure.
+  }
+}
+
+function clearStartupProfileCache() {
+  try {
+    localStorage.removeItem(MEHFIL_STARTUP_PROFILE_CACHE_KEY);
+  } catch (_) {
+    // Ignore startup cache failure.
+  }
+}
+
+function readStartupProfileCacheForUser(userId) {
+  try {
+    const raw = localStorage.getItem(MEHFIL_STARTUP_PROFILE_CACHE_KEY);
+    if (!raw) return null;
+
+    const cached = JSON.parse(raw);
+    if (!cached || cached.id !== userId) return null;
+    if (!cached.approved) return null;
+
+    const maxAgeMs = 30 * 24 * 60 * 60 * 1000;
+    if (!cached.cached_at || Date.now() - cached.cached_at > maxAgeMs) {
+      clearStartupProfileCache();
+      return null;
+    }
+
+    return {
+      id: cached.id,
+      email: cached.email || "",
+      name: cached.name || cached.email || "User",
+      role: cached.role || "user",
+      approved: true
+    };
+  } catch (_) {
+    return null;
+  }
+}
+
+function renderStartupShellFromCachedProfile(cachedProfile) {
+  if (!cachedProfile?.approved) return;
+
+  const oldProfile = profile;
+
+  try {
+    profile = cachedProfile;
+
+    renderScreens();
+    renderAppShell();
+    activateTab("search");
+    renderInstantIdlePanel();
+
+    showStatus("appStatus", "Opening Mehfil library...", "info");
+  } catch (error) {
+    console.warn("Cached startup shell skipped:", error);
+  } finally {
+    profile = oldProfile;
+  }
+}
 
 function isStandaloneAppMode() {
   return (
@@ -8808,6 +8885,79 @@ function getFastLyricCandidateScore(song, query) {
 
       <div class="search-idle-note">
         Suggestions appear once the library is ready.
+      </div>
+    </div>
+  `;
+}
+
+function getFastReturnIdleSuggestionSnapshot() {
+  try {
+    const song =
+      getIdleSuggestionSong() ||
+      preparedSongs.find(s => s && s.id && String(s.title || "").trim()) ||
+      songs.find(s => s && s.id && String(s.title || "").trim());
+
+    if (!song?.id) return null;
+
+    return {
+      id: Number(song.id),
+      title: String(song.title || ""),
+      movie: String(song.movie || ""),
+      singer: String(song.singer || ""),
+      lyrics: String(song.lyrics || "").slice(0, 1600)
+    };
+  } catch (_) {
+    return null;
+  }
+}
+
+function renderFastReturnIdleSuggestion(snapshot) {
+  const root = document.getElementById("searchResults");
+  if (!root) return;
+
+  if (!snapshot?.id || !String(snapshot.title || "").trim()) {
+    renderInstantIdlePanel();
+    return;
+  }
+
+  const meta = joinMeta([snapshot.movie, snapshot.singer]);
+  const preview = getIdleSuggestionPreview(snapshot);
+
+  root.innerHTML = `
+    <div class="search-idle-panel">
+      <div class="search-idle-kicker">From your library</div>
+
+      <div class="search-idle-title">Open a song while you wait.</div>
+
+      <div class="search-idle-text">
+        Mehfil is refreshing quietly in the background.
+      </div>
+
+      <div
+        class="idle-featured-song"
+        data-song-id="${escapeHtml(snapshot.id)}"
+        role="button"
+        tabindex="0"
+      >
+        <div class="idle-featured-top">
+          <div>
+            <div class="idle-featured-label">Suggested song</div>
+            <div class="idle-featured-title">${escapeHtml(snapshot.title || "")}</div>
+          </div>
+          <div class="idle-featured-arrow">↗</div>
+        </div>
+
+        ${meta ? `<div class="idle-featured-meta">${escapeHtml(meta)}</div>` : ""}
+
+        <div class="idle-featured-preview">
+          ${escapeHtml(preview)}
+        </div>
+
+        <div class="idle-featured-action">Tap to open lyrics</div>
+      </div>
+
+      <div class="search-idle-note">
+        Fresh library results replace this automatically.
       </div>
     </div>
   `;
@@ -14118,9 +14268,10 @@ const best = candidates[0] || null;
   const ensuredProfile = await ensureProfile(session.user, "");
 
   if (ensuredProfile) {
-    profile = ensuredProfile;
-    return profile;
-  }
+  profile = ensuredProfile;
+  saveStartupProfileCache();
+  return profile;
+}
 
   profile = {
     id: session.user.id,
@@ -14419,7 +14570,8 @@ if (deepSearchTimer) {
 searchRunId++;
 disposeSearchWorker();
       
-      await supabaseClient.auth.signOut();
+      clearStartupProfileCache();
+await supabaseClient.auth.signOut();
       session = null;
       profile = null;
       songs = [];
@@ -17469,7 +17621,7 @@ function saveFastReturnState() {
   if (!session?.user || !profile?.approved) return;
 
   try {
-    sessionStorage.setItem(
+    localStorage.setItem(
       MEHFIL_FAST_RETURN_STATE_KEY,
       JSON.stringify({
         at: Date.now(),
@@ -17481,7 +17633,9 @@ function saveFastReturnState() {
           approved: true
         },
         localLibrarySongCount: Number(localLibrarySongCount || songs.length || 0),
-        onlineCacheSongCount: Number(onlineCacheSongCount || 0)
+        onlineCacheSongCount: Number(onlineCacheSongCount || 0),
+        currentLiveSongId: currentLiveSongId ? Number(currentLiveSongId) : null,
+        idleSuggestion: getFastReturnIdleSuggestionSnapshot()
       })
     );
   } catch (_) {
@@ -17491,7 +17645,7 @@ function saveFastReturnState() {
 
 function clearFastReturnState() {
   try {
-    sessionStorage.removeItem(MEHFIL_FAST_RETURN_STATE_KEY);
+    localStorage.removeItem(MEHFIL_FAST_RETURN_STATE_KEY);
   } catch (_) {
     // Ignore storage failure.
   }
@@ -17503,7 +17657,7 @@ function paintFastReturnShell() {
   let snapshot = null;
 
   try {
-    snapshot = JSON.parse(sessionStorage.getItem(MEHFIL_FAST_RETURN_STATE_KEY) || "null");
+    snapshot = JSON.parse(localStorage.getItem(MEHFIL_FAST_RETURN_STATE_KEY) || "null");
   } catch (_) {
     snapshot = null;
   }
@@ -17526,11 +17680,22 @@ function paintFastReturnShell() {
   localLibrarySongCount = Number(snapshot.localLibrarySongCount || 0);
   onlineCacheSongCount = Number(snapshot.onlineCacheSongCount || 0);
 
+  currentLiveSongId = Number(snapshot.currentLiveSongId || 0) || null;
+  pendingLiveSongId = null;
+  pendingLiveEventByMe = false;
+
   renderScreens();
   renderAppShell();
   activateTab("search");
-  renderInstantIdlePanel();
+
+  if (snapshot.idleSuggestion?.id) {
+    renderFastReturnIdleSuggestion(snapshot.idleSuggestion);
+  } else {
+    renderInstantIdlePanel();
+  }
+
   updateHeaderAccessAndCount();
+  updateLiveMiniButton();
   showStatus("appStatus", "", "info");
 
   return true;
@@ -17554,9 +17719,16 @@ if (urlLooksLikePasswordRecovery()) {
 }
 
 if (session?.user) {
+  const cachedProfile = readStartupProfileCacheForUser(session.user.id);
+
+  if (cachedProfile?.approved) {
+    renderStartupShellFromCachedProfile(cachedProfile);
+  }
+
   await loadProfile();
 } else {
   profile = null;
+  clearStartupProfileCache();
 }
 
 renderScreens();
