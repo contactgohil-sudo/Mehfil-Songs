@@ -378,6 +378,15 @@ function providerUrlToMatchText(rawUrl) {
 }
 __name(providerUrlToMatchText, "providerUrlToMatchText");
 var PROVIDER_QUERY_WEAK_WORDS = /* @__PURE__ */ new Set([
+    "ni",
+  "no",
+  "na",
+  "nu",
+  "ne",
+  "ma",
+  "maa",
+  "re",
+  "ji",
   "a",
   "an",
   "the",
@@ -843,7 +852,78 @@ async function resolveDirectProviderLinksViaBrave(env, query) {
     "OR site:musixmatch.com"
   ].join(" ");
 
-  async function runBraveQuery(searchQuery) {
+  function buildPowerSearchVariants(value) {
+    const original = String(value || "").trim();
+    const base = canonicalProviderMatchText(original);
+    const variants = new Set();
+
+    function add(v) {
+      const clean = canonicalProviderMatchText(v);
+      if (clean && clean.length >= 3) {
+        variants.add(clean);
+      }
+    }
+
+    add(original);
+    add(base);
+
+    /*
+      Gujarati / Hindi roman spelling cleanup.
+      These are search variants, not final claims.
+    */
+    add(
+      base
+        .replace(/\blaagi\b/g, "lagi")
+        .replace(/\blaagee\b/g, "lagi")
+        .replace(/\blagni\b/g, "lagan")
+        .replace(/\blagani\b/g, "lagan")
+        .replace(/\blagn\b/g, "lagan")
+    );
+
+    add(
+      base
+        .replace(/\bkhuda\b/g, "khuda")
+        .replace(/\bkhudha\b/g, "khuda")
+        .replace(/\bnaar\b/g, "nar")
+        .replace(/\bnaaar\b/g, "nar")
+    );
+
+    add(
+      base
+        .replace(/\bshree\b/g, "shri")
+        .replace(/\bshri\b/g, "shree")
+        .replace(/\bkrishna\b/g, "kishan")
+        .replace(/\bkishan\b/g, "krishna")
+    );
+
+    /*
+      Remove weak connector words for better matching:
+      "Laagi Ram Bhajan Ni Lagni" -> "laagi ram bhajan lagni"
+    */
+    const withoutWeakWords = base
+      .split(/\s+/)
+      .filter(word => word && !PROVIDER_QUERY_WEAK_WORDS.has(word))
+      .join(" ");
+
+    add(withoutWeakWords);
+
+    /*
+      Keep only useful variants.
+      Too many variants burn tokens, so we keep max 3.
+    */
+    return Array.from(variants)
+      .filter(Boolean)
+      .filter(v => v.length >= 3)
+      .slice(0, 3);
+  }
+
+  function isLikelyDevotionalQuery(value) {
+    const text = canonicalProviderMatchText(value);
+
+    return /\b(bhajan|aarti|arti|ram|shyam|krishna|kishan|mahadev|shiv|shiva|hanuman|mata|maa|sai|bhakti|prarthana|garba|stuti|chalisa|dhun|mantra)\b/.test(text);
+  }
+
+  async function runBraveQuery(searchQuery, matchQuery) {
     const params = new URLSearchParams();
 
     params.set("q", searchQuery);
@@ -872,7 +952,7 @@ async function resolveDirectProviderLinksViaBrave(env, query) {
       const results = Array.isArray(data?.web?.results) ? data.web.results : [];
 
       return results
-        .map((result) => searchResultToProviderLink(result, safeQuery))
+        .map((result) => searchResultToProviderLink(result, matchQuery || safeQuery))
         .filter(Boolean);
     } catch (error) {
       console.warn("Brave provider search failed:", String(error?.message || error || "unknown"));
@@ -881,14 +961,38 @@ async function resolveDirectProviderLinksViaBrave(env, query) {
   }
 
   async function runProviderGroup(providerFilter) {
-    const braveQueries = [
-      `"${safeQuery}" lyrics (${providerFilter})`,
-      `"${safeQuery}" (${providerFilter})`,
-      `${safeQuery} lyrics (${providerFilter})`
-    ];
+    const variants = buildPowerSearchVariants(safeQuery);
+
+    const braveQueries = variants.map((variant, index) => {
+      if (index === 0) {
+        return {
+          searchQuery: `"${safeQuery}" lyrics (${providerFilter})`,
+          matchQuery: safeQuery
+        };
+      }
+
+      return {
+        searchQuery: `${variant} lyrics (${providerFilter})`,
+        matchQuery: variant
+      };
+    });
+
+    /*
+      For devotional searches, give Brave one better hint.
+      Still capped to 3 total queries per provider group.
+    */
+    if (isLikelyDevotionalQuery(safeQuery) && braveQueries.length < 3) {
+      const devotionalVariant = variants[0] || safeQuery;
+      braveQueries.push({
+        searchQuery: `${devotionalVariant} bhajan lyrics (${providerFilter})`,
+        matchQuery: devotionalVariant
+      });
+    }
+
+    const limitedQueries = braveQueries.slice(0, 3);
 
     const settled = await Promise.allSettled(
-      braveQueries.map(runBraveQuery)
+      limitedQueries.map(item => runBraveQuery(item.searchQuery, item.matchQuery))
     );
 
     const groups = settled
@@ -898,20 +1002,31 @@ async function resolveDirectProviderLinksViaBrave(env, query) {
     return mergeProviderLinks(...groups);
   }
 
-  const primaryLinks = await runProviderGroup(primaryProviderFilter);
+  /*
+    For bhajans/devotional songs, old Hindi lyric sites are more likely
+    than Shazam/Genius/Smule. So try secondary first for those queries.
+    This can actually save Brave usage when secondary finds a result.
+  */
+  const providerGroups = isLikelyDevotionalQuery(safeQuery)
+    ? [secondaryProviderFilter, primaryProviderFilter]
+    : [primaryProviderFilter, secondaryProviderFilter];
 
-  if (primaryLinks.length) {
-    return primaryLinks;
+  const firstLinks = await runProviderGroup(providerGroups[0]);
+
+  if (firstLinks.length) {
+    return firstLinks;
   }
 
-  return runProviderGroup(secondaryProviderFilter);
+  return runProviderGroup(providerGroups[1]);
 }
 __name(resolveDirectProviderLinksViaBrave, "resolveDirectProviderLinksViaBrave");
+
+
 function buildProviderLinksCacheKey(requestUrl, query, singer = "") {
   const url = new URL(requestUrl);
   url.pathname = "/provider-links-cache";
   url.search = "";
-  url.searchParams.set("v", "brave-provider-links-v6-primary-then-secondary-no-gaana");
+  url.searchParams.set("v", "brave-provider-links-v7-power-search-variants");
   url.searchParams.set("q", normalizeText(query));
   url.searchParams.set("singer", normalizeText(singer));
   return new Request(url.toString(), { method: "GET" });
@@ -953,7 +1068,7 @@ async function handleProviderLinks(request, env, ctx) {
           has_brave_key: !!env.BRAVE_SEARCH_API_KEY,
           has_genius_key: !!env.GENIUS_ACCESS_TOKEN,
           mode: "direct_provider_links_only",
-          cache_version: "brave-provider-links-v6-primary-then-secondary-no-gaana",
+          cache_version: "brave-provider-links-v7-power-search-variants",
           supabase_cache: true
         },
         ms: Date.now() - started
@@ -986,7 +1101,7 @@ async function handleProviderLinks(request, env, ctx) {
         has_brave_key: !!env.BRAVE_SEARCH_API_KEY,
         has_genius_key: !!env.GENIUS_ACCESS_TOKEN,
         mode: "direct_provider_links_only",
-        cache_version: "brave-provider-links-v6-primary-then-secondary-no-gaana",
+        cache_version: "brave-provider-links-v7-power-search-variants",
         cache_only: true,
         supabase_cache: false
       },
@@ -1000,6 +1115,10 @@ async function handleProviderLinks(request, env, ctx) {
   ]);
   const resolvedGroups = settledResults.map((result) => result.status === "fulfilled" ? result.value : null).filter(Boolean);
   const links = mergeProviderLinks(...resolvedGroups);
+    const providerCacheSeconds = links.length
+    ? PROVIDER_LINK_CACHE_TTL_SECONDS
+    : 6 * 60 * 60; // 6 hours negative cache for failed Power Search
+
   const response = json({
     ok: true,
     query,
@@ -1007,22 +1126,34 @@ async function handleProviderLinks(request, env, ctx) {
     links,
     count: links.length,
     cached: false,
-    source: "fresh_provider_discovery",
+    source: links.length ? "fresh_provider_discovery" : "fresh_provider_discovery_no_result",
+    negative_cached: !links.length,
     debug: {
       has_brave_key: !!env.BRAVE_SEARCH_API_KEY,
       has_genius_key: !!env.GENIUS_ACCESS_TOKEN,
       mode: "direct_provider_links_only",
-      cache_version: "brave-provider-links-v6-primary-then-secondary-no-gaana",
-      supabase_cache: false
+      cache_version: "brave-provider-links-v7-power-search-variants",
+      supabase_cache: false,
+      negative_cache_seconds: links.length ? 0 : providerCacheSeconds
     },
     ms: Date.now() - started
   }, 200, {
-    "Cache-Control": links.length ? `public, max-age=${PROVIDER_LINK_CACHE_TTL_SECONDS}` : "no-store"
+    "Cache-Control": `public, max-age=${providerCacheSeconds}`
   });
-  if (links.length && ctx?.waitUntil) {
-    ctx.waitUntil(saveProviderLinksSupabaseCache(env, query, links));
+
+  if (ctx?.waitUntil) {
+    if (links.length) {
+      ctx.waitUntil(saveProviderLinksSupabaseCache(env, query, links));
+    }
+
+    /*
+      Cache both positive and zero-result provider lookups.
+      Positive cache = normal provider cache.
+      Zero-result cache = protects Brave tokens from repeated same failed query.
+    */
     ctx.waitUntil(cache.put(cacheKey, response.clone()));
   }
+
   return response;
 }
 __name(handleProviderLinks, "handleProviderLinks");
