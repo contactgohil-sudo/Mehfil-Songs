@@ -8622,6 +8622,944 @@ body.song-modal-open {
   }
 }
 
+/* =========================================================
+   GROUP TEST FIX — POWER SEARCH CTA, CLEAN SEARCH BAR
+   Restores top magnifier button.
+   Makes fallback source-search action obvious.
+   CSS-only. No Brave logic changes.
+   ========================================================= */
+
+/* ---------------------------------------------------------
+   1) Restore the small magnifier beside the search box
+   --------------------------------------------------------- */
+
+#searchTab .online-search-btn {
+  width: 43px !important;
+  min-width: 43px !important;
+  height: 43px !important;
+  border-radius: 15px !important;
+  padding: 0 !important;
+
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+
+  background: #ffffff !important;
+  color: #111827 !important;
+  border: 1px solid #dfe4ea !important;
+  box-shadow: none !important;
+
+  font-size: 17px !important;
+  line-height: 1 !important;
+  font-weight: 900 !important;
+}
+
+#searchTab .online-search-btn::before,
+#searchTab .online-search-btn::after {
+  content: none !important;
+  display: none !important;
+}
+
+#searchTab .online-search-btn:disabled {
+  opacity: 0.62 !important;
+  cursor: wait !important;
+  background: #f8fafc !important;
+  color: #667085 !important;
+  border-color: #e1e6ee !important;
+  box-shadow: none !important;
+}
+
+@media (max-width: 640px) {
+  #searchTab .online-search-btn {
+    width: 41px !important;
+    min-width: 41px !important;
+    height: 41px !important;
+    border-radius: 15px !important;
+    font-size: 17px !important;
+  }
+}
+
+
+/* ---------------------------------------------------------
+   2) Fallback panel: visible but less shouty
+   --------------------------------------------------------- */
+
+.provider-lyrics-fallback {
+  border-radius: 24px !important;
+  border: 1.5px solid #e7c46f !important;
+  background:
+    radial-gradient(circle at top right, rgba(216, 181, 109, 0.18), transparent 190px),
+    linear-gradient(180deg, #fffdf8 0%, #ffffff 100%) !important;
+  padding: 18px !important;
+  box-shadow:
+    0 16px 38px rgba(15, 23, 42, 0.08),
+    0 1px 2px rgba(15, 23, 42, 0.04) !important;
+}
+
+.provider-lyrics-title {
+  color: #111827 !important;
+  font-size: 22px !important;
+  line-height: 1.12 !important;
+  letter-spacing: -0.04em !important;
+  font-weight: 950 !important;
+  margin-bottom: 8px !important;
+}
+
+.provider-lyrics-message {
+  color: #5f4630 !important;
+  font-size: 14px !important;
+  line-height: 1.5 !important;
+  font-weight: 750 !important;
+  margin-bottom: 14px !important;
+}
+
+
+/* ---------------------------------------------------------
+   3) Main CTA: Logo + Click for Power Search
+   --------------------------------------------------------- */
+
+.provider-manual-row {
+  margin-top: 14px !important;
+  padding-top: 14px !important;
+  border-top: 1px solid rgba(216, 181, 109, 0.26) !important;
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  gap: 10px !important;
+}
+
+/* Base buttons */
+.provider-manual-row .provider-lyrics-btn {
+  width: 100% !important;
+  border-radius: 20px !important;
+  cursor: pointer !important;
+  transition:
+    transform 0.12s ease,
+    box-shadow 0.12s ease,
+    border-color 0.12s ease,
+    background 0.12s ease !important;
+}
+
+.provider-manual-row .provider-lyrics-btn:active {
+  transform: translateY(1px) !important;
+}
+
+/* Power Search button */
+.provider-manual-row .provider-lyrics-btn[data-provider-fresh-query] {
+  position: relative !important;
+  overflow: hidden !important;
+
+  min-height: 64px !important;
+  padding: 12px 16px !important;
+
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 12px !important;
+
+  background:
+    radial-gradient(circle at 20% 0%, rgba(255, 255, 255, 0.34), transparent 120px),
+    linear-gradient(180deg, #b45309 0%, #8a3a0e 100%) !important;
+  color: #fffaf0 !important;
+  border: 1px solid #7c2d12 !important;
+
+  font-size: 0 !important;
+  line-height: 1 !important;
+  font-weight: 950 !important;
+
+  box-shadow:
+    0 0 0 4px rgba(180, 83, 9, 0.13),
+    0 15px 34px rgba(124, 45, 18, 0.28) !important;
+
+  animation: mehfilPowerSearchGlow 1.75s ease-in-out infinite !important;
+}
+
+/* moving light layer */
+.provider-manual-row .provider-lyrics-btn[data-provider-fresh-query] > * {
+  position: relative;
+  z-index: 2;
+}
+
+.provider-manual-row .provider-lyrics-btn[data-provider-fresh-query]::before {
+  content: "" !important;
+  width: 38px !important;
+  height: 38px !important;
+  min-width: 38px !important;
+  border-radius: 14px !important;
+
+  background-image: url("./assets/icons/icon-192.png") !important;
+  background-size: cover !important;
+  background-position: center !important;
+
+  box-shadow:
+    0 0 0 2px rgba(255, 250, 240, 0.62),
+    0 8px 18px rgba(0, 0, 0, 0.18) !important;
+
+  display: inline-block !important;
+  position: relative !important;
+  z-index: 2 !important;
+}
+
+.provider-manual-row .provider-lyrics-btn[data-provider-fresh-query]::after {
+  content: "Click for Power Search" !important;
+  display: inline-block !important;
+  position: relative !important;
+  z-index: 2 !important;
+
+  color: #fffaf0 !important;
+  font-size: 18px !important;
+  line-height: 1.05 !important;
+  font-weight: 950 !important;
+  letter-spacing: -0.025em !important;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.18) !important;
+}
+
+/* shine sweep */
+.provider-manual-row .provider-lyrics-btn[data-provider-fresh-query] {
+  isolation: isolate;
+}
+
+.provider-manual-row .provider-lyrics-btn[data-provider-fresh-query] span {
+  display: none !important;
+}
+
+.provider-manual-row .provider-lyrics-btn[data-provider-fresh-query]:hover,
+.provider-manual-row .provider-lyrics-btn[data-provider-fresh-query]:focus {
+  outline: none !important;
+  transform: translateY(-1px) !important;
+  border-color: #78350f !important;
+  box-shadow:
+    0 0 0 5px rgba(180, 83, 9, 0.18),
+    0 20px 42px rgba(124, 45, 18, 0.34) !important;
+}
+
+@keyframes mehfilPowerSearchGlow {
+  0% {
+    box-shadow:
+      0 0 0 3px rgba(180, 83, 9, 0.10),
+      0 12px 28px rgba(124, 45, 18, 0.24);
+    filter: brightness(0.98);
+  }
+
+  50% {
+    box-shadow:
+      0 0 0 7px rgba(180, 83, 9, 0.20),
+      0 18px 40px rgba(124, 45, 18, 0.34);
+    filter: brightness(1.08);
+  }
+
+  100% {
+    box-shadow:
+      0 0 0 3px rgba(180, 83, 9, 0.10),
+      0 12px 28px rgba(124, 45, 18, 0.24);
+    filter: brightness(0.98);
+  }
+}
+
+
+/* ---------------------------------------------------------
+   4) Manual paste: clearly secondary
+   --------------------------------------------------------- */
+
+.provider-manual-row .provider-lyrics-btn.secondary,
+.provider-manual-row .provider-lyrics-btn[data-provider-manual-query] {
+  min-height: 48px !important;
+  padding: 12px 14px !important;
+
+  background: #ffffff !important;
+  color: #344054 !important;
+  border: 1px solid #dfe5ee !important;
+
+  font-size: 15px !important;
+  line-height: 1 !important;
+  font-weight: 900 !important;
+
+  box-shadow:
+    0 6px 16px rgba(15, 23, 42, 0.045),
+    inset 0 1px 0 rgba(255, 255, 255, 0.85) !important;
+
+  animation: none !important;
+}
+
+.provider-manual-row .provider-lyrics-btn.secondary::before,
+.provider-manual-row .provider-lyrics-btn[data-provider-manual-query]::before {
+  content: "✎" !important;
+  margin-right: 8px !important;
+  font-weight: 950 !important;
+}
+
+.provider-manual-row .provider-lyrics-btn.secondary::after,
+.provider-manual-row .provider-lyrics-btn[data-provider-manual-query]::after {
+  content: none !important;
+  display: none !important;
+}
+
+
+/* ---------------------------------------------------------
+   5) Note: smaller, calmer, still clear
+   --------------------------------------------------------- */
+
+.provider-lyrics-note {
+  margin-top: 11px !important;
+  color: #7c2d12 !important;
+  font-size: 12px !important;
+  line-height: 1.38 !important;
+  font-weight: 800 !important;
+  text-align: center !important;
+}
+
+
+/* ---------------------------------------------------------
+   6) Mobile tuning
+   --------------------------------------------------------- */
+
+@media (max-width: 640px) {
+  .provider-lyrics-fallback {
+    padding: 16px !important;
+    border-radius: 23px !important;
+  }
+
+  .provider-lyrics-title {
+    font-size: 21px !important;
+  }
+
+  .provider-lyrics-message {
+    font-size: 14px !important;
+  }
+
+  .provider-manual-row .provider-lyrics-btn[data-provider-fresh-query] {
+    min-height: 62px !important;
+    padding: 11px 14px !important;
+    gap: 11px !important;
+  }
+
+  .provider-manual-row .provider-lyrics-btn[data-provider-fresh-query]::before {
+    width: 36px !important;
+    height: 36px !important;
+    min-width: 36px !important;
+    border-radius: 13px !important;
+  }
+
+  .provider-manual-row .provider-lyrics-btn[data-provider-fresh-query]::after {
+    font-size: 17px !important;
+  }
+
+  .provider-manual-row .provider-lyrics-btn.secondary,
+  .provider-manual-row .provider-lyrics-btn[data-provider-manual-query] {
+    min-height: 47px !important;
+    font-size: 14px !important;
+  }
+}
+
+@media (max-width: 380px) {
+  .provider-manual-row .provider-lyrics-btn[data-provider-fresh-query]::after {
+    font-size: 16px !important;
+  }
+
+  .provider-manual-row .provider-lyrics-btn[data-provider-fresh-query]::before {
+    width: 34px !important;
+    height: 34px !important;
+    min-width: 34px !important;
+  }
+}
+
+/* =========================================================
+   POWER SEARCH RESULT STATE FIX
+   Shows clear feedback after a token-using source search.
+   ========================================================= */
+
+.provider-lyrics-fallback.power-search-loading {
+  border-color: #d8b56d !important;
+  background:
+    radial-gradient(circle at top right, rgba(216, 181, 109, 0.18), transparent 190px),
+    linear-gradient(180deg, #fffdf8 0%, #ffffff 100%) !important;
+}
+
+.provider-lyrics-fallback.power-search-loading .provider-lyrics-title::after {
+  content: "Checking";
+  display: inline-flex;
+  margin-left: 8px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: #f8f1df;
+  color: #795719;
+  border: 1px solid #ead7a8;
+  font-size: 11px;
+  line-height: 1;
+  font-weight: 950;
+  vertical-align: middle;
+}
+
+.provider-lyrics-fallback.power-search-checked {
+  border-color: #dfe5ee !important;
+  background:
+    linear-gradient(180deg, #ffffff 0%, #fbfcfd 100%) !important;
+}
+
+.provider-lyrics-fallback.power-search-checked .provider-lyrics-title::after {
+  content: "Checked";
+  display: inline-flex;
+  margin-left: 8px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: #f2f4f7;
+  color: #475467;
+  border: 1px solid #dfe5ee;
+  font-size: 11px;
+  line-height: 1;
+  font-weight: 950;
+  vertical-align: middle;
+}
+
+.provider-lyrics-fallback.power-search-checked .provider-lyrics-message {
+  color: #475467 !important;
+}
+
+.provider-lyrics-fallback.power-search-checked .provider-lyrics-btn[data-provider-fresh-query] {
+  display: none !important;
+}
+
+/* =========================================================
+   CLASSIC PROVIDER SOURCE CARDS
+   Light, clear, provider-highlighted. No dark theme.
+   ========================================================= */
+
+.provider-link-grid {
+  display: grid !important;
+  gap: 12px !important;
+  margin-top: 14px !important;
+}
+
+.provider-link-card {
+  position: relative !important;
+  overflow: hidden !important;
+
+  width: 100% !important;
+  border-radius: 22px !important;
+  padding: 14px !important;
+
+  background:
+    radial-gradient(circle at top right, rgba(216, 181, 109, 0.10), transparent 170px),
+    linear-gradient(180deg, #ffffff 0%, #fbfcfd 100%) !important;
+
+  border: 1px solid #e1e6ee !important;
+  color: #111827 !important;
+  text-align: left !important;
+  cursor: pointer !important;
+
+  display: grid !important;
+  gap: 9px !important;
+
+  box-shadow:
+    0 10px 24px rgba(15, 23, 42, 0.055),
+    0 1px 2px rgba(15, 23, 42, 0.025) !important;
+
+  transition:
+    transform 0.12s ease,
+    box-shadow 0.12s ease,
+    border-color 0.12s ease !important;
+}
+
+.provider-link-card::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 5px;
+  background: #d8b56d;
+}
+
+.provider-link-card:hover,
+.provider-link-card:focus {
+  outline: none !important;
+  transform: translateY(-1px) !important;
+  border-color: #d8b56d !important;
+  box-shadow:
+    0 16px 34px rgba(15, 23, 42, 0.085),
+    0 0 0 4px rgba(216, 181, 109, 0.12) !important;
+}
+
+.provider-link-top {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 10px !important;
+}
+
+.provider-link-name {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 9px !important;
+
+  color: #111827 !important;
+  font-size: 17px !important;
+  line-height: 1.1 !important;
+  font-weight: 950 !important;
+  letter-spacing: -0.025em !important;
+}
+
+.provider-link-logo {
+  width: 34px !important;
+  height: 34px !important;
+  min-width: 34px !important;
+
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+
+  border-radius: 13px !important;
+  background: #f8f1df !important;
+  color: #7a5718 !important;
+  border: 1px solid #ead7a8 !important;
+
+  font-size: 16px !important;
+  line-height: 1 !important;
+  font-weight: 950 !important;
+
+  box-shadow: 0 5px 12px rgba(15, 23, 42, 0.055) !important;
+}
+
+.provider-link-badge {
+  border-radius: 999px !important;
+  padding: 5px 9px !important;
+
+  background: #f0fdf4 !important;
+  color: #166534 !important;
+  border: 1px solid #bbf7d0 !important;
+
+  font-size: 11px !important;
+  line-height: 1 !important;
+  font-weight: 950 !important;
+  white-space: nowrap !important;
+}
+
+.provider-link-title {
+  color: #111827 !important;
+  font-size: 15px !important;
+  line-height: 1.38 !important;
+  font-weight: 900 !important;
+  letter-spacing: -0.01em !important;
+}
+
+.provider-link-description {
+  color: #667085 !important;
+  font-size: 13px !important;
+  line-height: 1.45 !important;
+  font-weight: 600 !important;
+}
+
+.provider-link-meta {
+  margin-top: 2px !important;
+  padding-top: 10px !important;
+  border-top: 1px solid #edf0f4 !important;
+
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  flex-wrap: wrap !important;
+
+  color: #667085 !important;
+  font-size: 12px !important;
+  font-weight: 800 !important;
+}
+
+.provider-link-open {
+  color: #8a4b16 !important;
+  font-weight: 950 !important;
+}
+
+/* Provider-specific classic accents */
+
+.provider-link-card-shazam {
+  background:
+    radial-gradient(circle at top right, rgba(59, 130, 246, 0.10), transparent 170px),
+    linear-gradient(180deg, #ffffff 0%, #f8fbff 100%) !important;
+}
+
+.provider-link-card-shazam::before {
+  background: #3b82f6 !important;
+}
+
+.provider-link-card-shazam .provider-link-logo {
+  background: #eff6ff !important;
+  color: #1d4ed8 !important;
+  border-color: #bfdbfe !important;
+}
+
+.provider-link-card-genius {
+  background:
+    radial-gradient(circle at top right, rgba(234, 179, 8, 0.13), transparent 170px),
+    linear-gradient(180deg, #ffffff 0%, #fffdf3 100%) !important;
+}
+
+.provider-link-card-genius::before {
+  background: #d8b56d !important;
+}
+
+.provider-link-card-genius .provider-link-logo {
+  background: #fef9c3 !important;
+  color: #854d0e !important;
+  border-color: #fde68a !important;
+}
+
+.provider-link-card-smule {
+  background:
+    radial-gradient(circle at top right, rgba(124, 58, 237, 0.09), transparent 170px),
+    linear-gradient(180deg, #ffffff 0%, #fbfaff 100%) !important;
+}
+
+.provider-link-card-smule::before {
+  background: #8b5cf6 !important;
+}
+
+.provider-link-card-smule .provider-link-logo {
+  background: #f5f3ff !important;
+  color: #6d28d9 !important;
+  border-color: #ddd6fe !important;
+}
+
+.provider-link-card-hindigeetmala,
+.provider-link-card-hindilyrics4u {
+  background:
+    radial-gradient(circle at top right, rgba(245, 158, 11, 0.11), transparent 170px),
+    linear-gradient(180deg, #ffffff 0%, #fffaf3 100%) !important;
+}
+
+.provider-link-card-hindigeetmala::before,
+.provider-link-card-hindilyrics4u::before {
+  background: #f59e0b !important;
+}
+
+.provider-link-card-hindigeetmala .provider-link-logo,
+.provider-link-card-hindilyrics4u .provider-link-logo {
+  background: #fff7ed !important;
+  color: #9a3412 !important;
+  border-color: #fed7aa !important;
+}
+
+.provider-link-card-musixmatch {
+  background:
+    radial-gradient(circle at top right, rgba(244, 63, 94, 0.08), transparent 170px),
+    linear-gradient(180deg, #ffffff 0%, #fffafb 100%) !important;
+}
+
+.provider-link-card-musixmatch::before {
+  background: #f43f5e !important;
+}
+
+.provider-link-card-musixmatch .provider-link-logo {
+  background: #fff1f2 !important;
+  color: #be123c !important;
+  border-color: #fecdd3 !important;
+}
+
+@media (max-width: 640px) {
+  .provider-link-card {
+    padding: 13px !important;
+    border-radius: 20px !important;
+  }
+
+  .provider-link-name {
+    font-size: 16px !important;
+  }
+
+  .provider-link-logo {
+    width: 32px !important;
+    height: 32px !important;
+    min-width: 32px !important;
+    border-radius: 12px !important;
+  }
+
+  .provider-link-title {
+    font-size: 14px !important;
+  }
+
+  .provider-link-description {
+    font-size: 12px !important;
+  }
+
+  .provider-link-badge {
+    font-size: 10px !important;
+  }
+}
+
+/* =========================================================
+   SEARCH CONFIDENCE UI — PATCH 38
+   Uses backend search_meta: high / medium / low confidence.
+   ========================================================= */
+
+.online-result-card-confidence-high {
+  border-color: #ead7a8 !important;
+  background:
+    radial-gradient(circle at top right, rgba(216, 181, 109, 0.13), transparent 170px),
+    linear-gradient(180deg, #fffdf8 0%, #ffffff 100%) !important;
+}
+
+.online-result-card-confidence-medium {
+  border-color: #dfe5ee !important;
+  background:
+    linear-gradient(180deg, #ffffff 0%, #fbfcfd 100%) !important;
+}
+
+.online-result-card-confidence-low {
+  opacity: 0.82;
+  border-color: #e7ebf0 !important;
+  background: #fbfcfd !important;
+}
+
+.online-result-card-confidence-low .song-title {
+  color: #344054 !important;
+}
+
+.online-pill-confidence-high {
+  border-color: #ead7a8 !important;
+  background: #f8f1df !important;
+  color: #795719 !important;
+}
+
+.online-pill-confidence-medium {
+  border-color: #dbeafe !important;
+  background: #eff6ff !important;
+  color: #1d4ed8 !important;
+}
+
+.online-pill-confidence-low {
+  border-color: #e5e7eb !important;
+  background: #f8fafc !important;
+  color: #667085 !important;
+}
+
+.online-results-section {
+  display: grid;
+  gap: 10px;
+}
+
+.online-results-section-title {
+  margin: 2px 2px 0;
+  color: #344054;
+  font-size: 12px;
+  line-height: 1.2;
+  font-weight: 950;
+  letter-spacing: 0.055em;
+  text-transform: uppercase;
+}
+
+.online-results-section-helper {
+  margin: -4px 2px 2px;
+  color: #667085;
+  font-size: 12px;
+  line-height: 1.35;
+  font-weight: 650;
+}
+
+.online-other-matches {
+  border: 1px solid #e5e9f0;
+  border-radius: 18px;
+  background: #ffffff;
+  overflow: hidden;
+}
+
+.online-other-matches summary {
+  cursor: pointer;
+  list-style: none;
+  padding: 12px 14px;
+  color: #344054;
+  font-size: 13px;
+  line-height: 1.25;
+  font-weight: 900;
+  background: #f8fafc;
+}
+
+.online-other-matches summary::-webkit-details-marker {
+  display: none;
+}
+
+.online-other-matches summary::after {
+  content: "＋";
+  float: right;
+  color: #667085;
+  font-weight: 950;
+}
+
+.online-other-matches[open] summary::after {
+  content: "−";
+}
+
+.online-other-matches-body {
+  display: grid;
+  gap: 10px;
+  padding: 10px;
+  border-top: 1px solid #edf0f4;
+}
+
+.online-choice-note {
+  margin-top: 10px;
+  padding: 10px 11px;
+  border-radius: 14px;
+  background: #f8fafc;
+  border: 1px solid #e5e9f0;
+  color: #667085;
+  font-size: 12px;
+  line-height: 1.4;
+  font-weight: 700;
+}
+
+@media (max-width: 640px) {
+  .online-results-section {
+    gap: 9px;
+  }
+
+  .online-results-section-title {
+    font-size: 11px;
+  }
+
+  .online-other-matches summary {
+    padding: 11px 12px;
+    font-size: 12px;
+  }
+
+  .online-other-matches-body {
+    padding: 9px;
+    gap: 9px;
+  }
+
+  .online-choice-note {
+    font-size: 12px;
+  }
+}
+
+/* =========================================================
+   ADMIN SEARCH HEALTH CARD — PATCH 38
+   Shows DB/search index health inside Admin → Warmup.
+   ========================================================= */
+
+.admin-search-health-card {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid #edf0f4;
+}
+
+.admin-search-health-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.admin-search-health-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.admin-search-health-tile {
+  border: 1px solid #e1e6ee;
+  border-radius: 17px;
+  background:
+    linear-gradient(180deg, #ffffff 0%, #fbfcfd 100%);
+  padding: 12px;
+  box-shadow: 0 5px 14px rgba(17, 24, 39, 0.04);
+}
+
+.admin-search-health-label {
+  color: #667085;
+  font-size: 11px;
+  line-height: 1.2;
+  font-weight: 900;
+  letter-spacing: 0.045em;
+  text-transform: uppercase;
+}
+
+.admin-search-health-value {
+  margin-top: 6px;
+  color: #111827;
+  font-size: 20px;
+  line-height: 1.1;
+  font-weight: 950;
+  letter-spacing: -0.035em;
+  word-break: break-word;
+}
+
+.admin-search-health-helper {
+  margin-top: 5px;
+  color: #667085;
+  font-size: 12px;
+  line-height: 1.35;
+  font-weight: 650;
+}
+
+.admin-search-health-ok {
+  border-color: #bbf7d0;
+  background:
+    radial-gradient(circle at top right, rgba(34, 197, 94, 0.11), transparent 120px),
+    linear-gradient(180deg, #ffffff 0%, #f7fffa 100%);
+}
+
+.admin-search-health-warn {
+  border-color: #fed7aa;
+  background:
+    radial-gradient(circle at top right, rgba(249, 115, 22, 0.12), transparent 120px),
+    linear-gradient(180deg, #ffffff 0%, #fffaf5 100%);
+}
+
+.admin-search-health-danger {
+  border-color: #fecaca;
+  background:
+    radial-gradient(circle at top right, rgba(239, 68, 68, 0.12), transparent 120px),
+    linear-gradient(180deg, #ffffff 0%, #fff7f7 100%);
+}
+
+#adminSearchHealthStatus.status-box.show {
+  margin: 10px 0 10px !important;
+  display: inline-flex;
+  width: auto;
+  max-width: 100%;
+  min-height: 32px;
+  align-items: center;
+  border-radius: 999px;
+  padding: 8px 12px;
+  font-size: 12px;
+  line-height: 1.25;
+  font-weight: 800;
+  box-shadow: none;
+}
+
+@media (max-width: 760px) {
+  .admin-search-health-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .admin-search-health-head {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .admin-search-health-head .admin-cache-toolbar {
+    width: 100%;
+  }
+
+  #adminSearchHealthRefreshBtn {
+    width: 100%;
+  }
+
+  .admin-search-health-grid {
+    grid-template-columns: 1fr;
+    gap: 9px;
+  }
+
+  #adminSearchHealthStatus.status-box.show {
+    width: 100%;
+    display: flex;
+    border-radius: 16px;
+    white-space: normal;
+  }
+}
+
 
 
   </style>
@@ -9052,7 +9990,26 @@ body.song-modal-open {
     <div class="admin-warmup-progress">
       <div class="tiny" id="adminWarmupSummary">No warmup running.</div>
       <div id="adminWarmupResults"></div>
-      <div class="admin-cache-dashboard">
+
+<div class="admin-search-health-card">
+  <div class="admin-search-health-head">
+    <div>
+      <div class="admin-cache-dashboard-title">Search Engine Health</div>
+      <div class="admin-cache-muted">Database, queue, vector, and lyric chunk sync status.</div>
+    </div>
+
+    <div class="admin-cache-toolbar">
+      <button id="adminSearchHealthRefreshBtn" class="btn-secondary" type="button">Refresh Health</button>
+    </div>
+  </div>
+
+  <div id="adminSearchHealthStatus" class="status-box"></div>
+  <div id="adminSearchHealthResults">
+    <div class="empty">Search health not loaded yet.</div>
+  </div>
+</div>
+
+<div class="admin-cache-dashboard">
   <div class="admin-cache-dashboard-head">
     <div>
       <div class="admin-cache-dashboard-title">Online Cache Dashboard</div>
@@ -10728,34 +11685,144 @@ function getEmbeddedOnlineSongFromLookupKey(candidate) {
   //return true;
 //}
 
+function getCandidateSearchMeta(candidate) {
+  const meta = candidate?.search_meta;
+
+  if (meta && typeof meta === "object" && !Array.isArray(meta)) {
+    return meta;
+  }
+
+  return {};
+}
+
+function getCandidateConfidenceLevel(candidate) {
+  const level = String(getCandidateSearchMeta(candidate).confidence_level || "").toLowerCase();
+
+  if (level === "high" || level === "medium" || level === "low") {
+    return level;
+  }
+
+  const matchSource = String(candidate?.match_source || "").toLowerCase();
+
+  if (
+    matchSource.includes("title") ||
+    matchSource.includes("native_phrase") ||
+    matchSource.includes("chunk_native_words") ||
+    matchSource.includes("chunk_roman_words")
+  ) {
+    return "high";
+  }
+
+  if (matchSource.includes("roman")) {
+    return "medium";
+  }
+
+  return "low";
+}
+
+function getOnlineCandidatePrimaryPill(candidate, isPossibleOnly = false) {
+  const meta = getCandidateSearchMeta(candidate);
+  const backendBadge = String(meta.badge || "").trim();
+
+  if (backendBadge) {
+    return backendBadge;
+  }
+
+  const matchSource = String(candidate?.match_source || "").toLowerCase();
+
+  if (candidate?._title_suggestion || matchSource.includes("title_suggestion")) {
+    return "Possible title match";
+  }
+
+  if (matchSource.includes("title")) {
+    return "Title match";
+  }
+
+  if (matchSource.includes("chunk_roman_sound")) {
+    return "Possible Phonetic Lyrics Match";
+  }
+
+  if (matchSource.includes("chunk_roman") || matchSource.includes("roman")) {
+    return "Roman Lyrics Match";
+  }
+
+  if (
+    matchSource.includes("phrase") ||
+    matchSource.includes("lyrics") ||
+    matchSource.includes("native")
+  ) {
+    return "Lyrics Match";
+  }
+
+  return isPossibleOnly ? "Possible Match" : "Lyrics Preview";
+}
+
+function getCandidateConfidencePill(candidate) {
+  const level = getCandidateConfidenceLevel(candidate);
+
+  if (level === "high") return "High confidence";
+  if (level === "medium") return "Possible match";
+  return "Low confidence";
+}
+
+function candidateNeedsUserChoice(candidate) {
+  const meta = getCandidateSearchMeta(candidate);
+  return meta.needs_user_choice === true;
+}
+
+function candidateShouldAutoOpen(candidate) {
+  const meta = getCandidateSearchMeta(candidate);
+  return meta.should_auto_open === true;
+}
+
 function buildOnlineCandidateCardHtml(candidate, index, type) {
   const preview = getCandidatePreview(candidate);
   const usable = hasUsableOnlineLyrics(candidate);
   const isPossibleOnly = candidate.status === "metadata_only" || !usable;
   const previewText = preview.length > 360 ? preview.slice(0, 360).trim() + "..." : preview;
 
+  const confidenceLevel = getCandidateConfidenceLevel(candidate);
+  const confidencePill = getCandidateConfidencePill(candidate);
+  const needsChoice = candidateNeedsUserChoice(candidate);
+  const shouldAutoOpen = candidateShouldAutoOpen(candidate);
+
+  const cardClass = [
+    "result-card",
+    "online-result-card",
+    `online-result-card-confidence-${confidenceLevel}`
+  ].join(" ");
+
+  const metaLine = joinMeta([
+    candidate.movie || "",
+    candidate.singer || ""
+  ]);
+
+  const choiceNote = needsChoice
+    ? `<div class="online-choice-note">Multiple or uncertain versions may match. Choose the correct one.</div>`
+    : "";
+
   return `
     <div
-      class="result-card online-result-card"
+      class="${cardClass}"
       data-online-index="${index}"
       data-online-type="${type}"
       data-has-preview="${usable ? "1" : "0"}"
+      data-confidence-level="${escapeHtml(confidenceLevel)}"
+      data-should-auto-open="${shouldAutoOpen ? "1" : "0"}"
+      data-needs-user-choice="${needsChoice ? "1" : "0"}"
     >
       <div class="result-main">
         <div class="online-pill-row">
-          <span class="online-pill">${isPossibleOnly ? "Possible match" : "Lyrics preview"}</span>
-          <span class="online-pill">${escapeHtml(candidate.source_name || candidate.provider || "Online")}</span>
-          <span class="online-pill">${escapeHtml(formatConfidence(candidate.confidence))}</span>
+          <span class="online-pill online-pill-confidence-${escapeHtml(confidenceLevel)}">${escapeHtml(getOnlineCandidatePrimaryPill(candidate, isPossibleOnly))}</span>
+          <span class="online-pill">${escapeHtml(confidencePill)}</span>
+          <span class="online-pill">${escapeHtml(candidate.source_name || candidate.provider || "Mehfil Cache")}</span>
           <span class="online-pill">${escapeHtml(getScriptLabel(candidate.script))}</span>
         </div>
 
         <div class="song-title">${escapeHtml(candidate.title || "")}</div>
 
         <div class="song-meta">
-          ${escapeHtml(joinMeta([
-            candidate.movie || "",
-            candidate.singer || ""
-          ]))}
+          ${escapeHtml(metaLine)}
         </div>
 
         ${
@@ -10763,11 +11830,13 @@ function buildOnlineCandidateCardHtml(candidate, index, type) {
             ? `<div class="song-snippet online-preview">${escapeHtml(previewText)}</div>`
             : `<div class="song-snippet online-preview-missing">Possible match. Tap to try loading lyrics.</div>`
         }
+
+        ${choiceNote}
       </div>
     </div>
   `;
 }
-    
+
 function renderSearchOnlineCandidates(candidates) {
   const root = document.getElementById("searchOnlineCandidates");
   if (!root) return;
@@ -10780,9 +11849,61 @@ function renderSearchOnlineCandidates(candidates) {
     return;
   }
 
-  root.innerHTML = searchOnlineCandidatesState
-    .map((candidate, index) => buildOnlineCandidateCardHtml(candidate, index, "search"))
-    .join("");
+  const items = searchOnlineCandidatesState.map((candidate, index) => ({
+    candidate,
+    index,
+    confidenceLevel: getCandidateConfidenceLevel(candidate),
+    needsChoice: candidateNeedsUserChoice(candidate)
+  }));
+
+  const strongItems = items.filter(item =>
+    item.confidenceLevel === "high" || item.confidenceLevel === "medium"
+  );
+
+  const weakItems = items.filter(item =>
+    item.confidenceLevel === "low"
+  );
+
+  const visibleStrongItems = strongItems.length ? strongItems : items.slice(0, 3);
+  const hiddenWeakItems = strongItems.length ? weakItems : items.slice(3);
+
+  const hasTitleChoice = visibleStrongItems.some(item => item.needsChoice);
+  const sectionTitle = hasTitleChoice
+    ? "Possible title matches"
+    : "Best Mehfil matches";
+
+  const sectionHelper = hasTitleChoice
+    ? "Several versions look close. Pick the one you actually want."
+    : "Ranked by title, lyric, Roman, and phonetic confidence.";
+
+  const strongHtml = `
+    <div class="online-results-section">
+      <div class="online-results-section-title">${escapeHtml(sectionTitle)}</div>
+      <div class="online-results-section-helper">${escapeHtml(sectionHelper)}</div>
+      ${
+        visibleStrongItems
+          .map(item => buildOnlineCandidateCardHtml(item.candidate, item.index, "search"))
+          .join("")
+      }
+    </div>
+  `;
+
+  const weakHtml = hiddenWeakItems.length
+    ? `
+      <details class="online-other-matches">
+        <summary>Other possible matches (${hiddenWeakItems.length})</summary>
+        <div class="online-other-matches-body">
+          ${
+            hiddenWeakItems
+              .map(item => buildOnlineCandidateCardHtml(item.candidate, item.index, "search"))
+              .join("")
+          }
+        </div>
+      </details>
+    `
+    : "";
+
+  root.innerHTML = strongHtml + weakHtml;
 
   root.classList.remove("hidden");
   prefetchOnlineCandidateDetails(searchOnlineCandidatesState, 3);
@@ -10905,6 +12026,19 @@ function getProviderDisplayName(provider, label) {
   return String(label || "Open provider").replace(/^Open on\s+/i, "");
 }
 
+function getProviderLogoText(provider) {
+  const value = String(provider || "").toLowerCase();
+
+  if (value === "shazam") return "S";
+  if (value === "genius") return "G";
+  if (value === "smule") return "♪";
+  if (value === "hindigeetmala") return "ह";
+  if (value === "hindilyrics4u") return "ल";
+  if (value === "musixmatch") return "M";
+
+  return "↗";
+}
+
 function getProviderQualityLabel(link) {
   const label = String(link?.quality_label || "").trim();
   if (label) return label;
@@ -10946,20 +12080,34 @@ function buildProviderLyricsFallbackHtml(query, links = [], isLoading = false, o
   const safeQuery = String(query || "").trim();
   const safeLinks = Array.isArray(links) ? links : [];
   const allowFreshSearch = options.allowFreshSearch !== false;
+  const freshSearchAttempted = options.freshSearchAttempted === true;
+  const freshSearchLoading = options.freshSearchLoading === true;
+
+  const fallbackClasses = [
+    "provider-lyrics-fallback",
+    freshSearchAttempted ? "power-search-checked" : "",
+    freshSearchLoading ? "power-search-loading" : ""
+  ].filter(Boolean).join(" ");
+
+  const messageText = isLoading
+    ? (
+        freshSearchLoading
+          ? "Power Search is checking fresh source links now. Please wait..."
+          : "Checking saved source links..."
+      )
+    : safeLinks.length
+      ? "Saved direct source links are available below."
+      : freshSearchAttempted
+        ? "Power Search checked fresh source links but did not find a usable direct match for this spelling. Try a shorter title, remove extra words, or paste lyrics manually."
+        : "No saved source link was found yet. Use one fresh source search only if needed.";
 
   return `
-    <div class="provider-lyrics-fallback">
+    <div class="${fallbackClasses}">
       <div class="provider-lyrics-title">Lyrics not found in Mehfil</div>
 
       <div class="provider-lyrics-message">
         Mehfil checked the local library and LRCLIB but did not find usable lyrics.
-        ${
-          isLoading
-            ? "Checking saved source links..."
-            : safeLinks.length
-              ? "Saved direct source links are available below."
-              : "No saved source link was found yet. Use one fresh source search only if needed."
-        }
+        ${escapeHtml(messageText)}
       </div>
 
       ${
@@ -10968,6 +12116,9 @@ function buildProviderLyricsFallbackHtml(query, links = [], isLoading = false, o
             <div class="provider-link-grid">
               ${safeLinks.map(link => {
                 const providerName = getProviderDisplayName(link.provider, link.label);
+                const providerClass = String(link.provider || "unknown")
+  .toLowerCase()
+  .replace(/[^a-z0-9-]/g, "");
                 const qualityLabel = getProviderQualityLabel(link);
                 const score = Math.round(Number(link.quality_score || link.confidence || 0));
                 const title = cleanProviderCardTitle(
@@ -10978,12 +12129,16 @@ function buildProviderLyricsFallbackHtml(query, links = [], isLoading = false, o
 
                 return `
                   <button
-                    class="provider-link-card"
-                    type="button"
-                    data-provider-url="${escapeHtml(link.url)}"
-                  >
+  class="provider-link-card provider-link-card-${escapeHtml(providerClass)}"
+  type="button"
+  data-provider="${escapeHtml(providerClass)}"
+  data-provider-url="${escapeHtml(link.url)}"
+>
                     <div class="provider-link-top">
-                      <div class="provider-link-name">${escapeHtml(providerName)}</div>
+                      <div class="provider-link-name">
+  <span class="provider-link-logo" aria-hidden="true">${escapeHtml(getProviderLogoText(link.provider))}</span>
+  <span>${escapeHtml(providerName)}</span>
+</div>
                       <div class="provider-link-badge">${escapeHtml(qualityLabel)}</div>
                     </div>
 
@@ -11007,7 +12162,7 @@ function buildProviderLyricsFallbackHtml(query, links = [], isLoading = false, o
 
       <div class="provider-manual-row">
         ${
-          !safeLinks.length && !isLoading && allowFreshSearch
+          !safeLinks.length && !isLoading && allowFreshSearch && !freshSearchAttempted
             ? `
               <button
                 class="provider-lyrics-btn"
@@ -11030,7 +12185,11 @@ function buildProviderLyricsFallbackHtml(query, links = [], isLoading = false, o
       </div>
 
       <div class="provider-lyrics-note">
-        Fresh source search uses Brave only when you tap “Check source links”.
+        ${
+          freshSearchAttempted && !safeLinks.length
+            ? "Power Search already checked once for this spelling. Try a different spelling before using it again."
+            : "Fresh source search uses Brave only when you tap Power Search."
+        }
       </div>
     </div>
   `;
@@ -11100,29 +12259,49 @@ function renderProviderLyricsFreshSearch(query) {
     safeQuery,
     [],
     true,
-    { allowFreshSearch: false }
+    {
+      allowFreshSearch: false,
+      freshSearchLoading: true
+    }
   );
   root.classList.remove("hidden");
 
   /*
     Token-using path:
     This may use Brave if cache has no result.
-    Only runs after user taps Check source links.
+    Only runs after user taps Power Search.
   */
   lookupDirectProviderLinks(safeQuery)
     .then(links => {
+      unlockOnlineSearchButton();
+
       if (fallbackRunId !== onlineLookupRunId) return;
+
+      const safeLinks = Array.isArray(links) ? links : [];
 
       root.innerHTML = buildProviderLyricsFallbackHtml(
         safeQuery,
-        links,
+        safeLinks,
         false,
-        { allowFreshSearch: true }
+        {
+          allowFreshSearch: false,
+          freshSearchAttempted: true
+        }
       );
 
       root.classList.remove("hidden");
+
+      if (!safeLinks.length) {
+        showTemporaryStatus(
+          "appStatus",
+          "Power Search checked, but no usable source link was found for this spelling.",
+          "warn",
+          4200
+        );
+      }
     })
     .catch(error => {
+      unlockOnlineSearchButton();
       console.warn("Fresh provider fallback render failed:", error);
 
       if (fallbackRunId !== onlineLookupRunId) return;
@@ -11131,10 +12310,20 @@ function renderProviderLyricsFreshSearch(query) {
         safeQuery,
         [],
         false,
-        { allowFreshSearch: true }
+        {
+          allowFreshSearch: false,
+          freshSearchAttempted: true
+        }
       );
 
       root.classList.remove("hidden");
+
+      showTemporaryStatus(
+        "appStatus",
+        "Power Search failed. Try another spelling or paste lyrics manually.",
+        "warn",
+        4200
+      );
     });
 }
 
@@ -11767,6 +12956,205 @@ async function readOnlineSongSupabaseCache(query) {
 
     return candidates;
   } catch {
+    return [];
+  }
+}
+
+async function searchOnlineSongCacheIndex(query, limit = 6) {
+  const safeQuery = String(query || "").trim();
+  const safeLimit = Math.max(1, Math.min(Number(limit || 6), 10));
+
+  if (!safeQuery || safeQuery.length < 3 || !supabaseClient) {
+    return [];
+  }
+
+  try {
+    const { data, error } = await supabaseClient.rpc(
+      "search_online_song_cache_index",
+      {
+        p_query: safeQuery,
+        p_limit: safeLimit
+      }
+    );
+
+    if (error) {
+      console.warn("Online song cache index search skipped:", error.message || error);
+      return [];
+    }
+
+    const rows = Array.isArray(data) ? data : [];
+
+    console.log("MEHFIL SEARCHABLE WARMUP CACHE:", {
+      query: safeQuery,
+      count: rows.length,
+      first: rows[0] || null
+    });
+
+    const candidates = rows
+      .map(row => row?.candidate || null)
+      .filter(Boolean);
+
+    return sanitizeOnlineCacheCandidates(candidates);
+  } catch (error) {
+    console.warn("Online song cache index search failed:", error);
+    return [];
+  }
+}
+
+async function searchOnlineSongCacheIndex(query, limit = 6) {
+  const safeQuery = String(query || "").trim();
+  const safeLimit = Math.max(1, Math.min(Number(limit || 6), 10));
+
+  if (!safeQuery || safeQuery.length < 3 || !supabaseClient) {
+    return [];
+  }
+
+  try {
+    const { data, error } = await supabaseClient.rpc(
+      "search_online_song_cache_index",
+      {
+        p_query: safeQuery,
+        p_limit: safeLimit
+      }
+    );
+
+    if (error) {
+      console.warn("Online song cache index search skipped:", error.message || error);
+      return [];
+    }
+
+    const candidates = (Array.isArray(data) ? data : [])
+      .map(row => row?.candidate || null)
+      .filter(Boolean);
+
+    return sanitizeOnlineCacheCandidates(candidates);
+  } catch (error) {
+    console.warn("Online song cache index search failed:", error);
+    return [];
+  }
+}
+
+function getUsefulTitleSuggestionWordCount(query) {
+  const stopWords = new Set([
+    "the", "and", "or", "a", "an",
+    "hai", "hain", "ho", "ki", "ke", "ka", "ko", "se",
+    "me", "mein", "main", "mai",
+    "ni", "no", "na", "nu", "ne", "ma", "maa", "re", "ji", "bhi", "tu"
+  ]);
+
+  return String(query || "")
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}\s]/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .split(/\s+/)
+    .filter(word => word.length >= 2 && !stopWords.has(word))
+    .length;
+}
+
+function shouldLookupTitleSuggestions(query) {
+  const safeQuery = String(query || "").trim();
+
+  if (!safeQuery || safeQuery.length < 2 || safeQuery.length > 90) {
+    return false;
+  }
+
+  const usefulWordCount = getUsefulTitleSuggestionWordCount(safeQuery);
+
+  /*
+    1–5 useful words:
+    likely title / partial-title / version query.
+
+    Longer:
+    likely lyric/chorus query, so let normal vector lyric search handle it.
+  */
+  return usefulWordCount >= 1 && usefulWordCount <= 5;
+}
+
+function normalizeTitleSuggestionCandidates(candidates = []) {
+  const seen = new Set();
+
+  return (Array.isArray(candidates) ? candidates : [])
+    .map(candidate => {
+      const preview = getCandidatePreview(candidate);
+      const lyrics = cleanLyricsText(candidate?.lyrics || "");
+
+      return {
+        ...candidate,
+        provider: candidate.provider || "mehfil_cache",
+        source_name: candidate.source_name || "Mehfil Cache",
+        source_url: candidate.source_url || "",
+        script: candidate.script || "unknown",
+        status: candidate.status || "lyrics_ready",
+        confidence: Number(candidate.confidence || 0),
+        preview: candidate.preview || preview || "",
+        lyrics: candidate.lyrics || "",
+        match_source: candidate.match_source || "title_suggestion",
+        cache_source: candidate.cache_source || "mehfil_search_vectors_v1",
+        _title_suggestion: true,
+        _dedupe_key: normalizeText([
+          candidate.title || "",
+          candidate.singer || "",
+          candidate.movie || ""
+        ].join(" "))
+      };
+    })
+    .filter(candidate => {
+      if (!candidate.title || !candidate._dedupe_key) return false;
+
+      const hasSomeText =
+        cleanLyricsText(candidate.lyrics || candidate.preview || "").length >= 8;
+
+      if (!hasSomeText) return false;
+
+      if (seen.has(candidate._dedupe_key)) return false;
+      seen.add(candidate._dedupe_key);
+
+      return true;
+    });
+}
+
+async function searchMehfilTitleSuggestions(query, limit = 10) {
+  const safeQuery = String(query || "").trim();
+  const safeLimit = Math.max(1, Math.min(Number(limit || 10), 10));
+
+  if (!safeQuery || !supabaseClient || !shouldLookupTitleSuggestions(safeQuery)) {
+    return [];
+  }
+
+  try {
+    const { data, error } = await supabaseClient.rpc(
+      "search_mehfil_title_suggestions_v1",
+      {
+        p_query: safeQuery,
+        p_limit: safeLimit
+      }
+    );
+
+    if (error) {
+      console.warn("Mehfil title suggestions skipped:", error.message || error);
+      return [];
+    }
+
+    const candidates = (Array.isArray(data) ? data : [])
+      .map(row => {
+        const candidate = row?.candidate || null;
+        if (!candidate) return null;
+
+        return {
+          ...candidate,
+          confidence: Math.max(
+            0,
+            Math.min(99, Math.round(Number(row.search_score || candidate.confidence || 0) / 10))
+          ),
+          match_source: row.match_source || candidate.match_source || "title_suggestion"
+        };
+      })
+      .filter(Boolean);
+
+    return normalizeTitleSuggestionCandidates(candidates).slice(0, safeLimit);
+  } catch (error) {
+    console.warn("Mehfil title suggestions failed:", error);
     return [];
   }
 }
@@ -12571,8 +13959,39 @@ if (providerFallbackVisible) {
 showProviderFallback();
   }
 
-  const cachedCandidates = await readOnlineSongSupabaseCache(safeQuery);
-  const desiredOnlineCount = 6;
+    const useTitleSuggestions = !force && shouldLookupTitleSuggestions(safeQuery);
+const desiredOnlineCount = useTitleSuggestions ? 10 : 6;
+
+if (useTitleSuggestions) {
+  const titleSuggestions = await searchMehfilTitleSuggestions(
+    safeQuery,
+    desiredOnlineCount
+  );
+
+  if (!isCurrentRun()) return;
+
+  if (titleSuggestions.length >= 2) {
+    providerFallbackVisible = false;
+    shownCandidates = titleSuggestions.slice(0, desiredOnlineCount);
+
+    renderResults([], safeQuery, { suppressEmptyState: true });
+    renderSearchOnlineCandidates(shownCandidates);
+
+    setSearchOnlineState(
+      `${shownCandidates.length} possible title match(es) found. Choose the correct version.`,
+      "success"
+    );
+
+    prefetchOnlineCandidateDetails(shownCandidates, 3);
+
+    directDone = true;
+    edgeDone = true;
+    finishIfBothDone();
+    return;
+  }
+}
+
+const cachedCandidates = await readOnlineSongSupabaseCache(safeQuery);
 
   if (cachedCandidates.length) {
     showMergedCandidates(
@@ -12599,6 +14018,36 @@ showProviderFallback();
       "success"
     );
   }
+
+  const indexedCacheCandidates = await searchOnlineSongCacheIndex(
+    safeQuery,
+    desiredOnlineCount
+  );
+
+  if (indexedCacheCandidates.length) {
+    showMergedCandidates(
+      indexedCacheCandidates,
+      `${indexedCacheCandidates.length} warmed-up cache match(es) found.`
+    );
+
+    /*
+      Searchable warmup cache is enough for normal searches.
+      Do not continue to LRCLIB/online lookup unless this was a forced refresh.
+      This avoids delay and avoids unnecessary fallback confusion.
+    */
+    if (!force) {
+      directDone = true;
+      edgeDone = true;
+      finishIfBothDone();
+      return;
+    }
+
+    setSearchOnlineState(
+      `${indexedCacheCandidates.length} warmed-up cache result(s) shown. Checking for more/better matches...`,
+      "success"
+    );
+  }
+
 
   const edgePromise = lookupSongOnline({
     query: safeQuery,
@@ -17946,6 +19395,153 @@ async function handleAdminWarmupCsvImport(event) {
   }
 }
 
+function formatAdminHealthNumber(value) {
+  const n = Number(value || 0);
+
+  if (!Number.isFinite(n)) return "0";
+
+  return n.toLocaleString();
+}
+
+function setAdminSearchHealthStatus(message, type = "info") {
+  const el = document.getElementById("adminSearchHealthStatus");
+
+  if (!el) return;
+
+  if (!message) {
+    el.className = "status-box";
+    el.textContent = "";
+    return;
+  }
+
+  const cls =
+    type === "success"
+      ? "status-success"
+      : type === "error"
+        ? "status-error"
+        : type === "warn"
+          ? "status-warn"
+          : "";
+
+  el.className = `status-box show ${cls}`;
+  el.textContent = message;
+}
+
+function buildAdminHealthTile(label, value, helper = "", level = "") {
+  const levelClass =
+    level === "danger"
+      ? "admin-search-health-danger"
+      : level === "warn"
+        ? "admin-search-health-warn"
+        : level === "ok"
+          ? "admin-search-health-ok"
+          : "";
+
+  return `
+    <div class="admin-search-health-tile ${levelClass}">
+      <div class="admin-search-health-label">${escapeHtml(label)}</div>
+      <div class="admin-search-health-value">${escapeHtml(String(value ?? ""))}</div>
+      ${helper ? `<div class="admin-search-health-helper">${escapeHtml(helper)}</div>` : ""}
+    </div>
+  `;
+}
+
+function renderAdminSearchHealth(row) {
+  const root = document.getElementById("adminSearchHealthResults");
+
+  if (!root) return;
+
+  if (!row) {
+    root.innerHTML = `<div class="empty">Search health not loaded yet.</div>`;
+    return;
+  }
+
+  const storageLevel = String(row.storage_level || "ok").toLowerCase();
+
+  const storageCardLevel =
+    storageLevel === "danger"
+      ? "danger"
+      : storageLevel === "warning"
+        ? "warn"
+        : "ok";
+
+  const missingChunks = Number(row.chunk_visible_missing_chunks || 0);
+  const pendingChunks = Number(row.chunk_pending_sources || 0);
+  const queuePending = row.queue_pending === null || row.queue_pending === undefined
+    ? "—"
+    : formatAdminHealthNumber(row.queue_pending);
+
+  const syncLevel = missingChunks === 0 && pendingChunks === 0 ? "ok" : "danger";
+  const queueLevel = Number(row.queue_pending || 0) === 0 ? "ok" : "warn";
+
+  const checkedAt = row.checked_at
+    ? new Date(row.checked_at).toLocaleString()
+    : "";
+
+  root.innerHTML = `
+    <div class="admin-search-health-grid">
+      ${buildAdminHealthTile("Storage", row.database_size || "", `${Number(row.database_size_mb || 0).toFixed(2)} MB used`, storageCardLevel)}
+      ${buildAdminHealthTile("Candidates", formatAdminHealthNumber(row.candidates_rows), "Search candidate rows")}
+      ${buildAdminHealthTile("Vectors", formatAdminHealthNumber(row.vectors_rows), "Song-level search rows")}
+      ${buildAdminHealthTile("Chunks", formatAdminHealthNumber(row.chunks_rows), `${formatAdminHealthNumber(row.chunked_sources)} chunked sources`)}
+      ${buildAdminHealthTile("Missing Chunks", formatAdminHealthNumber(missingChunks), "Chunk-visible songs without chunks", syncLevel)}
+      ${buildAdminHealthTile("Chunk Pending", formatAdminHealthNumber(pendingChunks), "Waiting for safe chunk builder", syncLevel)}
+      ${buildAdminHealthTile("Queue Pending", queuePending, row.queue_table || row.queue_note || "Queue status", queueLevel)}
+      ${buildAdminHealthTile("Last Checked", checkedAt || "—", row.queue_note || "")}
+    </div>
+  `;
+}
+
+async function loadAdminSearchHealth() {
+  if (!isAdmin()) return;
+
+  const root = document.getElementById("adminSearchHealthResults");
+
+  if (!root) return;
+
+  setAdminSearchHealthStatus("Checking search engine health...", "info");
+
+  try {
+    const { data, error } = await supabaseClient.rpc("mehfil_admin_search_health_v1");
+
+    if (error) throw error;
+
+    const row = Array.isArray(data) ? data[0] : data;
+
+    renderAdminSearchHealth(row);
+
+    if (!row) {
+      setAdminSearchHealthStatus("Health check returned no data.", "warn");
+      return;
+    }
+
+    const missingChunks = Number(row.chunk_visible_missing_chunks || 0);
+    const pendingChunks = Number(row.chunk_pending_sources || 0);
+    const storageLevel = String(row.storage_level || "ok").toLowerCase();
+
+    if (storageLevel === "danger") {
+      setAdminSearchHealthStatus(`Storage danger: ${row.database_size}. Stop large warmups.`, "error");
+      return;
+    }
+
+    if (storageLevel === "warning") {
+      setAdminSearchHealthStatus(`Storage warning: ${row.database_size}. Keep an eye on Supabase limit.`, "warn");
+      return;
+    }
+
+    if (missingChunks > 0 || pendingChunks > 0) {
+      setAdminSearchHealthStatus(`Search sync issue: ${missingChunks} missing chunk(s), ${pendingChunks} pending chunk source(s).`, "warn");
+      return;
+    }
+
+    setAdminSearchHealthStatus(`Healthy. DB ${row.database_size}, queue pending ${row.queue_pending ?? "—"}, missing chunks ${missingChunks}.`, "success");
+  } catch (error) {
+    renderAdminSearchHealth(null);
+    setAdminSearchHealthStatus(`Could not load search health: ${error?.message || error}`, "error");
+  }
+}
+
+
 function setAdminCacheDashboardStatus(message, type = "info") {
   const el = document.getElementById("adminCacheDashboardStatus");
 
@@ -19979,6 +21575,7 @@ document.getElementById("adminRegisteredSubtabBtn").addEventListener("click", ()
 
 document.getElementById("adminWarmupSubtabBtn").addEventListener("click", () => {
   setAdminUsersSubtab("warmup");
+  loadAdminSearchHealth();
 });
 
 document.getElementById("adminWarmupStartBtn").addEventListener("click", startAdminCacheWarmup);
@@ -20002,6 +21599,10 @@ document.getElementById("adminWarmupImportCsvBtn").addEventListener("click", () 
 document.getElementById("adminWarmupCsvInput").addEventListener("change", handleAdminWarmupCsvImport);
 document.getElementById("adminWarmupExportTemplateBtn").addEventListener("click", exportAdminWarmupTemplateCsv);
 document.getElementById("adminWarmupExportResultsBtn").addEventListener("click", exportAdminWarmupResultsCsv);
+const adminSearchHealthRefreshBtn = document.getElementById("adminSearchHealthRefreshBtn");
+if (adminSearchHealthRefreshBtn) {
+  adminSearchHealthRefreshBtn.addEventListener("click", loadAdminSearchHealth);
+}
 document.getElementById("adminCacheDashboardRefreshBtn").addEventListener("click", loadOnlineCacheDashboard);
 document.getElementById("adminCacheDashboardExportBtn").addEventListener("click", exportOnlineCacheDashboardCsv);
 
