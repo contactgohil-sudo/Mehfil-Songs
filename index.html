@@ -9932,6 +9932,69 @@ body.song-modal-open {
   }
 }
 
+/* =========================================================
+   MOBILE IDLE FOOTER PIN — PATCH 42
+   Pins legal footer only on idle Search screen.
+   Prevents iPhone rubber-band / viewport recalculation movement.
+   Must stay at the very end of CSS.
+   ========================================================= */
+
+@media (max-width: 640px) {
+  body.mehfil-stable-footer {
+    height: 100svh !important;
+    min-height: 100svh !important;
+    overflow: hidden !important;
+    overscroll-behavior: none !important;
+  }
+
+  body.mehfil-stable-footer > .container {
+    height: 100svh !important;
+    min-height: 100svh !important;
+    max-height: 100svh !important;
+    overflow: hidden !important;
+    padding-bottom: 46px !important;
+  }
+
+  body.mehfil-stable-footer #appScreen:not(.hidden) {
+    overflow: hidden !important;
+  }
+
+  body.mehfil-stable-footer .footer {
+    position: fixed !important;
+    left: max(8px, env(safe-area-inset-left)) !important;
+    right: max(8px, env(safe-area-inset-right)) !important;
+    bottom: max(7px, env(safe-area-inset-bottom)) !important;
+
+    z-index: 60 !important;
+
+    margin: 0 !important;
+    padding: 0 !important;
+    transform: none !important;
+
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    gap: 5px !important;
+    flex-wrap: wrap !important;
+
+    background: transparent !important;
+    color: #667085 !important;
+
+    font-size: 12px !important;
+    line-height: 1.25 !important;
+    pointer-events: auto !important;
+  }
+
+  body.mehfil-stable-footer .footer button,
+  body.mehfil-stable-footer .footer a,
+  body.mehfil-stable-footer .footer-legal-link {
+    font-size: 12px !important;
+    line-height: 1.25 !important;
+  }
+}
+
+
+
   </style>
 </head>
 <body>
@@ -13404,6 +13467,39 @@ async function searchOnlineSongCacheIndex(query, limit = 6) {
   }
 }
 
+async function searchOnlineSongCacheAutoFast(query, limit = 5) {
+  const safeQuery = String(query || "").trim();
+  const safeLimit = Math.max(1, Math.min(Number(limit || 5), 8));
+
+  if (!safeQuery || safeQuery.length < 3 || !supabaseClient) {
+    return [];
+  }
+
+  try {
+    const { data, error } = await supabaseClient.rpc(
+      "search_online_song_cache_auto_fast_v2",
+      {
+        p_query: safeQuery,
+        p_limit: safeLimit
+      }
+    );
+
+    if (error) {
+      console.warn("Auto fast cache search skipped:", error.message || error);
+      return [];
+    }
+
+    const candidates = (Array.isArray(data) ? data : [])
+      .map(row => row?.candidate || null)
+      .filter(Boolean);
+
+    return sanitizeOnlineCacheCandidates(candidates);
+  } catch (error) {
+    console.warn("Auto fast cache search failed:", error);
+    return [];
+  }
+}
+
 function getUsefulTitleSuggestionWordCount(query) {
   const stopWords = new Set([
     "the", "and", "or", "a", "an",
@@ -16664,6 +16760,146 @@ function findLocalLyricFallbackResults(query) {
     .slice(0, 20);
 }
 
+let autoWarmCacheTimer = null;
+let autoWarmCacheRunId = 0;
+
+const AUTO_WARM_CACHE_DEBOUNCE_MS = 220;
+const AUTO_WARM_CACHE_MEMORY_TTL_MS = 5 * 60 * 1000;
+const autoWarmCacheMemory = new Map();
+
+function getAutoWarmCacheMemoryKey(query) {
+  const raw = String(query || "").trim();
+
+  if (typeof normalizeText === "function") {
+    return normalizeText(raw);
+  }
+
+  return raw.toLowerCase().replace(/\s+/g, " ").trim();
+}
+
+function getVisibleLocalSearchResultCount() {
+  const root = document.getElementById("searchResults");
+
+  if (!root) return 0;
+
+  return root.querySelectorAll("[data-song-id], .result-card, .song-row").length;
+}
+
+function clearAutoWarmCacheTimer() {
+  if (autoWarmCacheTimer) {
+    clearTimeout(autoWarmCacheTimer);
+    autoWarmCacheTimer = null;
+  }
+}
+
+function isAutoWarmCacheSearchEligible(query) {
+  const raw = String(query || "").trim();
+
+  if (!raw) return false;
+
+  const normalized = typeof normalizeText === "function"
+    ? normalizeText(raw)
+    : raw.toLowerCase().replace(/\s+/g, " ").trim();
+
+  /*
+    Not word-count based.
+    "Kajra re" is allowed.
+    "re" alone is too weak.
+  */
+  if (normalized.length < 3) return false;
+
+  return true;
+}
+
+async function runAutoWarmCacheSearchForTyping(query, cacheRunId) {
+  const safeQuery = String(query || "").trim();
+
+  if (!isAutoWarmCacheSearchEligible(safeQuery)) {
+    return;
+  }
+
+  const input = document.getElementById("searchInput");
+
+  if (input && input.value.trim() !== safeQuery) {
+    return;
+  }
+
+  const cacheKey = getAutoWarmCacheMemoryKey(safeQuery);
+  const cached = autoWarmCacheMemory.get(cacheKey);
+
+  if (cached && Date.now() - cached.at < AUTO_WARM_CACHE_MEMORY_TTL_MS) {
+    if (cacheRunId !== autoWarmCacheRunId) return;
+
+    if (Array.isArray(cached.candidates) && cached.candidates.length > 0) {
+      setSearchOnlineState("Found matching lyrics.", "success");
+      renderSearchOnlineCandidates(cached.candidates);
+    }
+
+    return;
+  }
+
+  let statusTimer = setTimeout(() => {
+    if (cacheRunId !== autoWarmCacheRunId) return;
+
+    const currentInput = document.getElementById("searchInput");
+
+    if (currentInput && currentInput.value.trim() !== safeQuery) return;
+
+    /*
+      Only show checking message when there are no local results.
+      If saved results are already visible, stay quiet.
+    */
+    if (getVisibleLocalSearchResultCount() === 0) {
+      setSearchOnlineState("Checking Mehfil cache...", "pending");
+    }
+  }, 180);
+
+  try {
+    const candidates = await searchOnlineSongCacheAutoFast(safeQuery, 5);
+
+    if (statusTimer) {
+      clearTimeout(statusTimer);
+      statusTimer = null;
+    }
+
+    autoWarmCacheMemory.set(cacheKey, {
+      at: Date.now(),
+      candidates: Array.isArray(candidates) ? candidates.slice() : []
+    });
+
+    if (cacheRunId !== autoWarmCacheRunId) return;
+
+    const currentInput = document.getElementById("searchInput");
+
+    if (currentInput && currentInput.value.trim() !== safeQuery) return;
+
+    if (Array.isArray(candidates) && candidates.length > 0) {
+      setSearchOnlineState("Found matching lyrics.", "success");
+      renderSearchOnlineCandidates(candidates);
+      return;
+    }
+
+    renderSearchOnlineCandidates([]);
+
+    if (getVisibleLocalSearchResultCount() === 0) {
+      setSearchOnlineState("Not found in library or Mehfil cache. Tap 🔎 to search online.", "info");
+    }
+  } catch (error) {
+    if (statusTimer) {
+      clearTimeout(statusTimer);
+      statusTimer = null;
+    }
+
+    console.warn("AUTO WARM CACHE SEARCH FAILED:", error);
+
+    if (cacheRunId !== autoWarmCacheRunId) return;
+
+    if (getVisibleLocalSearchResultCount() === 0) {
+      setSearchOnlineState("Not found in library. Tap 🔎 to search online.", "info");
+    }
+  }
+}
+
 function handleNoStrongLocalResultBeforeOnline(query, options = {}) {
   const safeQuery = String(query || "").trim();
   const showSnippets = options.showSnippets !== false;
@@ -16701,6 +16937,8 @@ async function scheduleSearchRender(query, options = {}) {
 
   if (!safeQuery.trim()) {
     renderResults([], "");
+    renderSearchOnlineCandidates([]);
+    setSearchOnlineState("");
     return;
   }
 
@@ -16717,19 +16955,17 @@ async function scheduleSearchRender(query, options = {}) {
       if (runId !== searchRunId) return;
 
       const displayResults = filterStrongLocalResults(enriched, safeQuery);
+      const hasLocalResults = displayResults.length > 0;
 
-if (mode === "deep" && displayResults.length === 0 && safeQuery.trim().length >= 3) {
-  renderResults([], safeQuery, { showSnippets });
-  setSearchOnlineState("Not in library? Tap 🔎 to search online.", "info");
-  renderSearchOnlineCandidates([]);
-  return;
-}
+      renderResults(displayResults, safeQuery, { showSnippets });
 
-clearSearchOnlineUi();
-renderResults(displayResults, safeQuery, { showSnippets });
-});
-
-
+      /*
+        Fast mode stays purely local.
+        Deep mode adds warmed cache automatically.
+        This does NOT call LRCLIB live or Brave.
+      */
+      
+    });
   } catch (error) {
     if (String(error?.message || "") === "Search superseded") {
       return;
@@ -16745,25 +16981,15 @@ renderResults(displayResults, safeQuery, { showSnippets });
       if (runId !== searchRunId) return;
 
       const displayResults = filterStrongLocalResults(fallbackResults, safeQuery);
+      const hasLocalResults = displayResults.length > 0;
 
-      if (mode === "deep" && displayResults.length === 0 && safeQuery.trim().length >= 3) {
-        const handledLocally = handleNoStrongLocalResultBeforeOnline(safeQuery, {
-          showSnippets
-        });
-
-        if (handledLocally) return;
-
-        renderResults([], safeQuery, {
-          showSnippets,
-          suppressEmptyState: true
-        });
-
-        runOnlineLookupForSearch(safeQuery);
-        return;
-      }
-
-      clearSearchOnlineUi();
       renderResults(displayResults, safeQuery, { showSnippets });
+
+      /*
+        Do not auto-call LRCLIB here.
+        The magnifier remains the manual online/power search button.
+      */
+      
     });
   }
 }
@@ -21939,11 +22165,90 @@ function setupPasswordViewToggles() {
   });
 }
 
+let stableFooterModeReady = false;
+let stableFooterObserver = null;
+
+function shouldUseStableFooterMode() {
+  const appScreen = document.getElementById("appScreen");
+  const searchTab = document.getElementById("searchTab");
+  const searchInput = document.getElementById("searchInput");
+  const searchResults = document.getElementById("searchResults");
+
+  if (!appScreen || !searchTab || !searchResults) return false;
+
+  const appVisible = !appScreen.classList.contains("hidden");
+  const searchVisible = !searchTab.classList.contains("hidden");
+  const query = String(searchInput?.value || "").trim();
+  const idleVisible = !!searchResults.querySelector(".search-idle-panel");
+
+  const active = document.activeElement;
+  const keyboardFieldFocused =
+    active &&
+    ["INPUT", "TEXTAREA", "SELECT"].includes(String(active.tagName || "").toUpperCase());
+
+  /*
+    Only pin footer on the calm idle Search screen.
+    Do not pin while typing, on Add/Admin/Songs, or while keyboard is open.
+  */
+  return appVisible && searchVisible && !query && idleVisible && !keyboardFieldFocused;
+}
+
+function updateStableFooterMode() {
+  document.body.classList.toggle("mehfil-stable-footer", shouldUseStableFooterMode());
+}
+
+function setupStableFooterMode() {
+  if (stableFooterModeReady) return;
+  stableFooterModeReady = true;
+
+  const appScreen = document.getElementById("appScreen");
+  const searchTab = document.getElementById("searchTab");
+  const searchResults = document.getElementById("searchResults");
+  const searchInput = document.getElementById("searchInput");
+
+  const updateSoon = () => {
+    requestAnimationFrame(updateStableFooterMode);
+  };
+
+  window.addEventListener("resize", updateSoon);
+  window.addEventListener("orientationchange", updateSoon);
+  window.addEventListener("pageshow", updateSoon);
+
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener("resize", updateSoon);
+    window.visualViewport.addEventListener("scroll", updateSoon);
+  }
+
+  document.addEventListener("focusin", updateSoon);
+  document.addEventListener("focusout", () => {
+    setTimeout(updateStableFooterMode, 120);
+  });
+
+  if (searchInput) {
+    searchInput.addEventListener("input", updateSoon);
+  }
+
+  stableFooterObserver = new MutationObserver(updateSoon);
+
+  [appScreen, searchTab, searchResults].forEach((el) => {
+    if (!el) return;
+
+    stableFooterObserver.observe(el, {
+      attributes: true,
+      childList: true,
+      subtree: false
+    });
+  });
+
+  updateStableFooterMode();
+}
+
 
     function bindEvents() {
       setupSongModalViewportFix();
         ensureAuthModeTabs();
         setupPasswordViewToggles();
+        setupStableFooterMode();
       document.getElementById("signupBtn").addEventListener("click", signUpRequest);
       document.getElementById("loginBtn").addEventListener("click", loginUser);
       document.getElementById("logoutBtn").addEventListener("click", logoutUser);
@@ -22188,9 +22493,10 @@ if (mehfilRegularsPanel) {
 
     document.getElementById("searchInput").addEventListener("input", (e) => {
   const nextValue = e.target.value;
-lastQuery = nextValue;
-    clearSearchOnlineUi();
-    unlockOnlineSearchButton();
+  lastQuery = nextValue;
+
+  clearSearchOnlineUi();
+  unlockOnlineSearchButton();
 
   if (searchInputTimer) {
     clearTimeout(searchInputTimer);
@@ -22202,25 +22508,45 @@ lastQuery = nextValue;
     deepSearchTimer = null;
   }
 
+  clearAutoWarmCacheTimer();
+
   if (!nextValue.trim()) {
     searchRunId++;
+    autoWarmCacheRunId++;
     renderResults([], "");
     return;
   }
 
+  /*
+    Fast saved/local result. Keep this fast.
+  */
   searchInputTimer = setTimeout(() => {
-  scheduleSearchRender(nextValue, {
-    mode: "fast",
-    showSnippets: false
-  });
-}, 90);
+    scheduleSearchRender(nextValue, {
+      mode: "fast",
+      showSnippets: false
+    });
+  }, 90);
 
-deepSearchTimer = setTimeout(() => {
-  scheduleSearchRender(nextValue, {
-    mode: "deep",
-    showSnippets: true
-  });
-}, 520);
+  /*
+    Warmed Mehfil cache. Runs in parallel.
+    This does NOT call LRCLIB live.
+    This does NOT call Brave.
+  */
+  autoWarmCacheTimer = setTimeout(() => {
+    const cacheRunId = ++autoWarmCacheRunId;
+
+    runAutoWarmCacheSearchForTyping(nextValue, cacheRunId);
+  }, AUTO_WARM_CACHE_DEBOUNCE_MS);
+
+  /*
+    Deeper saved/local result. Still useful for lyrics/snippets.
+  */
+  deepSearchTimer = setTimeout(() => {
+    scheduleSearchRender(nextValue, {
+      mode: "deep",
+      showSnippets: true
+    });
+  }, 520);
 });
     document.getElementById("onlineSearchBtn").addEventListener("click", runForcedOnlineSearch);
    document.getElementById("clearBtn").addEventListener("click", () => {
@@ -22235,6 +22561,8 @@ deepSearchTimer = setTimeout(() => {
   }
 
   searchRunId++;
+  autoWarmCacheRunId++;
+  clearAutoWarmCacheTimer();
 
   document.getElementById("searchInput").value = "";
   lastQuery = "";
