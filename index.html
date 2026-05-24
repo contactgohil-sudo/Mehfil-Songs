@@ -9560,7 +9560,377 @@ body.song-modal-open {
   }
 }
 
+/* =========================================================
+   MOBILE FOOTER STABILITY FIX — PATCH 39
+   Stops legal footer from visually floating during iPhone pull/rubber-band.
+   Must stay at the very end of CSS.
+   ========================================================= */
 
+@media (max-width: 640px) {
+  .footer {
+    transform: none !important;
+    position: static !important;
+    margin-top: auto !important;
+    padding-top: 10px !important;
+    padding-bottom: max(8px, env(safe-area-inset-bottom)) !important;
+  }
+
+  .container {
+    min-height: var(--mehfil-vvh, 100dvh) !important;
+  }
+
+  body {
+    overscroll-behavior-y: none !important;
+  }
+}
+/* =========================================================
+   AUTH LOGIN / REQUEST ACCESS SPLIT — PATCH 40
+   Separates login and access request into two clean auth tabs.
+   Must stay near the end of CSS.
+   ========================================================= */
+
+.auth-mode-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  padding: 3px;
+  margin: 14px 0 0;
+  border-radius: 18px;
+  background: #f2f4f7;
+  border: 1px solid #e4e8ef;
+}
+
+.auth-mode-tab {
+  min-height: 38px;
+  border: 1px solid transparent;
+  border-radius: 15px;
+  background: transparent;
+  color: #344054;
+  font-size: 14px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.auth-mode-tab.active {
+  background: #111827;
+  color: #ffffff;
+  border-color: #111827;
+  box-shadow: 0 8px 18px rgba(17, 24, 39, 0.12);
+}
+
+#authScreen[data-auth-mode="login"] #signupBtn,
+#authScreen[data-auth-mode="login"] .auth-legal-row,
+#authScreen[data-auth-mode="login"] .auth-request-only {
+  display: none !important;
+}
+
+#authScreen[data-auth-mode="request"] #loginBtn,
+#authScreen[data-auth-mode="request"] #forgotPasswordBtn,
+#authScreen[data-auth-mode="request"] .auth-login-only {
+  display: none !important;
+}
+
+#authScreen[data-auth-mode="request"] #signupBtn {
+  width: 100%;
+  background: #111827;
+  color: #ffffff;
+  border: 1px solid #111827;
+  box-shadow: 0 12px 24px rgba(17, 24, 39, 0.16);
+}
+
+#authScreen[data-auth-mode="login"] #loginBtn {
+  width: 100%;
+}
+
+#authScreen[data-auth-mode="request"] .auth-legal-row {
+  margin-top: 2px;
+}
+
+.auth-mode-helper {
+  margin-top: 10px;
+  color: #667085;
+  font-size: 13px;
+  line-height: 1.4;
+  font-weight: 650;
+}
+
+@media (max-width: 640px) {
+  .auth-mode-tabs {
+    margin-top: 13px;
+    border-radius: 17px;
+  }
+
+  .auth-mode-tab {
+    min-height: 37px;
+    border-radius: 14px;
+    font-size: 13px;
+  }
+
+  .auth-mode-helper {
+    font-size: 12px;
+  }
+}
+/* =========================================================
+   PASSWORD VIEW TOGGLE — PATCH 41
+   Adds View/Hide button inside every password field.
+   ========================================================= */
+
+.password-field-wrap {
+  position: relative;
+}
+
+.password-field-wrap .auth-input,
+.password-field-wrap .input {
+  padding-right: 76px !important;
+}
+
+.password-view-toggle {
+  position: absolute;
+  right: 9px;
+  top: 50%;
+  transform: translateY(-50%);
+
+  min-width: 52px;
+  height: 32px;
+  border-radius: 12px;
+  border: 1px solid #dfe5ee;
+  background: #ffffff;
+  color: #344054;
+
+  font-size: 12px;
+  line-height: 1;
+  font-weight: 900;
+  cursor: pointer;
+
+  box-shadow: 0 3px 9px rgba(17, 24, 39, 0.04);
+}
+
+.password-view-toggle:active {
+  transform: translateY(-50%) translateY(1px);
+}
+
+.password-view-toggle.password-visible {
+  background: #111827;
+  color: #ffffff;
+  border-color: #111827;
+}
+
+@media (max-width: 640px) {
+  .password-field-wrap .auth-input,
+  .password-field-wrap .input {
+    padding-right: 74px !important;
+  }
+
+  .password-view-toggle {
+    right: 8px;
+    height: 31px;
+    min-width: 50px;
+    font-size: 12px;
+  }
+}
+/* =========================================================
+   PASSWORD EYE ICON TOGGLE — PATCH 41B
+   Replaces View/Hide text pill with compact eye icon.
+   Must stay at the very end of CSS.
+   ========================================================= */
+
+.password-field-wrap {
+  position: relative !important;
+}
+
+.password-field-wrap .auth-input,
+.password-field-wrap .input {
+  padding-right: 58px !important;
+}
+
+.password-view-toggle {
+  position: absolute !important;
+  right: 12px !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+
+  width: 38px !important;
+  min-width: 38px !important;
+  height: 38px !important;
+  min-height: 38px !important;
+  padding: 0 !important;
+
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+
+  border-radius: 999px !important;
+  border: 1px solid #dfe5ee !important;
+  background: #ffffff !important;
+  color: #667085 !important;
+
+  font-size: 0 !important;
+  line-height: 0 !important;
+  cursor: pointer !important;
+
+  box-shadow:
+    0 5px 14px rgba(17, 24, 39, 0.055),
+    inset 0 1px 0 rgba(255, 255, 255, 0.85) !important;
+
+  transition:
+    background 0.14s ease,
+    color 0.14s ease,
+    border-color 0.14s ease,
+    transform 0.12s ease,
+    box-shadow 0.14s ease !important;
+}
+
+.password-view-toggle svg {
+  width: 19px !important;
+  height: 19px !important;
+  display: block !important;
+  stroke: currentColor !important;
+}
+
+.password-view-toggle:hover,
+.password-view-toggle:focus {
+  color: #111827 !important;
+  border-color: #cfd6e2 !important;
+  background: #f8fafc !important;
+  outline: none !important;
+  box-shadow:
+    0 7px 18px rgba(17, 24, 39, 0.075),
+    0 0 0 4px rgba(17, 24, 39, 0.045) !important;
+}
+
+.password-view-toggle:active {
+  transform: translateY(-50%) translateY(1px) !important;
+}
+
+.password-view-toggle.password-visible {
+  background: #111827 !important;
+  color: #ffffff !important;
+  border-color: #111827 !important;
+  box-shadow: 0 8px 18px rgba(17, 24, 39, 0.14) !important;
+}
+
+@media (max-width: 640px) {
+  .password-field-wrap .auth-input,
+  .password-field-wrap .input {
+    padding-right: 56px !important;
+  }
+
+  .password-view-toggle {
+    right: 10px !important;
+    width: 36px !important;
+    min-width: 36px !important;
+    height: 36px !important;
+    min-height: 36px !important;
+  }
+
+  .password-view-toggle svg {
+    width: 18px !important;
+    height: 18px !important;
+  }
+}
+
+/* =========================================================
+   PASSWORD EYE CENTER FIX — PATCH 41C
+   Centers eye icon inside the actual input, not the full field.
+   Must stay at the very end of CSS.
+   ========================================================= */
+
+/* Neutralize old parent-field positioning from previous patch */
+.field.password-field-wrap {
+  position: static !important;
+}
+
+.field.password-field-wrap > .password-view-toggle {
+  display: none !important;
+}
+
+/* New correct shell: only wraps the input */
+.password-input-shell {
+  position: relative !important;
+  width: 100% !important;
+  display: block !important;
+}
+
+.password-input-shell .auth-input,
+.password-input-shell .input {
+  width: 100% !important;
+  padding-right: 58px !important;
+}
+
+.password-input-shell .password-view-toggle {
+  position: absolute !important;
+  right: 12px !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+
+  width: 38px !important;
+  min-width: 38px !important;
+  height: 38px !important;
+  min-height: 38px !important;
+  padding: 0 !important;
+
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+
+  border-radius: 999px !important;
+  border: 1px solid #dfe5ee !important;
+  background: #ffffff !important;
+  color: #667085 !important;
+
+  font-size: 0 !important;
+  line-height: 0 !important;
+  cursor: pointer !important;
+
+  box-shadow:
+    0 5px 14px rgba(17, 24, 39, 0.055),
+    inset 0 1px 0 rgba(255, 255, 255, 0.85) !important;
+}
+
+.password-input-shell .password-view-toggle svg {
+  width: 19px !important;
+  height: 19px !important;
+  display: block !important;
+  stroke: currentColor !important;
+}
+
+.password-input-shell .password-view-toggle:hover,
+.password-input-shell .password-view-toggle:focus {
+  color: #111827 !important;
+  border-color: #cfd6e2 !important;
+  background: #f8fafc !important;
+  outline: none !important;
+}
+
+.password-input-shell .password-view-toggle:active {
+  transform: translateY(-50%) translateY(1px) !important;
+}
+
+.password-input-shell .password-view-toggle.password-visible {
+  background: #111827 !important;
+  color: #ffffff !important;
+  border-color: #111827 !important;
+}
+
+@media (max-width: 640px) {
+  .password-input-shell .auth-input,
+  .password-input-shell .input {
+    padding-right: 56px !important;
+  }
+
+  .password-input-shell .password-view-toggle {
+    right: 10px !important;
+    width: 36px !important;
+    min-width: 36px !important;
+    height: 36px !important;
+    min-height: 36px !important;
+  }
+
+  .password-input-shell .password-view-toggle svg {
+    width: 18px !important;
+    height: 18px !important;
+  }
+}
 
   </style>
 </head>
@@ -10178,7 +10548,7 @@ let mehfilRegularsRefreshTimer = null;
 let activeSongsSubtab = "library";
 
 const MEHFIL_REGULARS_DAYS = 90;
-const MEHFIL_REGULARS_LIMIT = 12;
+const MEHFIL_REGULARS_LIMIT = 50;
     let openModalKind = "local";
 let openOnlineCandidateData = null;
 
@@ -17799,13 +18169,14 @@ function handleIncomingLiveSongEvent(payload) {
 
   const songId = Number(row.song_id);
   const song = preparedSongs.find(s => Number(s.id) === songId) || songs.find(s => Number(s.id) === songId);
+  refreshMehfilRegularsSoon(350);
 
   if (!song) {
   pendingLiveSongId = null;
   pendingLiveEventByMe = false;
   currentLiveSongId = null;
   updateLiveMiniButton();
-  refreshMehfilRegularsSoon(350);
+  refreshMehfilRegularsSoon(100);
   showLiveNowBar("A live song was shared.", "success", {
     showOpen: false,
     showDismiss: true
@@ -17943,8 +18314,13 @@ function refreshMehfilRegularsSoon(delay = 500) {
   mehfilRegularsRefreshTimer = setTimeout(() => {
     mehfilRegularsRefreshTimer = null;
 
-    if (isTabCurrentlyVisible("listTab")) {
+    if (isTabCurrentlyVisible("listTab") && activeSongsSubtab === "regulars") {
       loadMehfilRegulars();
+      return;
+    }
+
+    if (isTabCurrentlyVisible("listTab")) {
+      renderMehfilRegularsIfNeeded(true);
     }
   }, delay);
 }
@@ -21401,8 +21777,173 @@ document.getElementById("appScreen").classList.add("hidden");
       }
     }
 
+    function setAuthMode(mode = "login") {
+  const authScreen = document.getElementById("authScreen");
+  const title = authScreen?.querySelector(".auth-title");
+  const subtitle = authScreen?.querySelector(".auth-subtitle");
+  const nameField = document.getElementById("authName")?.closest(".field");
+  const loginTab = document.getElementById("authModeLoginBtn");
+  const requestTab = document.getElementById("authModeRequestBtn");
+  const helper = document.getElementById("authModeHelper");
+  const authStatus = document.getElementById("authStatus");
+
+  const safeMode = mode === "request" ? "request" : "login";
+
+  if (authScreen) {
+    authScreen.dataset.authMode = safeMode;
+  }
+
+  if (loginTab) {
+    loginTab.classList.toggle("active", safeMode === "login");
+  }
+
+  if (requestTab) {
+    requestTab.classList.toggle("active", safeMode === "request");
+  }
+
+  if (nameField) {
+    nameField.classList.toggle("hidden", safeMode !== "request");
+  }
+
+  if (title) {
+    title.textContent = safeMode === "request" ? "Request Access" : "Login";
+  }
+
+  if (subtitle) {
+    subtitle.textContent = safeMode === "request"
+      ? "Create your account request. An admin must approve it before you can enter."
+      : "Approved members can enter the library.";
+  }
+
+  if (helper) {
+    helper.textContent = safeMode === "request"
+      ? "Use your real name so the admin can recognize and approve you."
+      : "Use the email and password from your approved account.";
+  }
+
+  if (authStatus) {
+    authStatus.className = "status-box";
+    authStatus.textContent = "";
+  }
+}
+
+function ensureAuthModeTabs() {
+  const authScreen = document.getElementById("authScreen");
+  const authHead = authScreen?.querySelector(".auth-head");
+
+  if (!authScreen || !authHead) return;
+
+  if (!document.getElementById("authModeTabs")) {
+    const tabs = document.createElement("div");
+    tabs.id = "authModeTabs";
+    tabs.className = "auth-mode-tabs";
+    tabs.innerHTML = `
+      <button id="authModeLoginBtn" class="auth-mode-tab active" type="button">Login</button>
+      <button id="authModeRequestBtn" class="auth-mode-tab" type="button">Request Access</button>
+    `;
+
+    const helper = document.createElement("div");
+    helper.id = "authModeHelper";
+    helper.className = "auth-mode-helper";
+
+    authHead.appendChild(tabs);
+    authHead.appendChild(helper);
+  }
+
+  document.getElementById("authModeLoginBtn")?.addEventListener("click", () => {
+    setAuthMode("login");
+  });
+
+  document.getElementById("authModeRequestBtn")?.addEventListener("click", () => {
+    setAuthMode("request");
+  });
+
+  setAuthMode("login");
+}
+function getPasswordEyeIconSvg(isVisible = false) {
+  if (isVisible) {
+    return `
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M3 3l18 18" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"></path>
+        <path d="M10.7 10.7a2.2 2.2 0 0 0 2.6 2.6" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"></path>
+        <path d="M7.4 7.8C5.5 8.9 4 10.5 3 12c2.1 3.3 5.2 5.5 9 5.5 1.3 0 2.5-.25 3.6-.72" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"></path>
+        <path d="M17.1 14.9c1.55-.95 2.86-2.22 3.9-2.9-2.1-3.3-5.2-5.5-9-5.5-.86 0-1.68.1-2.46.31" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"></path>
+      </svg>
+    `;
+  }
+
+  return `
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M3 12s3.25-5.5 9-5.5S21 12 21 12s-3.25 5.5-9 5.5S3 12 3 12Z" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"></path>
+      <path d="M12 14.75A2.75 2.75 0 1 0 12 9.25a2.75 2.75 0 0 0 0 5.5Z" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"></path>
+    </svg>
+  `;
+}
+
+function setupPasswordViewToggles() {
+  const passwordInputs = Array.from(
+    document.querySelectorAll("#authPassword, #newPassword, #confirmNewPassword")
+  );
+
+  passwordInputs.forEach((input) => {
+    if (!input) return;
+
+    const field = input.closest(".field") || input.parentElement;
+
+    if (field) {
+      field.classList.remove("password-field-wrap");
+      field.querySelectorAll(":scope > .password-view-toggle").forEach((btn) => btn.remove());
+    }
+
+    let shell = input.closest(".password-input-shell");
+
+    if (!shell) {
+      shell = document.createElement("div");
+      shell.className = "password-input-shell";
+
+      input.parentNode.insertBefore(shell, input);
+      shell.appendChild(input);
+    }
+
+    shell.querySelectorAll(".password-view-toggle").forEach((btn) => btn.remove());
+
+    input.dataset.passwordToggle = "1";
+
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "password-view-toggle";
+    btn.innerHTML = getPasswordEyeIconSvg(input.type === "text");
+    btn.setAttribute("aria-label", input.type === "text" ? "Hide password" : "Show password");
+    btn.setAttribute("aria-pressed", String(input.type === "text"));
+    btn.setAttribute("title", input.type === "text" ? "Hide password" : "Show password");
+
+    if (input.type === "text") {
+      btn.classList.add("password-visible");
+    }
+
+    btn.addEventListener("click", () => {
+      const nextVisible = input.type !== "text";
+
+      input.type = nextVisible ? "text" : "password";
+
+      btn.innerHTML = getPasswordEyeIconSvg(nextVisible);
+      btn.classList.toggle("password-visible", nextVisible);
+      btn.setAttribute("aria-label", nextVisible ? "Hide password" : "Show password");
+      btn.setAttribute("aria-pressed", String(nextVisible));
+      btn.setAttribute("title", nextVisible ? "Hide password" : "Show password");
+
+      input.focus();
+    });
+
+    shell.appendChild(btn);
+  });
+}
+
+
     function bindEvents() {
       setupSongModalViewportFix();
+        ensureAuthModeTabs();
+        setupPasswordViewToggles();
       document.getElementById("signupBtn").addEventListener("click", signUpRequest);
       document.getElementById("loginBtn").addEventListener("click", loginUser);
       document.getElementById("logoutBtn").addEventListener("click", logoutUser);
