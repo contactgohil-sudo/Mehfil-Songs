@@ -17382,21 +17382,38 @@ async function runAutoWarmCacheSearchForTyping(query, cacheRunId) {
     */
     const cached = autoWarmCacheMemory.get(cacheKey);
 
-    if (cached && Date.now() - cached.at < AUTO_WARM_CACHE_MEMORY_TTL_MS) {
-      if (statusTimer) {
-        clearTimeout(statusTimer);
-        statusTimer = null;
-      }
+if (cached && Date.now() - cached.at < AUTO_WARM_CACHE_MEMORY_TTL_MS) {
+  if (statusTimer) {
+    clearTimeout(statusTimer);
+    statusTimer = null;
+  }
 
-      if (cacheRunId !== autoWarmCacheRunId) return;
+  if (cacheRunId !== autoWarmCacheRunId) return;
 
-      if (Array.isArray(cached.candidates) && cached.candidates.length > 0) {
-        setAutoWarmCacheResultState(cached.candidates);
-        renderSearchOnlineCandidates(cached.candidates);
-      }
+  if (Array.isArray(cached.candidates) && cached.candidates.length > 0) {
+    setAutoWarmCacheResultState(cached.candidates);
+    renderSearchOnlineCandidates(cached.candidates);
+    return;
+  }
 
-      return;
-    }
+  /*
+    Cached empty online result must not leave an old pending spinner alive,
+    especially when local library results are already visible.
+  */
+  renderSearchOnlineCandidates([]);
+
+  if (getVisibleLocalSearchResultCount() > 0) {
+    setSearchOnlineState("");
+    return;
+  }
+
+  setSearchOnlineState(
+    "Not found in library or Mehfil cache. Tap 🔎 to search online.",
+    "info"
+  );
+
+  return;
+}
 
     /*
       FOURTH: broader warmed vector/chunk cache.
