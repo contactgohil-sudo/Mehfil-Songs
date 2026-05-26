@@ -11686,6 +11686,25 @@ function setSearchOnlineState(message = "", type = "info") {
   `;
 }
 
+function clearPendingSearchOnlineStateIfLocalVisible() {
+  const stateEl = document.getElementById("searchOnlineState");
+  if (!stateEl) return;
+
+  const hasPending = stateEl.classList.contains("search-online-state-pending");
+  const hasLocalVisible = getVisibleLocalSearchResultCount() > 0;
+  const hasOnlineCandidates =
+    Array.isArray(searchOnlineCandidatesState) &&
+    searchOnlineCandidatesState.length > 0;
+
+  /*
+    If local results are already visible and there are no visible online
+    candidates yet, do not keep a pending spinner on screen.
+  */
+  if (hasPending && hasLocalVisible && !hasOnlineCandidates) {
+    setSearchOnlineState("");
+  }
+}
+
 function clearEditorLookupUi() {
   editorLookupCandidatesState = [];
 
@@ -12198,6 +12217,162 @@ function getCandidateConfidencePill(candidate) {
   return "Low confidence";
 }
 
+function getExactCacheMeaningfulTokens(query) {
+  return normalizeRomanPhraseLoose(query)
+    .split(/\s+/)
+    .map(token => token.trim())
+    .filter(token =>
+      token &&
+      token.length >= 2 &&
+      !WEAK_QUERY_WORDS.has(token)
+    );
+}
+
+function getExactCacheCandidateSearchText(candidate) {
+  return [
+    candidate?.title || "",
+    candidate?.movie || "",
+    candidate?.singer || "",
+    candidate?.preview || "",
+    candidate?.lyrics || ""
+  ].join(" ");
+}
+
+function getExactCacheConfidenceLevelForQuery(candidate, query) {
+  const safeQuery = String(query || "").trim();
+  const numericConfidence = Number(candidate?.confidence || 0);
+
+  if (!safeQuery || numericConfidence < 80) {
+    return "low";
+  }
+
+  const queryNorm = normalizeText(safeQuery);
+  const queryLoose = normalizeRomanPhraseLoose(safeQuery);
+  const meaningfulTokens = getExactCacheMeaningfulTokens(safeQuery);
+
+  const titleText = String(candidate?.title || "");
+  const allText = getExactCacheCandidateSearchText(candidate);
+
+  const titleNorm = normalizeText(titleText);
+  const titleRoman = normalizeRomanPhraseLoose(
+    [titleText, transliterateIndicWithMap(titleText).roman].join(" ")
+  );
+
+  const allNorm = normalizeText(allText);
+  const allRoman = normalizeRomanPhraseLoose(
+    [allText, transliterateIndicWithMap(allText).roman].join(" ")
+  );
+
+  const directTitleHit =
+    queryNorm &&
+    (
+      titleNorm.includes(queryNorm) ||
+      titleRoman.includes(queryLoose)
+    );
+
+  const directTextHit =
+    queryNorm &&
+    (
+      allNorm.includes(queryNorm) ||
+      allRoman.includes(queryLoose)
+    );
+
+  let titleHits = 0;
+  let textHits = 0;
+
+  for (const token of meaningfulTokens) {
+    if (titleRoman.includes(token) || titleNorm.includes(token)) {
+      titleHits++;
+    }
+
+    if (allRoman.includes(token) || allNorm.includes(token)) {
+      textHits++;
+    }
+  }
+
+  const tokenCount = meaningfulTokens.length || 1;
+  const titleCoverage = titleHits / tokenCount;
+  const textCoverage = textHits / tokenCount;
+
+  /*
+    High confidence only when:
+    - LRCLIB/manual cache confidence is already strong
+    - and query really matches title or lyrics
+  */
+  if (
+    numericConfidence >= 90 &&
+    (
+      directTitleHit ||
+      titleCoverage >= 0.67 ||
+      directTextHit ||
+      textCoverage >= 0.75
+    )
+  ) {
+    return "high";
+  }
+
+  if (
+    numericConfidence >= 80 &&
+    (
+      titleCoverage >= 0.5 ||
+      textCoverage >= 0.6
+    )
+  ) {
+    return "medium";
+  }
+
+  return "low";
+}
+
+function annotateExactOnlineCacheCandidate(candidate, query) {
+  const level = getExactCacheConfidenceLevelForQuery(candidate, query);
+  const existingMeta = getCandidateSearchMeta(candidate);
+
+  const badge =
+    level === "high"
+      ? "Exact cache match"
+      : level === "medium"
+        ? "Cached possible match"
+        : "Cached preview";
+
+  return {
+    ...candidate,
+    match_source: candidate?.match_source || "exact_online_song_cache",
+    search_meta: {
+      ...existingMeta,
+      confidence_level: level,
+      badge,
+      exact_query_cache: true
+    }
+  };
+}
+
+function annotateExactOnlineCacheCandidates(candidates, query) {
+  return (Array.isArray(candidates) ? candidates : [])
+    .map(candidate => annotateExactOnlineCacheCandidate(candidate, query));
+}
+
+function hasBestAutoWarmCacheCandidate(candidates) {
+  return (Array.isArray(candidates) ? candidates : []).some(candidate => {
+    const level = getCandidateConfidenceLevel(candidate);
+    const needsChoice = candidateNeedsUserChoice(candidate);
+
+    return level === "high" && !needsChoice;
+  });
+}
+
+function setAutoWarmCacheResultState(candidates) {
+  if (hasBestAutoWarmCacheCandidate(candidates)) {
+    setSearchOnlineState("Found matching lyrics.", "success");
+    return;
+  }
+
+  setSearchOnlineState(
+    "Possible match found in Mehfil cache. Press 🔎 if this is not the song.",
+    "info"
+  );
+}
+
 function candidateNeedsUserChoice(candidate) {
   const meta = getCandidateSearchMeta(candidate);
   return meta.needs_user_choice === true;
@@ -12289,45 +12464,85 @@ function renderSearchOnlineCandidates(candidates) {
     needsChoice: candidateNeedsUserChoice(candidate)
   }));
 
-  const strongItems = items.filter(item =>
-    item.confidenceLevel === "high" || item.confidenceLevel === "medium"
+  /*
+    Important:
+    HIGH confidence = Best.
+    MEDIUM confidence = Possible.
+    LOW confidence = Other possible / visible possible only when nothing better exists.
+
+    Never promote low confidence into "Best".
+  */
+  const bestItems = items.filter(item =>
+    item.confidenceLevel === "high" && !item.needsChoice
   );
 
-  const weakItems = items.filter(item =>
-    item.confidenceLevel === "low"
+  const possibleItems = items.filter(item =>
+    item.confidenceLevel === "medium" || item.needsChoice
   );
 
-  const visibleStrongItems = strongItems.length ? strongItems : items.slice(0, 3);
-  const hiddenWeakItems = strongItems.length ? weakItems : items.slice(3);
+  const lowItems = items.filter(item =>
+    item.confidenceLevel === "low" && !item.needsChoice
+  );
 
-  const hasTitleChoice = visibleStrongItems.some(item => item.needsChoice);
-  const sectionTitle = hasTitleChoice
+  const visibleLowItems =
+    bestItems.length || possibleItems.length
+      ? []
+      : lowItems.slice(0, 3);
+
+  const hiddenLowItems =
+    bestItems.length || possibleItems.length
+      ? lowItems
+      : lowItems.slice(3);
+
+  function buildCandidateSection(title, helper, sectionItems) {
+    if (!sectionItems.length) return "";
+
+    return `
+      <div class="online-results-section">
+        <div class="online-results-section-title">${escapeHtml(title)}</div>
+        <div class="online-results-section-helper">${escapeHtml(helper)}</div>
+        ${
+          sectionItems
+            .map(item => buildOnlineCandidateCardHtml(item.candidate, item.index, "search"))
+            .join("")
+        }
+      </div>
+    `;
+  }
+
+  const bestHtml = buildCandidateSection(
+    "Best Mehfil matches",
+    "Strong match by title, lyrics, Roman text, or native-script confidence.",
+    bestItems
+  );
+
+  const possibleTitle = possibleItems.some(item => item.needsChoice)
     ? "Possible title matches"
-    : "Best Mehfil matches";
+    : "Possible Mehfil matches";
 
-  const sectionHelper = hasTitleChoice
+  const possibleHelper = possibleItems.some(item => item.needsChoice)
     ? "Several versions look close. Pick the one you actually want."
-    : "Ranked by title, lyric, Roman, and phonetic confidence.";
+    : "These may match, but they are not strong enough to be treated as final.";
 
-  const strongHtml = `
-    <div class="online-results-section">
-      <div class="online-results-section-title">${escapeHtml(sectionTitle)}</div>
-      <div class="online-results-section-helper">${escapeHtml(sectionHelper)}</div>
-      ${
-        visibleStrongItems
-          .map(item => buildOnlineCandidateCardHtml(item.candidate, item.index, "search"))
-          .join("")
-      }
-    </div>
-  `;
+  const possibleHtml = buildCandidateSection(
+    possibleTitle,
+    possibleHelper,
+    possibleItems
+  );
 
-  const weakHtml = hiddenWeakItems.length
+  const visibleLowHtml = buildCandidateSection(
+    "Possible Mehfil matches",
+    "Low confidence. Check carefully, or press 🔎 for a fresh online search.",
+    visibleLowItems
+  );
+
+  const hiddenLowHtml = hiddenLowItems.length
     ? `
       <details class="online-other-matches">
-        <summary>Other possible matches (${hiddenWeakItems.length})</summary>
+        <summary>Other possible matches (${hiddenLowItems.length})</summary>
         <div class="online-other-matches-body">
           ${
-            hiddenWeakItems
+            hiddenLowItems
               .map(item => buildOnlineCandidateCardHtml(item.candidate, item.index, "search"))
               .join("")
           }
@@ -12336,7 +12551,7 @@ function renderSearchOnlineCandidates(candidates) {
     `
     : "";
 
-  root.innerHTML = strongHtml + weakHtml;
+  root.innerHTML = bestHtml + possibleHtml + visibleLowHtml + hiddenLowHtml;
 
   root.classList.remove("hidden");
   prefetchOnlineCandidateDetails(searchOnlineCandidatesState, 3);
@@ -13500,6 +13715,150 @@ async function searchOnlineSongCacheAutoFast(query, limit = 5) {
   }
 }
 
+
+function normalizeCachedTitleAliasRpcRow(row) {
+  if (!row || typeof row !== "object") return null;
+
+  let searchMeta = {};
+
+  if (row.search_meta && typeof row.search_meta === "object" && !Array.isArray(row.search_meta)) {
+    searchMeta = row.search_meta;
+  } else if (typeof row.search_meta === "string") {
+    try {
+      searchMeta = JSON.parse(row.search_meta);
+    } catch {
+      searchMeta = {};
+    }
+  }
+
+  const candidate = {
+    provider: row.provider || "lrclib",
+    title: row.title || "",
+    singer: row.singer || "",
+    movie: row.movie || "",
+    source_name: row.source_name || "Mehfil Cache",
+    source_url: row.source_url || "https://lrclib.net/",
+    script: row.script || "unknown",
+    preview: row.preview || "",
+    lyrics: row.lyrics || row.preview || "",
+    status: row.status || "lyrics_ready",
+    confidence: Number(row.confidence || 0),
+    lookup_key: row.lookup_key || "",
+    match_source: row.match_source || "cache_title_alias",
+    match_score: Number(row.match_score || 0),
+    search_meta: {
+      ...searchMeta,
+      cache_title_alias: true
+    }
+  };
+
+  const lyricsText = cleanLyricsText(candidate.lyrics || candidate.preview || "");
+
+  if (!candidate.title || lyricsText.length < 20) {
+    return null;
+  }
+
+  return candidate;
+}
+
+function getCachedTitleAliasDisplayKey(candidate) {
+  const norm = typeof normalizeText === "function"
+    ? normalizeText
+    : value => String(value || "").toLowerCase().replace(/\s+/g, " ").trim();
+
+  return [
+    norm(candidate?.title || ""),
+    norm(candidate?.singer || ""),
+    norm(candidate?.movie || "")
+  ].join("|");
+}
+
+function rankCachedTitleAliasForDisplay(candidate) {
+  const meta = getCandidateSearchMeta(candidate);
+  const level = getCandidateConfidenceLevel(candidate);
+  const movie = String(candidate?.movie || "").trim();
+
+  let score = Number(candidate?.match_score || meta.match_score || 0);
+
+  if (level === "high") score += 1000;
+  if (level === "medium") score += 300;
+
+  score += Math.min(Number(candidate?.confidence || 0), 100);
+
+  /*
+    Penalize ugly LRCLIB metadata such as movie = "6:53".
+    It can still appear if nothing else exists, but it should not beat clean movie metadata.
+  */
+  if (/^\d{1,2}:\d{2}$/.test(movie) || /^\d+(\s*:\s*\d+)?$/.test(movie)) {
+    score -= 120;
+  }
+
+  if (/original motion picture soundtrack/i.test(movie)) {
+    score -= 8;
+  }
+
+  if (/\b(song|lyrics)\b/i.test(String(candidate?.singer || ""))) {
+    score -= 25;
+  }
+
+  return score;
+}
+
+async function searchCachedTitleAliases(query, limit = 5) {
+  const safeQuery = String(query || "").trim();
+  const safeLimit = Math.max(1, Math.min(Number(limit || 5), 8));
+
+  if (!safeQuery || safeQuery.length < 3 || !supabaseClient) {
+    return [];
+  }
+
+  try {
+    const { data, error } = await supabaseClient.rpc(
+      "search_mehfil_cache_title_aliases_v1",
+      {
+        q: safeQuery,
+        result_limit: safeLimit
+      }
+    );
+
+    if (error) {
+      console.warn("Cached title alias search skipped:", error.message || error);
+      return [];
+    }
+
+    const seen = new Set();
+
+    return (Array.isArray(data) ? data : [])
+      .map(row => normalizeCachedTitleAliasRpcRow(row))
+      .filter(Boolean)
+
+      /*
+        This lane is title rescue. Do not surface low-confidence title aliases.
+        Low/weak exploration belongs to the later autoFast/vector lane.
+      */
+      .filter(candidate => {
+        const level = getCandidateConfidenceLevel(candidate);
+        return level === "high" || level === "medium";
+      })
+
+      .sort((a, b) => {
+        return rankCachedTitleAliasForDisplay(b) - rankCachedTitleAliasForDisplay(a);
+      })
+
+      .filter(candidate => {
+        const key = getCachedTitleAliasDisplayKey(candidate);
+        if (!key || seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      })
+
+      .slice(0, safeLimit);
+  } catch (error) {
+    console.warn("Cached title alias search failed:", error);
+    return [];
+  }
+}
+
 function getUsefulTitleSuggestionWordCount(query) {
   const stopWords = new Set([
     "the", "and", "or", "a", "an",
@@ -13621,6 +13980,109 @@ async function searchMehfilTitleSuggestions(query, limit = 10) {
     return normalizeTitleSuggestionCandidates(candidates).slice(0, safeLimit);
   } catch (error) {
     console.warn("Mehfil title suggestions failed:", error);
+    return [];
+  }
+}
+
+function normalizeCachedTitleAliasCandidateKey(candidate) {
+  const raw = [
+    candidate?.title || "",
+    candidate?.singer || "",
+    candidate?.movie || ""
+  ].join(" ");
+
+  if (typeof normalizeText === "function") {
+    return normalizeText(raw);
+  }
+
+  return raw.toLowerCase().replace(/\s+/g, " ").trim();
+}
+
+function normalizeCachedTitleAliasRows(rows, limit = 5) {
+  const safeLimit = Math.max(1, Math.min(Number(limit || 5), 8));
+  const seen = new Set();
+
+  return (Array.isArray(rows) ? rows : [])
+    .map(row => {
+      const searchMeta =
+        row?.search_meta && typeof row.search_meta === "object" && !Array.isArray(row.search_meta)
+          ? row.search_meta
+          : {};
+
+      return {
+        provider: row?.provider || "mehfil_cache",
+        title: row?.title || "",
+        singer: row?.singer || "",
+        movie: row?.movie || "",
+        source_name: row?.source_name || "Mehfil Cache",
+        source_url: row?.source_url || "",
+        script: row?.script || "unknown",
+        preview: row?.preview || "",
+        lyrics: row?.lyrics || "",
+        status: row?.status || "lyrics_ready",
+        confidence: Number(row?.confidence || 0),
+        lookup_key: row?.lookup_key || "",
+        match_source: row?.match_source || "cache_title_alias",
+        match_score: Number(row?.match_score || 0),
+        search_meta: {
+          ...searchMeta,
+          cache_title_alias: true
+        },
+        cache_source: "mehfil_cache_title_aliases_v1"
+      };
+    })
+    .filter(candidate => {
+      if (!candidate.title) return false;
+
+      const lyricsText = cleanLyricsText(candidate.lyrics || candidate.preview || "");
+      if (lyricsText.length < 20) return false;
+
+      const level = getCandidateConfidenceLevel(candidate);
+      if (level !== "high" && level !== "medium") return false;
+
+      const key = normalizeCachedTitleAliasCandidateKey(candidate);
+      if (!key || seen.has(key)) return false;
+
+      seen.add(key);
+      return true;
+    })
+    .sort((a, b) => {
+      const scoreDiff = Number(b.match_score || 0) - Number(a.match_score || 0);
+      if (scoreDiff !== 0) return scoreDiff;
+
+      const confidenceDiff = Number(b.confidence || 0) - Number(a.confidence || 0);
+      if (confidenceDiff !== 0) return confidenceDiff;
+
+      return String(a.title || "").localeCompare(String(b.title || ""));
+    })
+    .slice(0, safeLimit);
+}
+
+async function searchCachedTitleAliases(query, limit = 5) {
+  const safeQuery = String(query || "").trim();
+  const safeLimit = Math.max(1, Math.min(Number(limit || 5), 8));
+
+  if (!safeQuery || safeQuery.length < 3 || !supabaseClient) {
+    return [];
+  }
+
+  try {
+    const { data, error } = await supabaseClient.rpc(
+      "search_mehfil_cache_title_aliases_v1",
+      {
+        q: safeQuery,
+        result_limit: safeLimit
+      }
+    );
+
+    if (error) {
+      console.warn("Cached title alias search skipped:", error.message || error);
+      return [];
+    }
+
+    return normalizeCachedTitleAliasRows(data || [], safeLimit);
+  } catch (error) {
+    console.warn("Cached title alias search failed:", error);
     return [];
   }
 }
@@ -16825,36 +17287,123 @@ async function runAutoWarmCacheSearchForTyping(query, cacheRunId) {
   }
 
   const cacheKey = getAutoWarmCacheMemoryKey(safeQuery);
-  const cached = autoWarmCacheMemory.get(cacheKey);
 
-  if (cached && Date.now() - cached.at < AUTO_WARM_CACHE_MEMORY_TTL_MS) {
-    if (cacheRunId !== autoWarmCacheRunId) return;
+  let statusTimer = setTimeout(() => {
+  if (cacheRunId !== autoWarmCacheRunId) return;
 
-    if (Array.isArray(cached.candidates) && cached.candidates.length > 0) {
-      setSearchOnlineState("Found matching lyrics.", "success");
-      renderSearchOnlineCandidates(cached.candidates);
-    }
+  const currentInput = document.getElementById("searchInput");
 
+  if (currentInput && currentInput.value.trim() !== safeQuery) return;
+
+  if (getVisibleLocalSearchResultCount() > 0) {
+    setSearchOnlineState("");
     return;
   }
 
-  let statusTimer = setTimeout(() => {
-    if (cacheRunId !== autoWarmCacheRunId) return;
-
-    const currentInput = document.getElementById("searchInput");
-
-    if (currentInput && currentInput.value.trim() !== safeQuery) return;
-
-    /*
-      Only show checking message when there are no local results.
-      If saved results are already visible, stay quiet.
-    */
-    if (getVisibleLocalSearchResultCount() === 0) {
-      setSearchOnlineState("Checking Mehfil cache...", "pending");
-    }
-  }, 180);
+  setSearchOnlineState("Checking Mehfil cache...", "pending");
+}, 180);
 
   try {
+    /*
+      FIRST: exact online query cache.
+
+      Example:
+      User searched "kaun disha mein" once with 🔎.
+      Typing the same query again should reuse the exact cached result.
+    */
+    const exactCachedCandidatesRaw = await readOnlineSongSupabaseCache(safeQuery);
+    const exactCachedCandidates = annotateExactOnlineCacheCandidates(
+      exactCachedCandidatesRaw,
+      safeQuery
+    );
+
+    if (Array.isArray(exactCachedCandidates) && exactCachedCandidates.length > 0) {
+      if (statusTimer) {
+        clearTimeout(statusTimer);
+        statusTimer = null;
+      }
+
+      autoWarmCacheMemory.set(cacheKey, {
+        at: Date.now(),
+        candidates: exactCachedCandidates.slice(),
+        source: "exact_online_song_cache"
+      });
+
+      if (cacheRunId !== autoWarmCacheRunId) return;
+
+      const currentInput = document.getElementById("searchInput");
+
+      if (currentInput && currentInput.value.trim() !== safeQuery) return;
+
+      setAutoWarmCacheResultState(exactCachedCandidates);
+      renderSearchOnlineCandidates(exactCachedCandidates);
+      return;
+    }
+
+    /*
+      SECOND: cached-title alias RPC.
+
+      This is the new broad title layer:
+      - "disha mein" finds cached title "Kaun Disha Mein Leke Chala"
+      - "kon disha me" also finds it through backend phonetic normalization
+      - "kaun" stays blocked by backend safety rules
+      - nonsense stays blocked
+    */
+    const titleAliasCandidates = await searchCachedTitleAliases(safeQuery, 5);
+
+    if (Array.isArray(titleAliasCandidates) && titleAliasCandidates.length > 0) {
+      if (statusTimer) {
+        clearTimeout(statusTimer);
+        statusTimer = null;
+      }
+
+      autoWarmCacheMemory.set(cacheKey, {
+        at: Date.now(),
+        candidates: titleAliasCandidates.slice(),
+        source: "cache_title_alias_rpc"
+      });
+
+      if (cacheRunId !== autoWarmCacheRunId) return;
+
+      const currentInput = document.getElementById("searchInput");
+
+      if (currentInput && currentInput.value.trim() !== safeQuery) return;
+
+      setAutoWarmCacheResultState(titleAliasCandidates);
+      renderSearchOnlineCandidates(titleAliasCandidates);
+      return;
+    }
+
+    /*
+      THIRD: in-memory cache.
+
+      This stays after exact/title rescue so old autoFast memory does not beat
+      a stronger exact/title result.
+    */
+    const cached = autoWarmCacheMemory.get(cacheKey);
+
+    if (cached && Date.now() - cached.at < AUTO_WARM_CACHE_MEMORY_TTL_MS) {
+      if (statusTimer) {
+        clearTimeout(statusTimer);
+        statusTimer = null;
+      }
+
+      if (cacheRunId !== autoWarmCacheRunId) return;
+
+      if (Array.isArray(cached.candidates) && cached.candidates.length > 0) {
+        setAutoWarmCacheResultState(cached.candidates);
+        renderSearchOnlineCandidates(cached.candidates);
+      }
+
+      return;
+    }
+
+    /*
+      FOURTH: broader warmed vector/chunk cache.
+
+      Useful for lyric/chunk matches, but less trusted than exact cache
+      and cached-title alias search.
+    */
     const candidates = await searchOnlineSongCacheAutoFast(safeQuery, 5);
 
     if (statusTimer) {
@@ -16864,7 +17413,8 @@ async function runAutoWarmCacheSearchForTyping(query, cacheRunId) {
 
     autoWarmCacheMemory.set(cacheKey, {
       at: Date.now(),
-      candidates: Array.isArray(candidates) ? candidates.slice() : []
+      candidates: Array.isArray(candidates) ? candidates.slice() : [],
+      source: "auto_fast_index"
     });
 
     if (cacheRunId !== autoWarmCacheRunId) return;
@@ -16874,16 +17424,22 @@ async function runAutoWarmCacheSearchForTyping(query, cacheRunId) {
     if (currentInput && currentInput.value.trim() !== safeQuery) return;
 
     if (Array.isArray(candidates) && candidates.length > 0) {
-      setSearchOnlineState("Found matching lyrics.", "success");
+      setAutoWarmCacheResultState(candidates);
       renderSearchOnlineCandidates(candidates);
       return;
     }
 
     renderSearchOnlineCandidates([]);
 
-    if (getVisibleLocalSearchResultCount() === 0) {
-      setSearchOnlineState("Not found in library or Mehfil cache. Tap 🔎 to search online.", "info");
-    }
+if (getVisibleLocalSearchResultCount() > 0) {
+  setSearchOnlineState("");
+  return;
+}
+
+setSearchOnlineState(
+  "Not found in library or Mehfil cache. Tap 🔎 to search online.",
+  "info"
+);
   } catch (error) {
     if (statusTimer) {
       clearTimeout(statusTimer);
@@ -16894,9 +17450,12 @@ async function runAutoWarmCacheSearchForTyping(query, cacheRunId) {
 
     if (cacheRunId !== autoWarmCacheRunId) return;
 
-    if (getVisibleLocalSearchResultCount() === 0) {
-      setSearchOnlineState("Not found in library. Tap 🔎 to search online.", "info");
-    }
+    if (getVisibleLocalSearchResultCount() > 0) {
+  setSearchOnlineState("");
+  return;
+}
+
+setSearchOnlineState("Not found in library. Tap 🔎 to search online.", "info");
   }
 }
 
