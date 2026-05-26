@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <title>Mehfil Lyrics</title>
 
-<meta name="theme-color" content="#111827" />
+
 <meta name="mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="theme-color" content="#f5f6fa" />
@@ -17396,10 +17396,6 @@ if (cached && Date.now() - cached.at < AUTO_WARM_CACHE_MEMORY_TTL_MS) {
     return;
   }
 
-  /*
-    Cached empty online result must not leave an old pending spinner alive,
-    especially when local library results are already visible.
-  */
   renderSearchOnlineCandidates([]);
 
   if (getVisibleLocalSearchResultCount() > 0) {
