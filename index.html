@@ -13946,6 +13946,293 @@ function rankCachedTitleAliasForDisplay(candidate) {
 
   return score;
 }
+
+const MEHFIL_GENERIC_QUERY_TOKENS = new Set([
+  "dil",
+  "pyar",
+  "pyaar",
+  "ishq",
+  "mohabbat",
+  "hai",
+  "ho",
+  "re",
+  "na",
+  "aa",
+  "o",
+  "oh",
+  "ka",
+  "ki",
+  "ke",
+  "se",
+  "me",
+  "mein",
+  "main",
+  "meri",
+  "mere",
+  "mera",
+  "tera",
+  "teri",
+  "tere",
+  "tum",
+  "hum",
+  "ham",
+  "tu",
+  "ye",
+  "yeh",
+  "woh",
+  "wo",
+  "kaun",
+  "koun",
+  "kon",
+  "kya"
+]);
+
+function normalizeForMehfilGenericGate(value) {
+  const raw = String(value || "").toLowerCase();
+
+  if (typeof normalizeText === "function") {
+    return normalizeText(raw).replace(/\s+/g, " ").trim();
+  }
+
+  return raw
+    .replace(/[^\p{L}\p{N}\s]/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function getMehfilGenericGateTokens(query) {
+  const normalized = normalizeForMehfilGenericGate(query);
+
+  if (!normalized) return [];
+
+  return normalized
+    .split(/\s+/)
+    .map(token => token.trim())
+    .filter(Boolean);
+}
+
+function isNativeScriptQueryForSearch(query) {
+  return /[\u0900-\u097F\u0600-\u06FF\u0A80-\u0AFF]/.test(String(query || ""));
+}
+
+function isUnsafeGenericQueryForBroadCache(query) {
+  const safeQuery = String(query || "").trim();
+
+  if (!safeQuery || safeQuery.length < 3) return true;
+
+  /*
+    Native-script queries are allowed through.
+    We do not want to block future Hindi/Urdu/Gujarati search lanes.
+  */
+  if (isNativeScriptQueryForSearch(safeQuery)) {
+    return false;
+  }
+
+  const tokens = getMehfilGenericGateTokens(safeQuery);
+
+  if (!tokens.length) return true;
+
+  const meaningfulTokens = tokens.filter(token => {
+    if (token.length < 3) return false;
+    return !MEHFIL_GENERIC_QUERY_TOKENS.has(token);
+  });
+
+  /*
+    One-word generic queries are unsafe:
+    dil, pyar, kaun, ishq
+  */
+  if (tokens.length === 1 && meaningfulTokens.length === 0) {
+    return true;
+  }
+
+  /*
+    Two-word generic queries are usually still unsafe:
+    mere dil, dil hai, pyar hai
+  */
+  if (tokens.length === 2 && meaningfulTokens.length === 0) {
+    return true;
+  }
+
+  /*
+    Three+ word queries may be real titles/lyrics:
+    dil se re
+    pyar ka nagma
+    dil hai ke manta nahi
+  */
+  return false;
+}
+
+const MEHFIL_DEVANAGARI_VOWELS = {
+  "अ": "a",
+  "आ": "a",
+  "इ": "i",
+  "ई": "i",
+  "उ": "u",
+  "ऊ": "u",
+  "ए": "e",
+  "ऐ": "ai",
+  "ओ": "o",
+  "औ": "au",
+  "ऋ": "ri"
+};
+
+const MEHFIL_DEVANAGARI_MATRAS = {
+  "ा": "a",
+  "ि": "i",
+  "ी": "i",
+  "ु": "u",
+  "ू": "u",
+  "े": "e",
+  "ै": "ai",
+  "ो": "o",
+  "ौ": "au",
+  "ृ": "ri"
+};
+
+const MEHFIL_DEVANAGARI_CONSONANTS = {
+  "क": "k", "ख": "kh", "ग": "g", "घ": "gh", "ङ": "n",
+  "च": "ch", "छ": "chh", "ज": "j", "झ": "jh", "ञ": "n",
+  "ट": "t", "ठ": "th", "ड": "d", "ढ": "dh", "ण": "n",
+  "त": "t", "थ": "th", "द": "d", "ध": "dh", "न": "n",
+  "प": "p", "फ": "f", "ब": "b", "भ": "bh", "म": "m",
+  "य": "y", "र": "r", "ल": "l", "व": "v",
+  "श": "sh", "ष": "sh", "स": "s", "ह": "h",
+  "ळ": "l",
+  "ड़": "d", "ढ़": "dh",
+  "क़": "q", "ख़": "kh", "ग़": "gh", "ज़": "z", "फ़": "f"
+};
+
+function transliterateDevanagariWordToLooseRoman(word) {
+  const chars = Array.from(String(word || ""));
+  let output = "";
+
+  for (let i = 0; i < chars.length; i++) {
+    const ch = chars[i];
+
+    if (MEHFIL_DEVANAGARI_VOWELS[ch]) {
+      output += MEHFIL_DEVANAGARI_VOWELS[ch];
+      continue;
+    }
+
+    if (MEHFIL_DEVANAGARI_CONSONANTS[ch]) {
+      const next = chars[i + 1];
+
+      output += MEHFIL_DEVANAGARI_CONSONANTS[ch];
+
+      if (next === "्") {
+        i++;
+        continue;
+      }
+
+      if (MEHFIL_DEVANAGARI_MATRAS[next]) {
+        output += MEHFIL_DEVANAGARI_MATRAS[next];
+        i++;
+        continue;
+      }
+
+      output += "a";
+      continue;
+    }
+
+    if (MEHFIL_DEVANAGARI_MATRAS[ch]) {
+      output += MEHFIL_DEVANAGARI_MATRAS[ch];
+      continue;
+    }
+
+    if (ch === "ं" || ch === "ँ") {
+      output += "n";
+      continue;
+    }
+
+    if (ch === "ः" || ch === "़" || ch === "्") {
+      continue;
+    }
+
+    output += ch;
+  }
+
+  return output
+    .replace(/a\b/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function transliterateDevanagariToLooseRoman(value) {
+  const raw = String(value || "").trim();
+
+  if (!/[\u0900-\u097F]/.test(raw)) {
+    return "";
+  }
+
+  return raw
+    .split(/\s+/)
+    .map(token => transliterateDevanagariWordToLooseRoman(token))
+    .join(" ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function buildNativeCachedTitleAliasRomanVariants(query) {
+  const roman = transliterateDevanagariToLooseRoman(query);
+
+  if (!roman || roman.length < 3) return [];
+
+  const variants = [];
+  const seen = new Set();
+
+  function add(value) {
+    const clean = String(value || "")
+      .toLowerCase()
+      .replace(/[^\p{L}\p{N}\s]/gu, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+
+    if (!clean || clean.length < 3 || seen.has(clean)) return;
+
+    seen.add(clean);
+    variants.push(clean);
+  }
+
+  add(roman);
+
+  /*
+    The loose transliterator may output:
+    कौन दिसा     → kaun dis
+    कौन दिसा में → kaun dis men
+
+    Rescue that into the useful title-search forms:
+    kaun disa
+    kaun disha
+    kaun disha mein
+  */
+  const withHindiSpellingFixes = roman
+    .replace(/\bdis\b/g, "disa")
+    .replace(/\bmen\b/g, "mein")
+    .replace(/\bme\b/g, "mein")
+    .replace(/\bkoun\b/g, "kaun")
+    .replace(/\bkon\b/g, "kaun");
+
+  add(withHindiSpellingFixes);
+
+  add(
+    withHindiSpellingFixes
+      .replace(/\bdisa\b/g, "disha")
+  );
+
+  add(
+    withHindiSpellingFixes
+      .replace(/\bdisha\b/g, "disa")
+  );
+
+  add(
+    withHindiSpellingFixes
+      .replace(/\bkaun\b/g, "koun")
+  );
+
+  return variants.slice(0, 6);
+}
+
+
 function normalizeCachedTitleAliasVariantText(value) {
   const raw = String(value || "").toLowerCase();
 
@@ -13983,8 +14270,12 @@ function collapseSafeRomanVowelsForTitleToken(token) {
 
 function buildCachedTitleAliasQueryVariants(query) {
   const base = normalizeCachedTitleAliasVariantText(query);
+  const isNativeQuery = isNativeScriptQueryForSearch(query);
+  const nativeRomanVariants = buildNativeCachedTitleAliasRomanVariants(query);
 
-  if (!base || base.length < 3) return [];
+  if ((!base || base.length < 3) && !nativeRomanVariants.length) {
+    return [];
+  }
 
   const variants = [];
   const seen = new Set();
@@ -13998,12 +14289,28 @@ function buildCachedTitleAliasQueryVariants(query) {
 
   add(base);
 
+  /*
+    Native rescue:
+    कौन दिसा → kaun disa → kaun disha
+    कौन दिसा में → kaun disa men → kaun disha mein
+  */
+  for (const nativeVariant of nativeRomanVariants) {
+    add(nativeVariant);
+  }
+
+  /*
+    For native-script queries, stop here.
+    Do not run Roman-only filler stripping on native text.
+  */
+  if (isNativeQuery) {
+    return variants.slice(0, 6);
+  }
+
   const tokens = base.split(/\s+/).filter(Boolean);
 
   /*
     Remove tiny leading interjection tokens only as fallback:
     "o saathiya" -> "saathiya"
-    This should not replace the original query; it only runs if original fails.
   */
   if (tokens.length >= 2) {
     const withoutTinyTokens = tokens.filter(token => token.length > 1).join(" ");
@@ -14021,7 +14328,7 @@ function buildCachedTitleAliasQueryVariants(query) {
   add(collapsed);
 
   /*
-    Common roman Hindi variants.
+    Common Roman Hindi variants.
     Keep this small. Big fuzzy lists become garbage factories.
   */
   add(
@@ -14036,7 +14343,7 @@ function buildCachedTitleAliasQueryVariants(query) {
       .replace(/\bsaathiyaa\b/g, "saathiya")
   );
 
-  return variants.slice(0, 5);
+  return variants.slice(0, 6);
 }
 
 
@@ -15087,6 +15394,27 @@ async function runOnlineLookupForSearch(query, options = {}) {
     return;
   }
 
+    /*
+    Backup generic-query gate.
+    Keep this here so no caller can accidentally run LRCLIB/fallback
+    for unsafe generic one-word queries.
+  */
+  if (isUnsafeGenericQueryForBroadCache(safeQuery)) {
+    renderSearchOnlineCandidates([]);
+    setAutoWarmCacheResultState([]);
+
+    if (getVisibleLocalSearchResultCount() > 0) {
+      setSearchOnlineState("");
+    } else {
+      setSearchOnlineState(
+        "Type more words for a precise search, or search a fuller lyric/title.",
+        "info"
+      );
+    }
+
+    return;
+  }
+
   const runId = ++onlineLookupRunId;
 
   renderResults([], safeQuery, { suppressEmptyState: true });
@@ -15103,6 +15431,53 @@ async function runOnlineLookupForSearch(query, options = {}) {
   let directDone = false;
   let edgeDone = false;
   let providerFallbackVisible = false;
+
+    /*
+    Native-script safety:
+    First try cached-title alias rescue through loose transliteration.
+    If a short native query still has no cached-title match, do NOT send it
+    to broad LRCLIB/fallback. LRCLIB can return unrelated Hindi garbage.
+  */
+  if (isNativeScriptQueryForSearch(safeQuery)) {
+    const nativeAliasCandidates = await searchCachedTitleAliases(safeQuery, 6);
+
+    if (Array.isArray(nativeAliasCandidates) && nativeAliasCandidates.length > 0) {
+      providerFallbackVisible = false;
+      shownCandidates = mergeOnlineCandidates(shownCandidates, nativeAliasCandidates).slice(0, 6);
+
+      renderResults([], safeQuery, { suppressEmptyState: true });
+      renderSearchOnlineCandidates(shownCandidates);
+
+      setSearchOnlineState(
+        `${shownCandidates.length} cached title match(es) found.`,
+        "success"
+      );
+
+      prefetchOnlineCandidateDetails(shownCandidates, 3);
+
+      directDone = true;
+      edgeDone = true;
+      return;
+    }
+
+    const nativeTokenCount = getMehfilGenericGateTokens(safeQuery).length;
+
+    if (nativeTokenCount > 0) {
+      renderSearchOnlineCandidates([]);
+      setAutoWarmCacheResultState([]);
+
+      if (getVisibleLocalSearchResultCount() > 0) {
+        setSearchOnlineState("");
+      } else {
+        setSearchOnlineState(
+          "Type one more native-script word for a precise search, or search a fuller lyric/title.",
+          "info"
+        );
+      }
+
+      return;
+    }
+  }
 
   function isCurrentRun() {
     return runId === onlineLookupRunId;
@@ -15425,6 +15800,46 @@ function runForcedOnlineSearch() {
 
   if (!query || query.length < 3) {
     setSearchOnlineState("Type a song title first, then tap 🔎.", "error");
+    input.focus();
+    unlockOnlineSearchButton();
+    return;
+  }
+
+    /*
+    Manual 🔎 safety gate:
+    Even when the user taps search, do not run broad online lookup
+    for unsafe one-word generic queries.
+
+    Allowed:
+    - dil se re
+    - disha mein
+    - kajara re
+    - कौन दिसा
+
+    Blocked:
+    - dil
+    - pyar
+    - kaun
+    - kon
+    - koun
+  */
+  if (isUnsafeGenericQueryForBroadCache(query)) {
+    searchRunId++;
+    autoWarmCacheRunId++;
+    clearAutoWarmCacheTimer();
+
+    renderSearchOnlineCandidates([]);
+    setAutoWarmCacheResultState([]);
+
+    if (getVisibleLocalSearchResultCount() > 0) {
+      setSearchOnlineState("");
+    } else {
+      setSearchOnlineState(
+        "Type more words for a precise search, or search a fuller lyric/title.",
+        "info"
+      );
+    }
+
     input.focus();
     unlockOnlineSearchButton();
     return;
@@ -17592,6 +18007,41 @@ async function runAutoWarmCacheSearchForTyping(query, cacheRunId) {
     return;
   }
 
+    /*
+    HARD EARLY GENERIC GATE.
+    This must run before:
+    - exact online_song_cache
+    - cached-title alias RPC
+    - autoWarmCacheMemory
+    - broader warmed/vector/chunk cache
+
+    Saved/local library search runs separately and is not blocked here.
+  */
+  if (isUnsafeGenericQueryForBroadCache(safeQuery)) {
+    const genericCacheKey = getAutoWarmCacheMemoryKey(safeQuery);
+
+    renderSearchOnlineCandidates([]);
+    setAutoWarmCacheResultState([]);
+
+    autoWarmCacheMemory.set(genericCacheKey, {
+      at: Date.now(),
+      candidates: [],
+      source: "hard_generic_query_blocked"
+    });
+
+    if (getVisibleLocalSearchResultCount() > 0) {
+      setSearchOnlineState("");
+      return;
+    }
+
+    setSearchOnlineState(
+      "Type more words or tap 🔎 to search online.",
+      "info"
+    );
+
+    return;
+  }
+
   const input = document.getElementById("searchInput");
 
   if (input && input.value.trim() !== safeQuery) {
@@ -17599,6 +18049,49 @@ async function runAutoWarmCacheSearchForTyping(query, cacheRunId) {
   }
 
   const cacheKey = getAutoWarmCacheMemoryKey(safeQuery);
+
+    /*
+    EARLY safety gate:
+    Stop generic one/two-word queries before ANY warmed-cache lane runs.
+
+    This blocks:
+    - exact online_song_cache
+    - cached-title alias RPC
+    - in-memory warmed cache
+    - broad autoFast/vector/chunk cache
+
+    Saved/local library search still runs separately.
+  */
+  if (isUnsafeGenericQueryForBroadCache(safeQuery)) {
+    renderSearchOnlineCandidates([]);
+    setAutoWarmCacheResultState([]);
+
+    autoWarmCacheMemory.set(cacheKey, {
+      at: Date.now(),
+      candidates: [],
+      source: "generic_query_blocked"
+    });
+
+    setTimeout(() => {
+      if (cacheRunId !== autoWarmCacheRunId) return;
+
+      const currentInput = document.getElementById("searchInput");
+
+      if (currentInput && currentInput.value.trim() !== safeQuery) return;
+
+      if (getVisibleLocalSearchResultCount() > 0) {
+        setSearchOnlineState("");
+        return;
+      }
+
+      setSearchOnlineState(
+        "Type more words or tap 🔎 to search online.",
+        "info"
+      );
+    }, 90);
+
+    return;
+  }
 
   let statusTimer = setTimeout(() => {
   if (cacheRunId !== autoWarmCacheRunId) return;
@@ -17624,10 +18117,19 @@ async function runAutoWarmCacheSearchForTyping(query, cacheRunId) {
       Typing the same query again should reuse the exact cached result.
     */
     const exactCachedCandidatesRaw = await readOnlineSongSupabaseCache(safeQuery);
-    const exactCachedCandidates = annotateExactOnlineCacheCandidates(
-      exactCachedCandidatesRaw,
-      safeQuery
-    );
+
+const exactCachedCandidates = annotateExactOnlineCacheCandidates(
+  exactCachedCandidatesRaw,
+  safeQuery
+).filter(candidate => {
+  /*
+    Auto typing must not show low-confidence exact cache previews.
+    This prevents polluted cache rows like "कौन दिसा" from appearing
+    before cached-title alias rescue gets a chance.
+  */
+  const level = getCandidateConfidenceLevel(candidate);
+  return level === "high" || level === "medium";
+});
 
     if (Array.isArray(exactCachedCandidates) && exactCachedCandidates.length > 0) {
       if (statusTimer) {
@@ -17722,6 +18224,40 @@ if (cached && Date.now() - cached.at < AUTO_WARM_CACHE_MEMORY_TTL_MS) {
 
   return;
 }
+  /*
+    Safety gate:
+    Do not run broad warmed-cache/vector/chunk search for generic queries.
+    Title-alias cache has already run above. This guard only blocks the
+    broader cache lane that can produce confident garbage for words like
+    "dil", "pyar", "kaun".
+  */
+  if (isUnsafeGenericQueryForBroadCache(safeQuery)) {
+    if (statusTimer) {
+      clearTimeout(statusTimer);
+      statusTimer = null;
+    }
+
+    renderSearchOnlineCandidates([]);
+    setAutoWarmCacheResultState([]);
+
+    autoWarmCacheMemory.set(cacheKey, {
+      at: Date.now(),
+      candidates: []
+    });
+
+    if (getVisibleLocalSearchResultCount() > 0) {
+      setSearchOnlineState("");
+      return;
+    }
+
+    setSearchOnlineState(
+      "Type more words or tap 🔎 to search online.",
+      "info"
+    );
+
+    return;
+  }
+
 
     /*
       FOURTH: broader warmed vector/chunk cache.
