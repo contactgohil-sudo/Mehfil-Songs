@@ -13766,17 +13766,174 @@ function getCachedTitleAliasDisplayKey(candidate) {
     ? normalizeText
     : value => String(value || "").toLowerCase().replace(/\s+/g, " ").trim();
 
+  /*
+    Display dedupe should group near-identical cache variants.
+    We do NOT include movie here because LRCLIB often returns the same song
+    with 5 slightly different album/movie values.
+  */
+  const title = norm(candidate?.title || "")
+    .replace(/\bfrom\b/g, " ")
+    .replace(/\boriginal motion picture soundtrack\b/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  const singer = norm(candidate?.singer || "")
+    .replace(/[•/&]+/g, " ")
+    .replace(/\bfeat\b|\bft\b|\bfeaturing\b/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
   return [
-    norm(candidate?.title || ""),
-    norm(candidate?.singer || ""),
-    norm(candidate?.movie || "")
+    title,
+    singer
   ].join("|");
 }
+
+function isDurationLikeMovieValue(value) {
+  const movie = String(value || "").trim();
+
+  if (!movie) return false;
+
+  return (
+    /^\d{1,2}:\d{2}$/.test(movie) ||
+    /^\d+(\s*:\s*\d+)?$/.test(movie) ||
+    /^\d+\s*(sec|secs|min|mins|minutes|seconds)$/i.test(movie)
+  );
+}
+
+function getCachedTitleAliasMetadataQuality(candidate) {
+  const title = String(candidate?.title || "").trim();
+  const singer = String(candidate?.singer || "").trim();
+  const movie = String(candidate?.movie || "").trim();
+
+  let score = 0;
+
+  if (title) score += 30;
+  if (singer) score += 20;
+  if (movie) score += 20;
+
+  if (isDurationLikeMovieValue(movie)) {
+    score -= 500;
+  }
+
+  if (/original motion picture soundtrack/i.test(movie)) {
+    score -= 8;
+  }
+
+  if (/^(null|undefined|unknown|na|n\/a)$/i.test(movie)) {
+    score -= 80;
+  }
+
+  if (/\b(song|lyrics|official|video|audio)\b/i.test(singer)) {
+    score -= 35;
+  }
+
+  /*
+    For Indian film songs, a real movie/album name is usually better than
+    playlist/collection metadata.
+  */
+  if (/\b(gorgeous|hits|top|best|collection|romance|special|playlist|flavours)\b/i.test(movie)) {
+    score -= 70;
+  }
+
+  /*
+    Known clean metadata should beat compilation/playlist metadata.
+    This is broad: it rewards normal-looking album/movie names,
+    not hardcoded one-song logic.
+  */
+  if (
+    movie &&
+    !isDurationLikeMovieValue(movie) &&
+    !/\b(gorgeous|hits|top|best|collection|playlist|flavours)\b/i.test(movie)
+  ) {
+    score += 60;
+  }
+
+  return score;
+}
+
+function getCachedTitleAliasOriginalQueryFitScore(candidate) {
+  const meta = getCandidateSearchMeta(candidate);
+
+  const originalQuery = String(meta.original_query || "").trim();
+  const variantQuery = String(meta.variant_query || originalQuery).trim();
+  const title = String(candidate?.title || "").trim();
+
+  if (!originalQuery || !title) return 0;
+
+  const normalizeForFit = value => {
+    const base = normalizeCachedTitleAliasVariantText(value);
+    return base
+      .split(/\s+/)
+      .map(token => collapseSafeRomanVowelsForTitleToken(token))
+      .join(" ")
+      .replace(/\s+/g, " ")
+      .trim();
+  };
+
+  const original = normalizeForFit(originalQuery);
+  const variant = normalizeForFit(variantQuery);
+  const titleNorm = normalizeForFit(title);
+
+  if (!original || !titleNorm) return 0;
+
+  let score = 0;
+
+  const originalTokens = original.split(/\s+/).filter(Boolean);
+  const titleTokens = titleNorm.split(/\s+/).filter(Boolean);
+
+  const originalTokenSet = new Set(originalTokens);
+  const titleTokenSet = new Set(titleTokens);
+
+  let covered = 0;
+
+  for (const token of originalTokenSet) {
+    if (titleTokenSet.has(token)) covered++;
+  }
+
+  const coverage = originalTokenSet.size
+    ? covered / originalTokenSet.size
+    : 0;
+
+  if (titleNorm === original) score += 900;
+  else if (titleNorm.startsWith(original + " ")) score += 700;
+  else if (titleNorm.includes(original)) score += 550;
+
+  if (coverage >= 1) score += 350;
+  else if (coverage >= 0.67) score += 180;
+
+  /*
+    Important:
+    If user typed a meaningful leading token like "o saathiya",
+    do not let stripped fallback "saathiya" beat a title that actually keeps "o".
+  */
+  const firstOriginalToken = originalTokens[0] || "";
+
+  if (
+    originalTokens.length >= 2 &&
+    firstOriginalToken.length <= 2 &&
+    !titleTokenSet.has(firstOriginalToken)
+  ) {
+    score -= 650;
+  }
+
+  /*
+    Fallback variants are useful, but original-query fit must matter.
+    Example:
+    "kajara re" → "kajra re" is good because title still fits collapsed original.
+    "o saathiya" → "saathiya" is weaker because it dropped "o".
+  */
+  if (variant !== original && coverage < 1) {
+    score -= 250;
+  }
+
+  return score;
+}
+
 
 function rankCachedTitleAliasForDisplay(candidate) {
   const meta = getCandidateSearchMeta(candidate);
   const level = getCandidateConfidenceLevel(candidate);
-  const movie = String(candidate?.movie || "").trim();
 
   let score = Number(candidate?.match_score || meta.match_score || 0);
 
@@ -13784,25 +13941,104 @@ function rankCachedTitleAliasForDisplay(candidate) {
   if (level === "medium") score += 300;
 
   score += Math.min(Number(candidate?.confidence || 0), 100);
-
-  /*
-    Penalize ugly LRCLIB metadata such as movie = "6:53".
-    It can still appear if nothing else exists, but it should not beat clean movie metadata.
-  */
-  if (/^\d{1,2}:\d{2}$/.test(movie) || /^\d+(\s*:\s*\d+)?$/.test(movie)) {
-    score -= 120;
-  }
-
-  if (/original motion picture soundtrack/i.test(movie)) {
-    score -= 8;
-  }
-
-  if (/\b(song|lyrics)\b/i.test(String(candidate?.singer || ""))) {
-    score -= 25;
-  }
+  score += getCachedTitleAliasMetadataQuality(candidate);
+  score += getCachedTitleAliasOriginalQueryFitScore(candidate);
 
   return score;
 }
+function normalizeCachedTitleAliasVariantText(value) {
+  const raw = String(value || "").toLowerCase();
+
+  const normalized = typeof normalizeText === "function"
+    ? normalizeText(raw)
+    : raw.replace(/[^\p{L}\p{N}\s]/gu, " ").replace(/\s+/g, " ").trim();
+
+  return normalized.replace(/\s+/g, " ").trim();
+}
+
+function collapseSafeRomanVowelsForTitleToken(token) {
+  let word = String(token || "").toLowerCase().trim();
+
+  if (word.length < 5) return word;
+
+  /*
+    Safe roman-title typo rescue:
+    kajara -> kajra
+    saathiyaa -> saathiya
+    raaaba -> raba
+
+    This is intentionally conservative.
+    It does not fuzzy-match lyrics.
+  */
+  word = word.replace(/([aeiou])\1+/g, "$1");
+
+  word = word
+    .replace(/jara\b/g, "jra")
+    .replace(/aara\b/g, "ara")
+    .replace(/iyaa\b/g, "iya")
+    .replace(/iyaan\b/g, "iyan");
+
+  return word;
+}
+
+function buildCachedTitleAliasQueryVariants(query) {
+  const base = normalizeCachedTitleAliasVariantText(query);
+
+  if (!base || base.length < 3) return [];
+
+  const variants = [];
+  const seen = new Set();
+
+  function add(value) {
+    const clean = normalizeCachedTitleAliasVariantText(value);
+    if (!clean || clean.length < 3 || seen.has(clean)) return;
+    seen.add(clean);
+    variants.push(clean);
+  }
+
+  add(base);
+
+  const tokens = base.split(/\s+/).filter(Boolean);
+
+  /*
+    Remove tiny leading interjection tokens only as fallback:
+    "o saathiya" -> "saathiya"
+    This should not replace the original query; it only runs if original fails.
+  */
+  if (tokens.length >= 2) {
+    const withoutTinyTokens = tokens.filter(token => token.length > 1).join(" ");
+    add(withoutTinyTokens);
+  }
+
+  /*
+    Roman typo variant:
+    "kajara re" -> "kajra re"
+  */
+  const collapsed = tokens
+    .map(token => collapseSafeRomanVowelsForTitleToken(token))
+    .join(" ");
+
+  add(collapsed);
+
+  /*
+    Common roman Hindi variants.
+    Keep this small. Big fuzzy lists become garbage factories.
+  */
+  add(
+    base
+      .replace(/\bkon\b/g, "kaun")
+      .replace(/\bkoun\b/g, "kaun")
+      .replace(/\bme\b/g, "mein")
+      .replace(/\bmain\b/g, "mein")
+      .replace(/\brabba\b/g, "raba")
+      .replace(/\brab\b/g, "raba")
+      .replace(/\bsathiya\b/g, "saathiya")
+      .replace(/\bsaathiyaa\b/g, "saathiya")
+  );
+
+  return variants.slice(0, 5);
+}
+
 
 async function searchCachedTitleAliases(query, limit = 5) {
   const safeQuery = String(query || "").trim();
@@ -14066,25 +14302,101 @@ async function searchCachedTitleAliases(query, limit = 5) {
     return [];
   }
 
-  try {
-    const { data, error } = await supabaseClient.rpc(
-      "search_mehfil_cache_title_aliases_v1",
-      {
-        q: safeQuery,
-        result_limit: safeLimit
+  const variants = buildCachedTitleAliasQueryVariants(safeQuery);
+  const collected = [];
+  const seenCandidateKeys = new Set();
+
+  for (let variantIndex = 0; variantIndex < variants.length; variantIndex++) {
+    const variantQuery = variants[variantIndex];
+
+    try {
+      const { data, error } = await supabaseClient.rpc(
+        "search_mehfil_cache_title_aliases_v1",
+        {
+          q: variantQuery,
+          result_limit: safeLimit
+        }
+      );
+
+      if (error) {
+        console.warn("Cached title alias search skipped:", error.message || error);
+        continue;
       }
-    );
 
-    if (error) {
-      console.warn("Cached title alias search skipped:", error.message || error);
-      return [];
+      const rows = (Array.isArray(data) ? data : [])
+        .map(row => normalizeCachedTitleAliasRpcRow(row))
+        .filter(Boolean)
+        .filter(candidate => {
+          const level = getCandidateConfidenceLevel(candidate);
+          return level === "high" || level === "medium";
+        })
+        .map(candidate => ({
+          ...candidate,
+          search_meta: {
+            ...getCandidateSearchMeta(candidate),
+            cache_title_alias: true,
+            original_query: safeQuery,
+            variant_query: variantQuery,
+            variant_index: variantIndex
+          }
+        }));
+
+      for (const candidate of rows) {
+        const key = [
+          String(candidate.title || "").toLowerCase().trim(),
+          String(candidate.singer || "").toLowerCase().trim(),
+          String(candidate.movie || "").toLowerCase().trim(),
+          String(candidate.provider || "").toLowerCase().trim()
+        ].join("|");
+
+        if (!key || seenCandidateKeys.has(key)) continue;
+
+        seenCandidateKeys.add(key);
+
+        /*
+          Exact/original query hits beat fallback variant hits.
+          Variant hits are useful, but should not overrule clean exact hits.
+        */
+        candidate._cacheAliasVariantPenalty = variantIndex * 120;
+
+        collected.push(candidate);
+      }
+
+      /*
+        If the original query produced enough good rows, stop.
+        If it produced nothing, try safe variants.
+      */
+      if (variantIndex === 0 && collected.length >= safeLimit) {
+        break;
+      }
+    } catch (error) {
+      console.warn("Cached title alias search failed:", error);
     }
-
-    return normalizeCachedTitleAliasRows(data || [], safeLimit);
-  } catch (error) {
-    console.warn("Cached title alias search failed:", error);
-    return [];
   }
+
+  const displaySeen = new Set();
+
+  return collected
+    .sort((a, b) => {
+      const aScore = rankCachedTitleAliasForDisplay(a) - Number(a._cacheAliasVariantPenalty || 0);
+      const bScore = rankCachedTitleAliasForDisplay(b) - Number(b._cacheAliasVariantPenalty || 0);
+
+      if (bScore !== aScore) return bScore - aScore;
+
+      return String(a.title || "").localeCompare(String(b.title || ""));
+    })
+    .filter(candidate => {
+      const key = getCachedTitleAliasDisplayKey(candidate);
+      if (!key || displaySeen.has(key)) return false;
+      displaySeen.add(key);
+      return true;
+    })
+    .slice(0, safeLimit)
+    .map(candidate => {
+      const clean = { ...candidate };
+      delete clean._cacheAliasVariantPenalty;
+      return clean;
+    });
 }
 
 async function saveOnlineSongSupabaseCache(query, candidates = []) {
