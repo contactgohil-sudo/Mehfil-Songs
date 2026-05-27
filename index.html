@@ -15462,21 +15462,32 @@ async function runOnlineLookupForSearch(query, options = {}) {
 
     const nativeTokenCount = getMehfilGenericGateTokens(safeQuery).length;
 
-    if (nativeTokenCount > 0) {
-      renderSearchOnlineCandidates([]);
-      setAutoWarmCacheResultState([]);
+if (nativeTokenCount > 0) {
+  renderSearchOnlineCandidates([]);
+  setAutoWarmCacheResultState([]);
 
-      if (getVisibleLocalSearchResultCount() > 0) {
-        setSearchOnlineState("");
-      } else {
-        setSearchOnlineState(
-          "Type one more native-script word for a precise search, or search a fuller lyric/title.",
-          "info"
-        );
-      }
+  /*
+    Native-script safety:
+    Do not run broad LRCLIB/direct fallback here.
+    But if user explicitly pressed 🔎, show provider fallback UI.
+    Brave still runs only after the user taps Check source links / Power Search.
+  */
+  if (force) {
+    showProviderFallback();
+    return;
+  }
 
-      return;
-    }
+  if (getVisibleLocalSearchResultCount() > 0) {
+    setSearchOnlineState("");
+  } else {
+    setSearchOnlineState(
+      "Not found in library or Mehfil cache. Tap 🔎 to check source links.",
+      "info"
+    );
+  }
+
+  return;
+}
   }
 
   function isCurrentRun() {
