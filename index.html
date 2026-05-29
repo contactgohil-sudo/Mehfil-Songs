@@ -14402,6 +14402,138 @@ async function searchCachedTitleAliases(query, limit = 5) {
   }
 }
 
+function shouldRunCachedLyricPhraseSearch(query) {
+  const safeQuery = String(query || "").trim();
+
+  if (!safeQuery || safeQuery.length < 4) return false;
+
+  const tokens = getMehfilGenericGateTokens(safeQuery);
+  const isNative = isNativeScriptQueryForSearch(safeQuery);
+
+  /*
+    Native lyric phrase search should need at least 3 tokens:
+    मन भरमाये नयना → yes
+    कौन दिसा → no, title cache handles it
+  */
+  if (isNative) {
+    return tokens.length >= 3;
+  }
+
+  /*
+    Roman lyric phrase search should also need at least 3 tokens:
+    man bharamaye naina → yes
+    meri angdai na toote → yes
+    dil / pyar / kaun → no
+  */
+  if (tokens.length < 3) return false;
+
+  if (isUnsafeGenericQueryForBroadCache(safeQuery)) {
+    return false;
+  }
+
+  return true;
+}
+
+function normalizeCachedLyricPhraseRpcRow(row) {
+  const candidate = normalizeCachedTitleAliasRpcRow(row);
+
+  if (!candidate) return null;
+
+  const meta = getCandidateSearchMeta(candidate);
+
+  return {
+    ...candidate,
+    match_source: candidate.match_source || "cache_lyric_phrase",
+    cache_source: candidate.cache_source || "mehfil_lyric_phrase_index_v1",
+    search_meta: {
+      ...meta,
+      badge: meta.badge || "Cached lyric phrase",
+      match_source: "cache_lyric_phrase",
+      lyric_phrase_index: true
+    }
+  };
+}
+
+async function searchCachedLyricPhrases(query, limit = 5) {
+  const safeQuery = String(query || "").trim();
+  const safeLimit = Math.max(1, Math.min(Number(limit || 5), 8));
+
+  if (!safeQuery || !supabaseClient) {
+    return [];
+  }
+
+  if (!shouldRunCachedLyricPhraseSearch(safeQuery)) {
+    return [];
+  }
+
+  try {
+    const { data, error } = await supabaseClient.rpc(
+      "search_mehfil_lyric_phrases_v1",
+      {
+        q: safeQuery,
+        result_limit: safeLimit
+      }
+    );
+
+    if (error) {
+      console.warn("Cached lyric phrase search skipped:", error.message || error);
+      return [];
+    }
+
+    const displaySeen = new Set();
+
+    return (Array.isArray(data) ? data : [])
+      .map(row => normalizeCachedLyricPhraseRpcRow(row))
+      .filter(Boolean)
+      .filter(candidate => {
+        const level = getCandidateConfidenceLevel(candidate);
+        return level === "high" || level === "medium";
+      })
+      .sort((a, b) => {
+        const aMeta = getCandidateSearchMeta(a);
+        const bMeta = getCandidateSearchMeta(b);
+
+        const aScore = Number(a.match_score || aMeta.match_score || 0);
+        const bScore = Number(b.match_score || bMeta.match_score || 0);
+
+        if (bScore !== aScore) return bScore - aScore;
+
+        return String(a.title || "").localeCompare(String(b.title || ""));
+      })
+      .filter(candidate => {
+        const key = getCachedTitleAliasDisplayKey(candidate);
+        if (!key || displaySeen.has(key)) return false;
+        displaySeen.add(key);
+        return true;
+      })
+      .slice(0, safeLimit);
+  } catch (error) {
+    console.warn("Cached lyric phrase search failed:", error);
+    return [];
+  }
+}
+
+function showCachedLyricPhraseResults(safeQuery, candidates, message) {
+  const visible = Array.isArray(candidates)
+    ? candidates.slice(0, 6)
+    : [];
+
+  if (!visible.length) return [];
+
+  renderResults([], safeQuery, { suppressEmptyState: true });
+  renderSearchOnlineCandidates(visible);
+  setAutoWarmCacheResultState(visible);
+
+  setSearchOnlineState(
+    message || `${visible.length} cached lyric phrase match(es) found.`,
+    "success"
+  );
+
+  prefetchOnlineCandidateDetails(visible, 3);
+
+  return visible;
+}
+
 function getUsefulTitleSuggestionWordCount(query) {
   const stopWords = new Set([
     "the", "and", "or", "a", "an",
@@ -14704,6 +14836,138 @@ async function searchCachedTitleAliases(query, limit = 5) {
       delete clean._cacheAliasVariantPenalty;
       return clean;
     });
+}
+
+function shouldRunCachedLyricPhraseSearch(query) {
+  const safeQuery = String(query || "").trim();
+
+  if (!safeQuery || safeQuery.length < 4) return false;
+
+  const tokens = getMehfilGenericGateTokens(safeQuery);
+  const isNative = isNativeScriptQueryForSearch(safeQuery);
+
+  /*
+    Native lyric phrase search should need at least 3 tokens:
+    मन भरमाये नयना → yes
+    कौन दिसा → no, title cache handles it
+  */
+  if (isNative) {
+    return tokens.length >= 3;
+  }
+
+  /*
+    Roman lyric phrase search should also need at least 3 tokens:
+    man bharamaye naina → yes
+    meri angdai na toote → yes
+    dil / pyar / kaun → no
+  */
+  if (tokens.length < 3) return false;
+
+  if (isUnsafeGenericQueryForBroadCache(safeQuery)) {
+    return false;
+  }
+
+  return true;
+}
+
+function normalizeCachedLyricPhraseRpcRow(row) {
+  const candidate = normalizeCachedTitleAliasRpcRow(row);
+
+  if (!candidate) return null;
+
+  const meta = getCandidateSearchMeta(candidate);
+
+  return {
+    ...candidate,
+    match_source: candidate.match_source || "cache_lyric_phrase",
+    cache_source: candidate.cache_source || "mehfil_lyric_phrase_index_v1",
+    search_meta: {
+      ...meta,
+      badge: meta.badge || "Cached lyric phrase",
+      match_source: "cache_lyric_phrase",
+      lyric_phrase_index: true
+    }
+  };
+}
+
+async function searchCachedLyricPhrases(query, limit = 5) {
+  const safeQuery = String(query || "").trim();
+  const safeLimit = Math.max(1, Math.min(Number(limit || 5), 8));
+
+  if (!safeQuery || !supabaseClient) {
+    return [];
+  }
+
+  if (!shouldRunCachedLyricPhraseSearch(safeQuery)) {
+    return [];
+  }
+
+  try {
+    const { data, error } = await supabaseClient.rpc(
+      "search_mehfil_lyric_phrases_v1",
+      {
+        q: safeQuery,
+        result_limit: safeLimit
+      }
+    );
+
+    if (error) {
+      console.warn("Cached lyric phrase search skipped:", error.message || error);
+      return [];
+    }
+
+    const displaySeen = new Set();
+
+    return (Array.isArray(data) ? data : [])
+      .map(row => normalizeCachedLyricPhraseRpcRow(row))
+      .filter(Boolean)
+      .filter(candidate => {
+        const level = getCandidateConfidenceLevel(candidate);
+        return level === "high" || level === "medium";
+      })
+      .sort((a, b) => {
+        const aMeta = getCandidateSearchMeta(a);
+        const bMeta = getCandidateSearchMeta(b);
+
+        const aScore = Number(a.match_score || aMeta.match_score || 0);
+        const bScore = Number(b.match_score || bMeta.match_score || 0);
+
+        if (bScore !== aScore) return bScore - aScore;
+
+        return String(a.title || "").localeCompare(String(b.title || ""));
+      })
+      .filter(candidate => {
+        const key = getCachedTitleAliasDisplayKey(candidate);
+        if (!key || displaySeen.has(key)) return false;
+        displaySeen.add(key);
+        return true;
+      })
+      .slice(0, safeLimit);
+  } catch (error) {
+    console.warn("Cached lyric phrase search failed:", error);
+    return [];
+  }
+}
+
+function showCachedLyricPhraseResults(safeQuery, candidates, message) {
+  const visible = Array.isArray(candidates)
+    ? candidates.slice(0, 6)
+    : [];
+
+  if (!visible.length) return [];
+
+  renderResults([], safeQuery, { suppressEmptyState: true });
+  renderSearchOnlineCandidates(visible);
+  setAutoWarmCacheResultState(visible);
+
+  setSearchOnlineState(
+    message || `${visible.length} cached lyric phrase match(es) found.`,
+    "success"
+  );
+
+  prefetchOnlineCandidateDetails(visible, 3);
+
+  return visible;
 }
 
 async function saveOnlineSongSupabaseCache(query, candidates = []) {
@@ -15460,6 +15724,18 @@ async function runOnlineLookupForSearch(query, options = {}) {
       return;
     }
 
+        const nativeLyricPhraseCandidates = await searchCachedLyricPhrases(safeQuery, 6);
+
+    if (Array.isArray(nativeLyricPhraseCandidates) && nativeLyricPhraseCandidates.length > 0) {
+      showCachedLyricPhraseResults(
+        safeQuery,
+        nativeLyricPhraseCandidates,
+        "Found matching lyrics in Mehfil cache."
+      );
+
+      return;
+    }
+
     const nativeTokenCount = getMehfilGenericGateTokens(safeQuery).length;
 
 if (nativeTokenCount > 0) {
@@ -15488,6 +15764,22 @@ if (nativeTokenCount > 0) {
 
   return;
 }
+  }
+
+    /*
+    Roman cached lyric phrase search before live provider lookup.
+    This catches lyric phrases without spending Power Search / provider calls.
+  */
+  const lyricPhraseCandidates = await searchCachedLyricPhrases(safeQuery, 6);
+
+  if (Array.isArray(lyricPhraseCandidates) && lyricPhraseCandidates.length > 0) {
+    showCachedLyricPhraseResults(
+      safeQuery,
+      lyricPhraseCandidates,
+      "Found matching lyrics in Mehfil cache."
+    );
+
+    return;
   }
 
   function isCurrentRun() {
@@ -18176,6 +18468,8 @@ const exactCachedCandidates = annotateExactOnlineCacheCandidates(
     */
     const titleAliasCandidates = await searchCachedTitleAliases(safeQuery, 5);
 
+      
+
     if (Array.isArray(titleAliasCandidates) && titleAliasCandidates.length > 0) {
       if (statusTimer) {
         clearTimeout(statusTimer);
@@ -18198,6 +18492,39 @@ const exactCachedCandidates = annotateExactOnlineCacheCandidates(
       renderSearchOnlineCandidates(titleAliasCandidates);
       return;
     }
+
+    /*
+    Cached lyric phrase search:
+    Runs after exact/title cache and before broad warmed cache or Power Search.
+    This catches:
+    - man bharamaye naina
+    - मन भरमाये नयना
+    - meri angdai na toote
+  */
+  const cachedLyricPhraseCandidates = await searchCachedLyricPhrases(safeQuery, 5);
+
+  if (cacheRunId !== autoWarmCacheRunId) return;
+
+  if (cachedLyricPhraseCandidates.length > 0) {
+    if (statusTimer) {
+      clearTimeout(statusTimer);
+      statusTimer = null;
+    }
+
+    const visible = showCachedLyricPhraseResults(
+      safeQuery,
+      cachedLyricPhraseCandidates,
+      "Found matching lyrics in Mehfil cache."
+    );
+
+    autoWarmCacheMemory.set(cacheKey, {
+      at: Date.now(),
+      candidates: visible,
+      source: "lyric_phrase_cache"
+    });
+
+    return;
+  }
 
     /*
       THIRD: in-memory cache.
