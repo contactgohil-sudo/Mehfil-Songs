@@ -14513,7 +14513,162 @@ async function searchCachedLyricPhrases(query, limit = 5) {
   }
 }
 
-function showCachedLyricPhraseResults(safeQuery, candidates, message) {
+const MEHFIL_SEARCH_LOG_DEBOUNCE_MS = 3200;
+const MEHFIL_SEARCH_SPECIFIC_LOG_SKIP_MS = 2600;
+
+let mehfilSearchLogTimer = null;
+const mehfilRecentSpecificSearchLogs = new Map();
+
+function getMehfilSearchLogKey(query) {
+  return String(query || "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, " ");
+}
+
+function getMehfilCandidateMatchSourceForStats(candidate, fallbackSource = "") {
+  if (!candidate) return fallbackSource || null;
+
+  const meta = getCandidateSearchMeta(candidate);
+  const rawSource = String(
+    candidate.match_source ||
+    meta.match_source ||
+    candidate.cache_source ||
+    fallbackSource ||
+    ""
+  ).toLowerCase();
+
+  if (rawSource.includes("lyric_phrase")) return "cache_lyric_phrase";
+  if (rawSource.includes("title_alias") || rawSource.includes("cache_title")) return "cache_title_alias";
+  if (rawSource.includes("online") || rawSource.includes("lrclib") || rawSource.includes("provider")) return "online";
+
+  if (candidate.local || candidate.saved || candidate.id) return "local";
+
+  return fallbackSource || rawSource || null;
+}
+
+function getMehfilTopCandidateForStats(candidates) {
+  if (!Array.isArray(candidates) || !candidates.length) return null;
+  return candidates.find(Boolean) || null;
+}
+
+async function logMehfilSearchQueryStats({
+  query,
+  eventType = "typed",
+  resultCount = null,
+  matchSource = null,
+  topCandidate = null,
+  metadata = {}
+} = {}) {
+  const safeQuery = String(query || "").trim();
+
+  if (!safeQuery || safeQuery.length < 2 || !supabaseClient) return;
+
+  try {
+    await supabaseClient.rpc("log_mehfil_search_query_v1", {
+      p_query_raw: safeQuery,
+      p_event_type: eventType,
+      p_result_count: resultCount,
+      p_match_source: matchSource,
+      p_top_title: topCandidate?.title || null,
+      p_top_singer: topCandidate?.singer || null,
+      p_top_movie: topCandidate?.movie || null,
+      p_metadata: metadata || {}
+    });
+  } catch (error) {
+    console.warn("Search stats log skipped:", error);
+  }
+}
+
+function markMehfilSpecificSearchLog(query) {
+  const key = getMehfilSearchLogKey(query);
+  if (!key) return;
+  mehfilRecentSpecificSearchLogs.set(key, Date.now());
+}
+
+function wasMehfilSpecificSearchRecentlyLogged(query) {
+  const key = getMehfilSearchLogKey(query);
+  if (!key) return false;
+
+  const lastAt = mehfilRecentSpecificSearchLogs.get(key) || 0;
+  return Date.now() - lastAt <= MEHFIL_SEARCH_SPECIFIC_LOG_SKIP_MS;
+}
+
+function logMehfilSearchResultsStats(
+  query,
+  eventType,
+  candidates,
+  fallbackMatchSource,
+  metadata = {}
+) {
+  const safeQuery = String(query || "").trim();
+  const visible = Array.isArray(candidates) ? candidates.filter(Boolean) : [];
+  const topCandidate = getMehfilTopCandidateForStats(visible);
+  const matchSource = getMehfilCandidateMatchSourceForStats(topCandidate, fallbackMatchSource);
+
+ if (!safeQuery) return;
+
+if (mehfilSearchLogTimer) {
+  clearTimeout(mehfilSearchLogTimer);
+  mehfilSearchLogTimer = null;
+}
+
+markMehfilSpecificSearchLog(safeQuery);
+
+  logMehfilSearchQueryStats({
+    query: safeQuery,
+    eventType: eventType || "typed",
+    resultCount: visible.length,
+    matchSource,
+    topCandidate,
+    metadata: {
+      source: fallbackMatchSource || matchSource || "unknown",
+      ...metadata
+    }
+  });
+}
+
+function scheduleMehfilSettledTypedSearchLog(query) {
+  const safeQuery = String(query || "").trim();
+
+  if (mehfilSearchLogTimer) {
+    clearTimeout(mehfilSearchLogTimer);
+    mehfilSearchLogTimer = null;
+  }
+
+  if (!safeQuery || safeQuery.length < 2) return;
+
+  mehfilSearchLogTimer = setTimeout(() => {
+    if (wasMehfilSpecificSearchRecentlyLogged(safeQuery)) return;
+
+    logMehfilSearchQueryStats({
+      query: safeQuery,
+      eventType: "typed",
+      resultCount: null,
+      matchSource: "typed_settled",
+      metadata: {
+        source: "settled_input",
+        result_count_known: false
+      }
+    });
+  }, MEHFIL_SEARCH_LOG_DEBOUNCE_MS);
+}
+
+function attachMehfilSearchStatsLogger() {
+  const input = document.getElementById("searchInput");
+
+  if (!input || input.dataset.mehfilStatsLoggerAttached === "1") return;
+
+  input.dataset.mehfilStatsLoggerAttached = "1";
+
+  input.addEventListener("input", () => {
+    scheduleMehfilSettledTypedSearchLog(input.value);
+  });
+}
+
+attachMehfilSearchStatsLogger();
+
+function showCachedLyricPhraseResults(safeQuery, candidates, message, eventType = "typed") {
   const visible = Array.isArray(candidates)
     ? candidates.slice(0, 6)
     : [];
@@ -14530,6 +14685,16 @@ function showCachedLyricPhraseResults(safeQuery, candidates, message) {
   );
 
   prefetchOnlineCandidateDetails(visible, 3);
+
+    logMehfilSearchResultsStats(
+    safeQuery,
+    eventType,
+    visible,
+    "cache_lyric_phrase",
+    {
+      source: "lyric_phrase_cache"
+    }
+  );
 
   return visible;
 }
@@ -14947,27 +15112,6 @@ async function searchCachedLyricPhrases(query, limit = 5) {
     console.warn("Cached lyric phrase search failed:", error);
     return [];
   }
-}
-
-function showCachedLyricPhraseResults(safeQuery, candidates, message) {
-  const visible = Array.isArray(candidates)
-    ? candidates.slice(0, 6)
-    : [];
-
-  if (!visible.length) return [];
-
-  renderResults([], safeQuery, { suppressEmptyState: true });
-  renderSearchOnlineCandidates(visible);
-  setAutoWarmCacheResultState(visible);
-
-  setSearchOnlineState(
-    message || `${visible.length} cached lyric phrase match(es) found.`,
-    "success"
-  );
-
-  prefetchOnlineCandidateDetails(visible, 3);
-
-  return visible;
 }
 
 async function saveOnlineSongSupabaseCache(query, candidates = []) {
@@ -15719,19 +15863,30 @@ async function runOnlineLookupForSearch(query, options = {}) {
 
       prefetchOnlineCandidateDetails(shownCandidates, 3);
 
-      directDone = true;
-      edgeDone = true;
-      return;
+logMehfilSearchResultsStats(
+  safeQuery,
+  "manual",
+  shownCandidates,
+  "cache_title_alias",
+  {
+    source: "cache_title_alias_rpc"
+  }
+);
+
+directDone = true;
+edgeDone = true;
+return;
     }
 
         const nativeLyricPhraseCandidates = await searchCachedLyricPhrases(safeQuery, 6);
 
     if (Array.isArray(nativeLyricPhraseCandidates) && nativeLyricPhraseCandidates.length > 0) {
       showCachedLyricPhraseResults(
-        safeQuery,
-        nativeLyricPhraseCandidates,
-        "Found matching lyrics in Mehfil cache."
-      );
+  safeQuery,
+  nativeLyricPhraseCandidates,
+  "Found matching lyrics in Mehfil cache.",
+  "manual"
+);
 
       return;
     }
@@ -15774,10 +15929,11 @@ if (nativeTokenCount > 0) {
 
   if (Array.isArray(lyricPhraseCandidates) && lyricPhraseCandidates.length > 0) {
     showCachedLyricPhraseResults(
-      safeQuery,
-      lyricPhraseCandidates,
-      "Found matching lyrics in Mehfil cache."
-    );
+  safeQuery,
+  lyricPhraseCandidates,
+  "Found matching lyrics in Mehfil cache.",
+  "manual"
+);
 
     return;
   }
@@ -18453,8 +18609,8 @@ const exactCachedCandidates = annotateExactOnlineCacheCandidates(
       if (currentInput && currentInput.value.trim() !== safeQuery) return;
 
       setAutoWarmCacheResultState(exactCachedCandidates);
-      renderSearchOnlineCandidates(exactCachedCandidates);
-      return;
+renderSearchOnlineCandidates(exactCachedCandidates);
+return;
     }
 
     /*
@@ -18489,8 +18645,19 @@ const exactCachedCandidates = annotateExactOnlineCacheCandidates(
       if (currentInput && currentInput.value.trim() !== safeQuery) return;
 
       setAutoWarmCacheResultState(titleAliasCandidates);
-      renderSearchOnlineCandidates(titleAliasCandidates);
-      return;
+renderSearchOnlineCandidates(titleAliasCandidates);
+
+logMehfilSearchResultsStats(
+  safeQuery,
+  "typed",
+  titleAliasCandidates,
+  "cache_title_alias",
+  {
+    source: "cache_title_alias_rpc"
+  }
+);
+
+return;
     }
 
     /*
