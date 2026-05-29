@@ -9993,6 +9993,272 @@ body.song-modal-open {
   }
 }
 
+/* =========================================================
+   LYRICS FONT FLOAT CONTROL — PATCH 38
+   Tiny vertical + / - control. Does not change modal layout.
+   ========================================================= */
+
+:root {
+  --mehfil-lyrics-font-size: 17px;
+}
+
+#songModal .modal-card {
+  position: relative !important;
+}
+
+#songModal .lyrics-full {
+  font-size: var(--mehfil-lyrics-font-size, 17px) !important;
+}
+
+.lyrics-font-controls {
+  position: sticky;
+  top: 8px;
+  z-index: 35;
+  height: 0;
+  display: flex;
+  justify-content: flex-end;
+  pointer-events: none;
+}
+
+.lyrics-font-controls-inner {
+  pointer-events: auto;
+  display: grid;
+  gap: 5px;
+  transform: translateY(8px);
+  padding: 4px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid #e1e6ee;
+  box-shadow:
+    0 8px 22px rgba(15, 23, 42, 0.10),
+    0 1px 2px rgba(15, 23, 42, 0.06);
+  backdrop-filter: blur(10px);
+}
+
+.lyrics-font-btn {
+  width: 31px;
+  height: 31px;
+  border: 0;
+  border-radius: 999px;
+  background: #111827;
+  color: #ffffff;
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+  font-weight: 950;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.lyrics-font-btn:nth-child(2) {
+  background: #ffffff;
+  color: #111827;
+  border: 1px solid #dfe5ee;
+}
+
+.lyrics-font-btn:disabled {
+  opacity: 0.42;
+  cursor: not-allowed;
+}
+
+@media (max-width: 640px) {
+  .lyrics-font-controls {
+    top: 6px;
+  }
+
+  .lyrics-font-controls-inner {
+    transform: translateY(6px);
+    gap: 4px;
+    padding: 4px;
+  }
+
+  .lyrics-font-btn {
+    width: 30px;
+    height: 30px;
+    font-size: 17px;
+  }
+}
+
+/* =========================================================
+   LYRICS FONT FLOAT CONTROL — PATCH 38B
+   Transparent compact vertical + / - control.
+   Keeps current modal UI untouched.
+   ========================================================= */
+
+#songModal .lyrics-font-controls {
+  top: 10px !important;
+  padding-right: 6px !important;
+  z-index: 45 !important;
+}
+
+#songModal .lyrics-font-controls-inner {
+  gap: 6px !important;
+  padding: 0 !important;
+  transform: translate(-4px, 10px) !important;
+
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+}
+
+#songModal .lyrics-font-btn {
+  width: 29px !important;
+  height: 29px !important;
+  min-width: 29px !important;
+  min-height: 29px !important;
+
+  border-radius: 999px !important;
+  border: 1px solid rgba(203, 213, 225, 0.82) !important;
+
+  background: rgba(255, 255, 255, 0.58) !important;
+  color: rgba(17, 24, 39, 0.86) !important;
+
+  box-shadow:
+    0 4px 12px rgba(15, 23, 42, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.70) !important;
+
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+
+  font-size: 17px !important;
+  font-weight: 900 !important;
+  line-height: 1 !important;
+
+  opacity: 0.76 !important;
+  transition:
+    opacity 0.12s ease,
+    transform 0.12s ease,
+    background 0.12s ease,
+    border-color 0.12s ease;
+}
+
+#songModal .lyrics-font-btn:hover,
+#songModal .lyrics-font-btn:focus {
+  opacity: 1 !important;
+  background: rgba(255, 255, 255, 0.86) !important;
+  border-color: rgba(148, 163, 184, 0.95) !important;
+  outline: none !important;
+}
+
+#songModal .lyrics-font-btn:active {
+  transform: scale(0.94) !important;
+}
+
+#songModal .lyrics-font-btn:disabled {
+  opacity: 0.34 !important;
+  cursor: not-allowed !important;
+}
+
+@media (max-width: 640px) {
+  #songModal .lyrics-font-controls {
+    top: 8px !important;
+    padding-right: 4px !important;
+  }
+
+  #songModal .lyrics-font-controls-inner {
+    gap: 5px !important;
+    transform: translate(-3px, 8px) !important;
+  }
+
+  #songModal .lyrics-font-btn {
+    width: 28px !important;
+    height: 28px !important;
+    min-width: 28px !important;
+    min-height: 28px !important;
+    font-size: 16px !important;
+  }
+}
+
+/* =========================================================
+   LYRICS FONT FLOAT CONTROL — PATCH 38C
+   Smaller, softer, less intrusive after click/focus.
+   ========================================================= */
+
+#songModal .lyrics-font-controls {
+  top: 6px !important;
+  padding-right: 0 !important;
+  z-index: 45 !important;
+}
+
+#songModal .lyrics-font-controls-inner {
+  gap: 4px !important;
+  transform: translate(4px, 8px) !important;
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+}
+
+#songModal .lyrics-font-btn {
+  width: 24px !important;
+  height: 24px !important;
+  min-width: 24px !important;
+  min-height: 24px !important;
+
+  border-radius: 999px !important;
+  border: 1px solid rgba(148, 163, 184, 0.46) !important;
+
+  background: rgba(255, 255, 255, 0.34) !important;
+  color: rgba(17, 24, 39, 0.72) !important;
+
+  box-shadow:
+    0 3px 8px rgba(15, 23, 42, 0.055),
+    inset 0 1px 0 rgba(255, 255, 255, 0.45) !important;
+
+  backdrop-filter: blur(5px) !important;
+  -webkit-backdrop-filter: blur(5px) !important;
+
+  font-size: 14px !important;
+  font-weight: 900 !important;
+  line-height: 1 !important;
+
+  opacity: 0.42 !important;
+  outline: none !important;
+}
+
+#songModal .lyrics-font-controls:hover .lyrics-font-btn,
+#songModal .lyrics-font-controls:focus-within .lyrics-font-btn {
+  opacity: 0.68 !important;
+}
+
+#songModal .lyrics-font-btn:hover,
+#songModal .lyrics-font-btn:focus,
+#songModal .lyrics-font-btn:focus-visible {
+  background: rgba(255, 255, 255, 0.52) !important;
+  color: rgba(17, 24, 39, 0.86) !important;
+  border-color: rgba(100, 116, 139, 0.55) !important;
+  opacity: 0.78 !important;
+  outline: none !important;
+  box-shadow:
+    0 4px 10px rgba(15, 23, 42, 0.075),
+    inset 0 1px 0 rgba(255, 255, 255, 0.60) !important;
+}
+
+#songModal .lyrics-font-btn:active {
+  transform: scale(0.92) !important;
+  opacity: 0.9 !important;
+}
+
+#songModal .lyrics-font-btn:disabled {
+  opacity: 0.20 !important;
+}
+
+@media (max-width: 640px) {
+  #songModal .lyrics-font-controls-inner {
+    transform: translate(5px, 7px) !important;
+    gap: 4px !important;
+  }
+
+  #songModal .lyrics-font-btn {
+    width: 23px !important;
+    height: 23px !important;
+    min-width: 23px !important;
+    min-height: 23px !important;
+    font-size: 13px !important;
+  }
+}
 
 
   </style>
@@ -10432,8 +10698,9 @@ body.song-modal-open {
     </div>
 
     <div class="admin-cache-toolbar">
-      <button id="adminSearchHealthRefreshBtn" class="btn-secondary" type="button">Refresh Health</button>
-    </div>
+  <button id="adminSearchQueueProcessBtn" class="btn" type="button">Process Queue</button>
+  <button id="adminSearchHealthRefreshBtn" class="btn-secondary" type="button">Refresh Health</button>
+</div>
   </div>
 
   <div id="adminSearchHealthStatus" class="status-box"></div>
@@ -10521,6 +10788,13 @@ body.song-modal-open {
       <button id="modalCloseBtn" class="modal-btn" type="button">Close</button>
     </div>
     <div id="modalExtraMeta" class="modal-extra-meta hidden"></div>
+  </div>
+</div>
+
+<div id="lyricsFontControls" class="lyrics-font-controls" aria-label="Lyrics font size controls">
+  <div class="lyrics-font-controls-inner">
+    <button id="lyricsFontIncreaseBtn" class="lyrics-font-btn" type="button" title="Increase lyrics size" aria-label="Increase lyrics size">+</button>
+    <button id="lyricsFontDecreaseBtn" class="lyrics-font-btn" type="button" title="Decrease lyrics size" aria-label="Decrease lyrics size">−</button>
   </div>
 </div>
 
@@ -16507,6 +16781,119 @@ function setSaveButtonHighlight(shouldHighlight) {
     saveBtn.textContent = "Save";
   }
 }
+const MEHFIL_LYRICS_FONT_MIN = 14;
+const MEHFIL_LYRICS_FONT_MAX = 24;
+const MEHFIL_LYRICS_FONT_DEFAULT = 17;
+
+let currentLyricsFontSize = MEHFIL_LYRICS_FONT_DEFAULT;
+let lyricsFontSaveTimer = null;
+
+function clampLyricsFontSize(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return MEHFIL_LYRICS_FONT_DEFAULT;
+  return Math.max(MEHFIL_LYRICS_FONT_MIN, Math.min(MEHFIL_LYRICS_FONT_MAX, Math.round(n)));
+}
+
+function getLyricsFontStorageKey() {
+  const userId = profile?.id || session?.user?.id || "guest";
+  return `mehfil_lyrics_font_size:${userId}`;
+}
+
+function readSavedLyricsFontSize() {
+  const profileSize = Number(profile?.lyrics_font_size);
+
+  if (Number.isFinite(profileSize) && profileSize > 0) {
+    return clampLyricsFontSize(profileSize);
+  }
+
+  try {
+    const saved = localStorage.getItem(getLyricsFontStorageKey());
+    if (saved) return clampLyricsFontSize(saved);
+  } catch (_) {}
+
+  return MEHFIL_LYRICS_FONT_DEFAULT;
+}
+
+function updateLyricsFontButtons() {
+  const plusBtn = document.getElementById("lyricsFontIncreaseBtn");
+  const minusBtn = document.getElementById("lyricsFontDecreaseBtn");
+
+  if (plusBtn) plusBtn.disabled = currentLyricsFontSize >= MEHFIL_LYRICS_FONT_MAX;
+  if (minusBtn) minusBtn.disabled = currentLyricsFontSize <= MEHFIL_LYRICS_FONT_MIN;
+}
+
+function applyLyricsFontSize(size, options = {}) {
+  const persist = !!options.persist;
+  const safeSize = clampLyricsFontSize(size);
+
+  currentLyricsFontSize = safeSize;
+  document.documentElement.style.setProperty("--mehfil-lyrics-font-size", `${safeSize}px`);
+
+  try {
+    localStorage.setItem(getLyricsFontStorageKey(), String(safeSize));
+  } catch (_) {}
+
+  updateLyricsFontButtons();
+
+  if (persist) {
+    saveLyricsFontSizeForProfile(safeSize);
+  }
+}
+
+function applySavedLyricsFontSize() {
+  applyLyricsFontSize(readSavedLyricsFontSize(), { persist: false });
+}
+
+function saveLyricsFontSizeForProfile(size) {
+  const safeSize = clampLyricsFontSize(size);
+
+  if (lyricsFontSaveTimer) {
+    clearTimeout(lyricsFontSaveTimer);
+    lyricsFontSaveTimer = null;
+  }
+
+  lyricsFontSaveTimer = setTimeout(async () => {
+    if (!session?.user || !supabaseClient) return;
+
+    try {
+      const { error } = await supabaseClient.rpc("set_my_lyrics_font_size_v1", {
+        p_size: safeSize
+      });
+
+      if (error) {
+        console.warn("Lyrics font size save skipped:", error);
+        return;
+      }
+
+      if (profile) {
+        profile.lyrics_font_size = safeSize;
+      }
+    } catch (error) {
+      console.warn("Lyrics font size save failed:", error);
+    }
+  }, 500);
+}
+
+function changeLyricsFontSize(delta) {
+  applyLyricsFontSize(currentLyricsFontSize + delta, { persist: true });
+}
+
+function openSongModalShell() {
+  applySavedLyricsFontSize();
+  const modal = document.getElementById("songModal");
+  const card = modal?.querySelector(".modal-card");
+
+  if (!modal) return;
+
+  modal.classList.add("show");
+  document.body.classList.add("song-modal-open");
+  document.body.style.overflow = "hidden";
+
+  requestAnimationFrame(() => {
+    if (card) card.scrollTop = 0;
+    modal.scrollTop = 0;
+  });
+}
 
 async function openOnlineCandidate(candidate) {
   if (!candidate) return;
@@ -16546,11 +16933,10 @@ async function openOnlineCandidate(candidate) {
   document.getElementById("modalEditBtn").classList.toggle("hidden", !isApproved());
   document.getElementById("modalDeleteBtn").classList.add("hidden");
 
-  document.getElementById("songModal").classList.add("show");
-document.body.style.overflow = "hidden";
+  openSongModalShell();
 pushSongModalHistoryState();
 
-  return;
+return;
 }
   const preview = embeddedSong
     ? cleanLyricsText(embeddedSong.lyrics || "")
@@ -19329,18 +19715,22 @@ const best = candidates[0] || null;
   const ensuredProfile = await ensureProfile(session.user, "");
 
   if (ensuredProfile) {
-  profile = ensuredProfile;
-  saveStartupProfileCache();
-  return profile;
-}
+    profile = ensuredProfile;
+    saveStartupProfileCache();
+    applySavedLyricsFontSize();
+    return profile;
+  }
 
   profile = {
     id: session.user.id,
     email: session.user.email || "",
     name: session.user.user_metadata?.name || session.user.email || "User",
     approved: false,
-    role: "user"
+    role: "user",
+    lyrics_font_size: MEHFIL_LYRICS_FONT_DEFAULT
   };
+
+  applySavedLyricsFontSize();
 
   return profile;
 }
@@ -22068,6 +22458,84 @@ async function loadAdminSearchHealth() {
   }
 }
 
+let adminSearchQueueProcessing = false;
+
+function formatAdminQueueProcessResult(row) {
+  if (!row) return "Queue processor returned no data.";
+
+  if (row.allowed === false) {
+    return `Queue processor blocked: ${row.reason || "not allowed"}.`;
+  }
+
+  const processedQueries = Number(row.processed_queries || 0);
+  const processedCandidates = Number(row.processed_candidates || 0);
+  const remainingPending = Number(row.remaining_pending || 0);
+  const chunkInserted = Number(row.chunk_inserted_chunks || 0);
+  const chunkRemaining = Number(row.chunk_remaining_pending || 0);
+
+  return [
+    `Processed ${processedQueries} quer${processedQueries === 1 ? "y" : "ies"}.`,
+    `${processedCandidates} candidate(s) indexed.`,
+    `${chunkInserted} lyric chunk(s) inserted.`,
+    `${remainingPending} queue item(s) remaining.`,
+    `${chunkRemaining} chunk source(s) pending.`,
+    row.database_size ? `DB: ${row.database_size}.` : ""
+  ].filter(Boolean).join(" ");
+}
+
+async function processAdminSearchQueue() {
+  if (!isAdmin()) {
+    setAdminSearchHealthStatus("Only admins can process the search queue.", "error");
+    return;
+  }
+
+  if (adminSearchQueueProcessing) return;
+
+  const confirmed = confirm(
+    "Process the search queue now?\n\nThis safely indexes up to 20 pending cache queries and up to 80 lyric chunk sources."
+  );
+
+  if (!confirmed) return;
+
+  const button = document.getElementById("adminSearchQueueProcessBtn");
+
+  adminSearchQueueProcessing = true;
+
+  if (button) {
+    button.disabled = true;
+    button.textContent = "Processing...";
+  }
+
+  setAdminSearchHealthStatus("Processing search queue safely...", "info");
+
+  try {
+    const { data, error } = await supabaseClient.rpc(
+      "mehfil_admin_process_search_queue_v1",
+      {
+        queue_limit: 20,
+        chunk_limit: 80
+      }
+    );
+
+    if (error) throw error;
+
+    const row = Array.isArray(data) ? data[0] : data;
+
+    setAdminSearchHealthStatus(formatAdminQueueProcessResult(row), row?.allowed === false ? "warn" : "success");
+
+    await loadAdminSearchHealth();
+  } catch (error) {
+    console.error("PROCESS SEARCH QUEUE ERROR:", error);
+    setAdminSearchHealthStatus(`Could not process search queue: ${error?.message || error}`, "error");
+  } finally {
+    adminSearchQueueProcessing = false;
+
+    if (button) {
+      button.disabled = false;
+      button.textContent = "Process Queue";
+    }
+  }
+}
 
 function setAdminCacheDashboardStatus(message, type = "info") {
   const el = document.getElementById("adminCacheDashboardStatus");
@@ -22990,13 +23458,7 @@ if (extraLines.length) {
       
 document.getElementById("modalLyrics").innerHTML = highlightText(song, lastQuery);
 
-      requestAnimationFrame(() => {
-  const firstMark = document.querySelector("#modalLyrics mark");
-  if (firstMark) {
-    firstMark.scrollIntoView({ block: "center", behavior: "smooth" });
-  }
-});
-
+      
       const isFav = favoriteSongIds.has(Number(songId));
 const modalBookmarkBtn = document.getElementById("modalBookmarkBtn");
 modalBookmarkBtn.classList.toggle("hidden", !isApproved());
@@ -23008,8 +23470,7 @@ modalBookmarkBtn.dataset.songId = String(songId);
       document.getElementById("modalShareNowBtn").classList.toggle("hidden", !isApproved());
       document.getElementById("modalEditBtn").classList.toggle("hidden", !isApproved());
       document.getElementById("modalDeleteBtn").classList.toggle("hidden", !isAdmin());
-      document.getElementById("songModal").classList.add("show");
-      document.body.style.overflow = "hidden";
+      openSongModalShell();
     }
 
  function closeSongModal(options = {}) {
@@ -23024,7 +23485,11 @@ modalBookmarkBtn.dataset.songId = String(songId);
   setSaveButtonHighlight(false);
 
   document.getElementById("songModal").classList.remove("show");
-  document.body.style.overflow = "";
+document.body.classList.remove("song-modal-open");
+document.body.style.overflow = "";
+
+const modalCard = document.querySelector("#songModal .modal-card");
+if (modalCard) modalCard.scrollTop = 0;
 
   if (!fromHistory && history.state?.mehfilSongModal === true) {
     mehfilClosingModalFromHistory = true;
@@ -24374,6 +24839,7 @@ const adminSearchHealthRefreshBtn = document.getElementById("adminSearchHealthRe
 if (adminSearchHealthRefreshBtn) {
   adminSearchHealthRefreshBtn.addEventListener("click", loadAdminSearchHealth);
 }
+document.getElementById("adminSearchQueueProcessBtn")?.addEventListener("click", processAdminSearchQueue);
 document.getElementById("adminCacheDashboardRefreshBtn").addEventListener("click", loadOnlineCacheDashboard);
 document.getElementById("adminCacheDashboardExportBtn").addEventListener("click", exportOnlineCacheDashboardCsv);
 
@@ -24717,6 +25183,17 @@ document.getElementById("pendingUsersList").addEventListener("click", handleAdmi
 document.getElementById("registeredUsersList").addEventListener("click", handleAdminUserActionClick);
 
       document.getElementById("modalCloseBtn").addEventListener("click", closeSongModal);
+      document.getElementById("lyricsFontIncreaseBtn").addEventListener("click", (event) => {
+  event.preventDefault();
+  event.stopPropagation();
+  changeLyricsFontSize(1);
+});
+
+document.getElementById("lyricsFontDecreaseBtn").addEventListener("click", (event) => {
+  event.preventDefault();
+  event.stopPropagation();
+  changeLyricsFontSize(-1);
+});
 
       document.getElementById("modalBookmarkBtn").addEventListener("click", async () => {
   if (openModalKind === "online" && openOnlineCandidateData) {
