@@ -10260,6 +10260,98 @@ body.song-modal-open {
   }
 }
 
+/* Mobile keyboard search mode */
+body.mehfil-keyboard-open {
+  padding-bottom: calc(var(--mehfil-keyboard-spacer, 0px) + env(safe-area-inset-bottom) + 18px);
+}
+
+/*
+  While typing on mobile, don't waste precious keyboard-height space
+  on explanation banners. Results matter more than motivational speeches.
+*/
+body.mehfil-keyboard-open #searchOnlineState.search-online-state-success,
+body.mehfil-keyboard-open #searchOnlineState.search-online-state-info,
+body.mehfil-keyboard-open #searchOnlineState.search-online-state-pending {
+  display: none !important;
+}
+
+/*
+  Hide local "no result" style empty boxes while online/cache candidates exist.
+  This avoids the confusing:
+  "No matching song found" + "Best Mehfil Matches"
+  contradiction.
+*/
+body.has-online-candidates .local-empty-state,
+body.has-online-candidates .empty-state,
+body.has-online-candidates .no-results,
+body.has-online-candidates [data-local-empty-state="true"] {
+  display: none !important;
+}
+
+/*
+  Give result cards breathing room above iOS/Android keyboard.
+*/
+body.mehfil-keyboard-open #searchOnlineCandidates,
+body.mehfil-keyboard-open #results,
+body.mehfil-keyboard-open #searchResults {
+  scroll-margin-bottom: calc(var(--mehfil-keyboard-spacer, 280px) + 24px);
+}
+
+.mobile-keyboard-spacer {
+  height: var(--mehfil-keyboard-spacer, 0px);
+  pointer-events: none;
+}
+/* =========================================================
+   MOBILE SEARCH KEYBOARD FINAL FIX — PATCH 38
+   Hide bulky banners/empty state while typing with Mehfil matches.
+   Must stay at the very end of CSS.
+   ========================================================= */
+
+@media (max-width: 760px) {
+  body.mehfil-search-focused.has-online-candidates #searchOnlineState,
+  body.mehfil-keyboard-open.has-online-candidates #searchOnlineState {
+    display: none !important;
+  }
+
+  body.has-online-candidates #results .local-empty-state,
+  body.has-online-candidates #results [data-local-empty-state="true"],
+  body.has-online-candidates #searchResults .local-empty-state,
+  body.has-online-candidates #searchResults [data-local-empty-state="true"] {
+    display: none !important;
+  }
+
+  body.mehfil-search-focused.has-online-candidates #results,
+  body.mehfil-keyboard-open.has-online-candidates #results {
+    display: none !important;
+  }
+
+  body.mehfil-search-focused.has-online-candidates #searchOnlineCandidates,
+  body.mehfil-keyboard-open.has-online-candidates #searchOnlineCandidates {
+    margin-top: 0 !important;
+  }
+
+  body.mehfil-search-focused.has-online-candidates .online-results-section-title,
+  body.mehfil-keyboard-open.has-online-candidates .online-results-section-title {
+    font-size: 13px !important;
+    margin-bottom: 3px !important;
+  }
+
+  body.mehfil-search-focused.has-online-candidates .online-results-section-helper,
+  body.mehfil-keyboard-open.has-online-candidates .online-results-section-helper {
+    display: none !important;
+  }
+
+  body.mehfil-search-focused.has-online-candidates .online-result-card,
+  body.mehfil-keyboard-open.has-online-candidates .online-result-card {
+    padding: 12px !important;
+  }
+
+  body.mehfil-search-focused.has-online-candidates .online-preview,
+  body.mehfil-keyboard-open.has-online-candidates .online-preview {
+    max-height: 190px;
+    overflow: hidden;
+  }
+}
 
   </style>
 </head>
@@ -11924,6 +12016,145 @@ function clearSearchOnlineUi() {
   unlockOnlineSearchButton();
 }
 
+let mehfilKeyboardOpen = false;
+let mehfilKeyboardSpacerEl = null;
+
+function isMobileViewportForKeyboardFix() {
+  return window.matchMedia &&
+    window.matchMedia("(max-width: 760px)").matches &&
+    ("ontouchstart" in window || navigator.maxTouchPoints > 0);
+}
+
+function ensureMehfilKeyboardSpacer() {
+  if (mehfilKeyboardSpacerEl) return mehfilKeyboardSpacerEl;
+
+  mehfilKeyboardSpacerEl = document.createElement("div");
+  mehfilKeyboardSpacerEl.className = "mobile-keyboard-spacer";
+  mehfilKeyboardSpacerEl.setAttribute("aria-hidden", "true");
+  document.body.appendChild(mehfilKeyboardSpacerEl);
+
+  return mehfilKeyboardSpacerEl;
+}
+
+function getMehfilKeyboardHeight() {
+  if (!window.visualViewport) return 0;
+
+  const viewport = window.visualViewport;
+  const keyboardHeight = Math.max(
+    0,
+    window.innerHeight - viewport.height - viewport.offsetTop
+  );
+
+  return Math.round(keyboardHeight);
+}
+
+function updateMehfilKeyboardUi() {
+  if (!isMobileViewportForKeyboardFix()) {
+    document.body.classList.remove("mehfil-keyboard-open");
+    document.documentElement.style.setProperty("--mehfil-keyboard-spacer", "0px");
+    return;
+  }
+
+  const active = document.activeElement;
+  const searchInput = document.getElementById("searchInput");
+  const keyboardHeight = getMehfilKeyboardHeight();
+
+  const inputFocused = !!searchInput && active === searchInput;
+  document.body.classList.toggle("mehfil-search-focused", inputFocused);
+
+  /*
+    iOS sometimes reports weird values during animation.
+    120px threshold avoids false positives.
+  */
+  mehfilKeyboardOpen = inputFocused && keyboardHeight > 120;
+
+  document.body.classList.toggle("mehfil-keyboard-open", mehfilKeyboardOpen);
+  document.documentElement.style.setProperty(
+    "--mehfil-keyboard-spacer",
+    mehfilKeyboardOpen ? `${keyboardHeight}px` : "0px"
+  );
+
+  ensureMehfilKeyboardSpacer();
+
+  if (mehfilKeyboardOpen) {
+    requestAnimationFrame(scrollBestSearchResultAboveKeyboard);
+  }
+}
+
+function scrollBestSearchResultAboveKeyboard() {
+  const searchInput = document.getElementById("searchInput");
+  if (!searchInput || document.activeElement !== searchInput) return;
+
+  const firstOnline =
+    document.querySelector("#searchOnlineCandidates .online-candidate-card") ||
+    document.querySelector("#searchOnlineCandidates .candidate-card") ||
+    document.querySelector("#searchOnlineCandidates .card") ||
+    document.querySelector("#searchOnlineCandidates article") ||
+    document.querySelector("#searchOnlineCandidates > *");
+
+  const firstLocal =
+    document.querySelector("#results .song-card") ||
+    document.querySelector("#searchResults .song-card") ||
+    document.querySelector("#results .card") ||
+    document.querySelector("#searchResults .card");
+
+  const target = firstOnline || firstLocal;
+  if (!target) return;
+
+  const keyboardHeight = getMehfilKeyboardHeight();
+  const viewportBottom = window.innerHeight - keyboardHeight;
+  const rect = target.getBoundingClientRect();
+
+  /*
+    If first result is hidden/half-hidden behind keyboard, gently lift it.
+  */
+  if (rect.bottom > viewportBottom - 18) {
+    const delta = rect.bottom - viewportBottom + 24;
+    window.scrollBy({
+      top: delta,
+      behavior: "smooth"
+    });
+  }
+}
+
+function installMehfilMobileKeyboardFix() {
+  if (!isMobileViewportForKeyboardFix()) return;
+
+  ensureMehfilKeyboardSpacer();
+
+  const searchInput = document.getElementById("searchInput");
+  if (!searchInput) return;
+
+  searchInput.addEventListener("focus", () => {
+    setTimeout(updateMehfilKeyboardUi, 80);
+    setTimeout(updateMehfilKeyboardUi, 260);
+  });
+
+  searchInput.addEventListener("blur", () => {
+    setTimeout(() => {
+      mehfilKeyboardOpen = false;
+      document.body.classList.remove("mehfil-keyboard-open");
+document.body.classList.remove("mehfil-search-focused");
+document.documentElement.style.setProperty("--mehfil-keyboard-spacer", "0px");
+    }, 120);
+  });
+
+  searchInput.addEventListener("input", () => {
+    setTimeout(updateMehfilKeyboardUi, 80);
+    setTimeout(scrollBestSearchResultAboveKeyboard, 220);
+  });
+
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener("resize", updateMehfilKeyboardUi);
+    window.visualViewport.addEventListener("scroll", updateMehfilKeyboardUi);
+  }
+
+  window.addEventListener("orientationchange", () => {
+    setTimeout(updateMehfilKeyboardUi, 300);
+  });
+}
+
+
 function setSearchOnlineState(message = "", type = "info") {
   const el = document.getElementById("searchOnlineState");
   if (!el) return;
@@ -12725,11 +12956,14 @@ function renderSearchOnlineCandidates(candidates) {
 
   searchOnlineCandidatesState = Array.isArray(candidates) ? candidates.slice() : [];
 
-  if (!searchOnlineCandidatesState.length) {
-    root.innerHTML = "";
-    root.classList.add("hidden");
-    return;
-  }
+const hasOnlineCandidates = searchOnlineCandidatesState.length > 0;
+document.body.classList.toggle("has-online-candidates", hasOnlineCandidates);
+
+if (!hasOnlineCandidates) {
+  root.innerHTML = "";
+  root.classList.add("hidden");
+  return;
+}
 
   const items = searchOnlineCandidatesState.map((candidate, index) => ({
     candidate,
@@ -12829,6 +13063,13 @@ function renderSearchOnlineCandidates(candidates) {
 
   root.classList.remove("hidden");
   prefetchOnlineCandidateDetails(searchOnlineCandidatesState, 3);
+
+  
+
+if (document.body.classList.contains("mehfil-keyboard-open")) {
+  setTimeout(scrollBestSearchResultAboveKeyboard, 120);
+}
+
 }
 
 async function lookupDirectProviderLinks(query) {
@@ -23731,8 +23972,12 @@ async function deleteRegisteredUserAccountData(userId, email) {
       return;
     }
 
-    root.innerHTML = `<div class="empty">No matching song found.</div>`;
-    return;
+    root.innerHTML = `
+  <div class="empty local-empty-state" data-local-empty-state="true">
+    No matching song found.
+  </div>
+`;
+return;
   }
 
   root.innerHTML = results.map(song => {
@@ -25799,6 +26044,7 @@ document.getElementById("lyricsFontDecreaseBtn").addEventListener("click", (even
      }
 
     document.addEventListener("DOMContentLoaded", () => {
+    installMehfilMobileKeyboardFix();
   bindEvents();
   setupSongsSubtabLayout();
   setupAuthRecoveryListener();
