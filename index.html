@@ -10353,6 +10353,51 @@ body.mehfil-keyboard-open #searchResults {
   }
 }
 
+/* =========================================================
+   MOBILE SEARCH KEYBOARD FINAL FIX — PATCH 38
+   Must stay at the very end of CSS.
+   ========================================================= */
+
+@media (max-width: 760px) {
+  body.mehfil-search-focused.has-online-candidates #searchOnlineState,
+  body.mehfil-keyboard-open.has-online-candidates #searchOnlineState {
+    display: none !important;
+  }
+
+  body.has-online-candidates #results .local-empty-state,
+  body.has-online-candidates #results [data-local-empty-state="true"],
+  body.has-online-candidates #searchResults .local-empty-state,
+  body.has-online-candidates #searchResults [data-local-empty-state="true"] {
+    display: none !important;
+  }
+
+  body.mehfil-search-focused.has-online-candidates #results,
+  body.mehfil-keyboard-open.has-online-candidates #results {
+    display: none !important;
+  }
+
+  body.mehfil-search-focused.has-online-candidates #searchOnlineCandidates,
+  body.mehfil-keyboard-open.has-online-candidates #searchOnlineCandidates {
+    margin-top: 0 !important;
+  }
+
+  body.mehfil-search-focused.has-online-candidates .online-results-section-helper,
+  body.mehfil-keyboard-open.has-online-candidates .online-results-section-helper {
+    display: none !important;
+  }
+
+  body.mehfil-search-focused.has-online-candidates .online-result-card,
+  body.mehfil-keyboard-open.has-online-candidates .online-result-card {
+    padding: 12px !important;
+  }
+
+  body.mehfil-search-focused.has-online-candidates .online-preview,
+  body.mehfil-keyboard-open.has-online-candidates .online-preview {
+    max-height: 190px;
+    overflow: hidden;
+  }
+}
+
   </style>
 </head>
 <body>
@@ -12126,18 +12171,20 @@ function installMehfilMobileKeyboardFix() {
   if (!searchInput) return;
 
   searchInput.addEventListener("focus", () => {
-    setTimeout(updateMehfilKeyboardUi, 80);
-    setTimeout(updateMehfilKeyboardUi, 260);
-  });
+  document.body.classList.add("mehfil-search-focused");
+  updateMehfilKeyboardUi();
+  setTimeout(updateMehfilKeyboardUi, 80);
+  setTimeout(updateMehfilKeyboardUi, 260);
+});
 
   searchInput.addEventListener("blur", () => {
-    setTimeout(() => {
-      mehfilKeyboardOpen = false;
-      document.body.classList.remove("mehfil-keyboard-open");
-document.body.classList.remove("mehfil-search-focused");
-document.documentElement.style.setProperty("--mehfil-keyboard-spacer", "0px");
-    }, 120);
-  });
+  setTimeout(() => {
+    mehfilKeyboardOpen = false;
+    document.body.classList.remove("mehfil-keyboard-open");
+    document.body.classList.remove("mehfil-search-focused");
+    document.documentElement.style.setProperty("--mehfil-keyboard-spacer", "0px");
+  }, 120);
+});
 
   searchInput.addEventListener("input", () => {
     setTimeout(updateMehfilKeyboardUi, 80);
