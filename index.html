@@ -14893,6 +14893,195 @@ function normalizeTypoRescueRpcRow(row) {
   return candidate;
 }
 
+function shouldRunCachedTitleTypoRescueSearch(query) {
+  const safeQuery = String(query || "").trim();
+
+  if (!safeQuery || safeQuery.length < 3) return false;
+
+  /*
+    This RPC is roman-title typo rescue only.
+    Native-script queries already have cached-title / lyric-phrase lanes.
+  */
+  if (typeof isNativeScriptQueryForSearch === "function" && isNativeScriptQueryForSearch(safeQuery)) {
+    return false;
+  }
+
+  const loose = safeQuery
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^\p{L}\p{N}]+/gu, " ")
+    .trim();
+
+  if (!loose) return false;
+
+  if ([
+    "dil",
+    "pyar",
+    "pyaar",
+    "kaun",
+    "kon",
+    "koun",
+    "tu",
+    "mera",
+    "tere",
+    "hai",
+    "ho",
+    "hi"
+  ].includes(loose)) {
+    return false;
+  }
+
+  const words = loose.split(/\s+/).filter(Boolean);
+  const compact = loose.replace(/\s+/g, "");
+
+  /*
+    Short title typo lane:
+    tu hi ho
+    tum hi h
+    kajara re
+    ae dil he muskil
+  */
+  if (words.length < 2) return false;
+  if (compact.length < 5) return false;
+
+  return true;
+}
+
+function normalizeTitleTypoRescueRpcRow(row) {
+  if (!row || typeof row !== "object") return null;
+
+  let searchMeta = {};
+
+  if (row.search_meta && typeof row.search_meta === "object" && !Array.isArray(row.search_meta)) {
+    searchMeta = row.search_meta;
+  } else if (typeof row.search_meta === "string") {
+    try {
+      searchMeta = JSON.parse(row.search_meta);
+    } catch {
+      searchMeta = {};
+    }
+  }
+
+  const matchedTitle = cleanLyricsText(
+    row.matched_phrase ||
+    searchMeta.matched_phrase ||
+    row.title ||
+    ""
+  );
+
+  const matchSource = row.match_source || searchMeta.match_source || "cache_title_typo";
+
+  const confidenceLevel = String(
+    searchMeta.confidence_level ||
+    (
+      Number(row.confidence || 0) >= 85
+        ? "high"
+        : Number(row.confidence || 0) >= 70
+          ? "medium"
+          : "low"
+    )
+  ).toLowerCase();
+
+  const candidate = {
+    provider: row.provider || "lrclib",
+    title: row.title || "",
+    singer: row.singer || "",
+    movie: row.movie || "",
+    source_name: "Mehfil Cache",
+    source_url: "https://lrclib.net/",
+    script: row.script || "unknown",
+
+    /*
+      Title typo rescue may not include full lyrics.
+      Existing prefetch/open flow can still fetch details later.
+    */
+    preview: matchedTitle ? `Matched title: ${matchedTitle}` : "",
+    lyrics: "",
+    status: "metadata_only",
+    is_partial: true,
+
+    confidence: Number(row.confidence || 0),
+    lookup_key: "",
+
+    match_source: matchSource,
+    match_score: Number(row.match_score || searchMeta.match_score || 0),
+
+    search_meta: {
+      ...searchMeta,
+      badge: searchMeta.badge || "Typo title match",
+      confidence_level: confidenceLevel,
+      match_source: matchSource,
+      matched_phrase: matchedTitle,
+      title_typo_rescue_index: true,
+      needs_user_choice: confidenceLevel !== "high"
+    }
+  };
+
+  if (!candidate.title) return null;
+
+  return candidate;
+}
+
+async function searchCachedTitleTypoRescue(query, limit = 5) {
+  const safeQuery = String(query || "").trim();
+  const safeLimit = Math.max(1, Math.min(Number(limit || 5), 8));
+
+  if (!safeQuery || !supabaseClient) {
+    return [];
+  }
+
+  if (!shouldRunCachedTitleTypoRescueSearch(safeQuery)) {
+    return [];
+  }
+
+  try {
+    const { data, error } = await supabaseClient.rpc(
+      "mehfil_title_typo_rescue_search_v1",
+      {
+        p_query: safeQuery,
+        p_limit: safeLimit
+      }
+    );
+
+    if (error) {
+      console.warn("Title typo rescue search skipped:", error.message || error);
+      return [];
+    }
+
+    const seen = new Set();
+
+    return (Array.isArray(data) ? data : [])
+      .map(row => normalizeTitleTypoRescueRpcRow(row))
+      .filter(Boolean)
+      .filter(candidate => {
+        const level = getCandidateConfidenceLevel(candidate);
+        return level === "high" || level === "medium";
+      })
+      .sort((a, b) => {
+        const aMeta = getCandidateSearchMeta(a);
+        const bMeta = getCandidateSearchMeta(b);
+
+        const aScore = Number(a.match_score || aMeta.match_score || 0);
+        const bScore = Number(b.match_score || bMeta.match_score || 0);
+
+        if (bScore !== aScore) return bScore - aScore;
+
+        return String(a.title || "").localeCompare(String(b.title || ""));
+      })
+      .filter(candidate => {
+        const key = getCachedTitleAliasDisplayKey(candidate);
+        if (!key || seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      })
+      .slice(0, safeLimit);
+  } catch (error) {
+    console.warn("Title typo rescue search failed:", error);
+    return [];
+  }
+}
+
 async function searchCachedTypoRescue(query, limit = 5) {
   const safeQuery = String(query || "").trim();
   const safeLimit = Math.max(1, Math.min(Number(limit || 5), 8));
@@ -16357,6 +16546,47 @@ if (nativeTokenCount > 0) {
 
   return;
 }
+  }
+
+    /*
+    Manual short-title typo rescue:
+    Runs only after normal cached-title/native lanes had their chance,
+    and before lyric phrase / long lyric typo rescue.
+
+    Examples:
+    - tu hi ho -> Tum Hi Ho
+    - tum hi h -> Tum Hi Ho
+    - kajara re -> Kajra Re
+    - ae dil he muskil -> Ae Dil Hai Mushkil
+
+    Do NOT run this while typing. It is too slow for keystroke search.
+  */
+  const titleTypoCandidates = await searchCachedTitleTypoRescue(safeQuery, 6);
+
+  if (Array.isArray(titleTypoCandidates) && titleTypoCandidates.length > 0) {
+    shownCandidates = mergeOnlineCandidates(shownCandidates, titleTypoCandidates).slice(0, 6);
+
+    renderResults([], safeQuery, { suppressEmptyState: true });
+    renderSearchOnlineCandidates(shownCandidates);
+
+    setSearchOnlineState(
+      `${shownCandidates.length} title typo match(es) found in Mehfil cache.`,
+      "success"
+    );
+
+    prefetchOnlineCandidateDetails(shownCandidates, 3);
+
+    logMehfilSearchResultsStats(
+      safeQuery,
+      "manual",
+      shownCandidates,
+      "cache_title_typo",
+      {
+        source: "title_typo_rescue_rpc"
+      }
+    );
+
+    return;
   }
 
     /*
