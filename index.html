@@ -14786,7 +14786,171 @@ async function searchCachedLyricPhrases(query, limit = 5) {
     return [];
   }
 }
+function shouldRunCachedTypoRescueSearch(query) {
+  const safeQuery = String(query || "").trim();
 
+  if (!safeQuery || safeQuery.length < 5) return false;
+
+  /*
+    This lane is only for specific multi-word typo rescue:
+    too sfar mer
+    meri angrai na tute
+    nadiya ke paar disha
+
+    It must not run for:
+    dil, pyar, kaun, tu mera
+  */
+  if (isUnsafeGenericQueryForBroadCache(safeQuery)) {
+    return false;
+  }
+
+  const tokens = getMehfilGenericGateTokens(safeQuery)
+    .filter(token => token && token.length >= 2);
+
+  if (tokens.length < 3) return false;
+
+  const compact = safeQuery
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, "");
+
+  if (compact.length < 8) return false;
+
+  return true;
+}
+
+function normalizeTypoRescueRpcRow(row) {
+  if (!row || typeof row !== "object") return null;
+
+  let searchMeta = {};
+
+  if (row.search_meta && typeof row.search_meta === "object" && !Array.isArray(row.search_meta)) {
+    searchMeta = row.search_meta;
+  } else if (typeof row.search_meta === "string") {
+    try {
+      searchMeta = JSON.parse(row.search_meta);
+    } catch {
+      searchMeta = {};
+    }
+  }
+
+  const matchedPhrase = cleanLyricsText(
+    row.matched_phrase ||
+    searchMeta.matched_phrase ||
+    ""
+  );
+
+  const matchSource = row.match_source || searchMeta.match_source || "cache_typo_rescue";
+
+  const confidenceLevel = String(
+    searchMeta.confidence_level ||
+    (
+      Number(row.confidence || 0) >= 85
+        ? "high"
+        : Number(row.confidence || 0) >= 70
+          ? "medium"
+          : "low"
+    )
+  ).toLowerCase();
+
+  const candidate = {
+    provider: row.provider || "lrclib",
+    title: row.title || "",
+    singer: row.singer || "",
+    movie: row.movie || "",
+    source_name: "Mehfil Cache",
+    source_url: "https://lrclib.net/",
+    script: row.script || "unknown",
+
+    /*
+      Important:
+      This is a rescue preview, not guaranteed full lyrics.
+      So we keep status metadata_only and do not make it directly savable.
+    */
+    preview: matchedPhrase,
+    lyrics: "",
+    status: "metadata_only",
+    is_partial: true,
+    confidence: Number(row.confidence || 0),
+    lookup_key: "",
+
+    match_source: matchSource,
+    match_score: Number(row.match_score || searchMeta.match_score || 0),
+
+    search_meta: {
+      ...searchMeta,
+      badge: searchMeta.badge || "Typo rescue",
+      confidence_level: confidenceLevel,
+      match_source: matchSource,
+      matched_phrase: matchedPhrase,
+      typo_rescue_index: true,
+      needs_user_choice: confidenceLevel !== "high"
+    }
+  };
+
+  if (!candidate.title) return null;
+  if (!candidate.preview || candidate.preview.length < 8) return null;
+
+  return candidate;
+}
+
+async function searchCachedTypoRescue(query, limit = 5) {
+  const safeQuery = String(query || "").trim();
+  const safeLimit = Math.max(1, Math.min(Number(limit || 5), 8));
+
+  if (!safeQuery || !supabaseClient) {
+    return [];
+  }
+
+  if (!shouldRunCachedTypoRescueSearch(safeQuery)) {
+    return [];
+  }
+
+  try {
+    const { data, error } = await supabaseClient.rpc(
+      "mehfil_typo_rescue_search_v1",
+      {
+        p_query: safeQuery,
+        p_limit: safeLimit
+      }
+    );
+
+    if (error) {
+      console.warn("Typo rescue search skipped:", error.message || error);
+      return [];
+    }
+
+    const seen = new Set();
+
+    return (Array.isArray(data) ? data : [])
+      .map(row => normalizeTypoRescueRpcRow(row))
+      .filter(Boolean)
+      .filter(candidate => {
+        const level = getCandidateConfidenceLevel(candidate);
+        return level === "high" || level === "medium";
+      })
+      .sort((a, b) => {
+        const aMeta = getCandidateSearchMeta(a);
+        const bMeta = getCandidateSearchMeta(b);
+
+        const aScore = Number(a.match_score || aMeta.match_score || 0);
+        const bScore = Number(b.match_score || bMeta.match_score || 0);
+
+        if (bScore !== aScore) return bScore - aScore;
+
+        return String(a.title || "").localeCompare(String(b.title || ""));
+      })
+      .filter(candidate => {
+        const key = getCachedTitleAliasDisplayKey(candidate);
+        if (!key || seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      })
+      .slice(0, safeLimit);
+  } catch (error) {
+    console.warn("Typo rescue search failed:", error);
+    return [];
+  }
+}
 const MEHFIL_SEARCH_LOG_DEBOUNCE_MS = 3200;
 const MEHFIL_SEARCH_SPECIFIC_LOG_SKIP_MS = 2600;
 
@@ -16199,15 +16363,48 @@ if (nativeTokenCount > 0) {
     Roman cached lyric phrase search before live provider lookup.
     This catches lyric phrases without spending Power Search / provider calls.
   */
-  const lyricPhraseCandidates = await searchCachedLyricPhrases(safeQuery, 6);
+   const lyricPhraseCandidates = await searchCachedLyricPhrases(safeQuery, 6);
 
   if (Array.isArray(lyricPhraseCandidates) && lyricPhraseCandidates.length > 0) {
     showCachedLyricPhraseResults(
-  safeQuery,
-  lyricPhraseCandidates,
-  "Found matching lyrics in Mehfil cache.",
-  "manual"
-);
+      safeQuery,
+      lyricPhraseCandidates,
+      "Found matching lyrics in Mehfil cache.",
+      "manual"
+    );
+
+    return;
+  }
+
+  /*
+    Manual typo rescue:
+    Runs before provider/LRCLIB fallback.
+    It checks only our prepared Mehfil cache RPC.
+  */
+  const typoRescueCandidates = await searchCachedTypoRescue(safeQuery, 6);
+
+  if (Array.isArray(typoRescueCandidates) && typoRescueCandidates.length > 0) {
+    shownCandidates = mergeOnlineCandidates(shownCandidates, typoRescueCandidates).slice(0, 6);
+
+    renderResults([], safeQuery, { suppressEmptyState: true });
+    renderSearchOnlineCandidates(shownCandidates);
+
+    setSearchOnlineState(
+      `${shownCandidates.length} typo-rescue match(es) found in Mehfil cache.`,
+      "success"
+    );
+
+    prefetchOnlineCandidateDetails(shownCandidates, 3);
+
+    logMehfilSearchResultsStats(
+      safeQuery,
+      "manual",
+      shownCandidates,
+      "cache_typo_rescue",
+      {
+        source: "typo_rescue_rpc"
+      }
+    );
 
     return;
   }
@@ -19078,6 +19275,58 @@ return;
 
     return;
   }
+
+    /*
+    Typo rescue cache search:
+    Runs only after:
+    - exact online cache failed
+    - cached title alias failed
+    - cached lyric phrase failed
+
+    It catches human typo fragments like:
+    - too sfar mer
+    - tu safr mera
+    - meri angrai na tute
+
+    It must run before old in-memory empty cache, otherwise old failed
+    searches can block the new smarter lane.
+  */
+  const typoRescueCandidates = await searchCachedTypoRescue(safeQuery, 5);
+
+  if (cacheRunId !== autoWarmCacheRunId) return;
+
+  if (Array.isArray(typoRescueCandidates) && typoRescueCandidates.length > 0) {
+    if (statusTimer) {
+      clearTimeout(statusTimer);
+      statusTimer = null;
+    }
+
+    autoWarmCacheMemory.set(cacheKey, {
+      at: Date.now(),
+      candidates: typoRescueCandidates.slice(),
+      source: "cache_typo_rescue"
+    });
+
+    const currentInput = document.getElementById("searchInput");
+
+    if (currentInput && currentInput.value.trim() !== safeQuery) return;
+
+    setAutoWarmCacheResultState(typoRescueCandidates);
+    renderSearchOnlineCandidates(typoRescueCandidates);
+
+    logMehfilSearchResultsStats(
+      safeQuery,
+      "typed",
+      typoRescueCandidates,
+      "cache_typo_rescue",
+      {
+        source: "typo_rescue_rpc"
+      }
+    );
+
+    return;
+  }
+
 
     /*
       THIRD: in-memory cache.
