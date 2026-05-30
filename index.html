@@ -14932,7 +14932,7 @@ function shouldRunCachedTitleTypoRescueSearch(query) {
     return false;
   }
 
-  const words = loose.split(/\s+/).filter(Boolean);
+    const words = loose.split(/\s+/).filter(Boolean);
   const compact = loose.replace(/\s+/g, "");
 
   /*
@@ -14941,9 +14941,71 @@ function shouldRunCachedTitleTypoRescueSearch(query) {
     tum hi h
     kajara re
     ae dil he muskil
+
+    Guard:
+    two-word pronoun/common phrases like "tu mera" are too generic.
+    They should not trigger title typo rescue, because they can wrongly jump
+    to titles like "Tu Meri".
   */
   if (words.length < 2) return false;
   if (compact.length < 5) return false;
+
+  const weakTitleTypoWords = new Set([
+    "tu",
+    "tum",
+    "tm",
+    "main",
+    "mai",
+    "mein",
+    "me",
+    "mera",
+    "meri",
+    "mere",
+    "tera",
+    "teri",
+    "tere",
+    "hi",
+    "h",
+    "ho",
+    "hai",
+    "he",
+    "hun",
+    "hu",
+    "ka",
+    "ki",
+    "ke",
+    "ko",
+    "se",
+    "na",
+    "re",
+    "dil",
+    "pyar",
+    "pyaar",
+    "ishq"
+  ]);
+
+  const distinctiveWords = words.filter(word => {
+    if (weakTitleTypoWords.has(word)) return false;
+    if (word.length < 4) return false;
+    return true;
+  });
+
+  /*
+    For 2-word typo rescue, require one distinctive word.
+    Allows:
+    - kajara re
+    - kon disha
+    - safar mera
+
+    Blocks:
+    - tu mera
+    - tum meri
+    - tu hi
+    - mera dil
+  */
+  if (words.length === 2 && distinctiveWords.length < 1) {
+    return false;
+  }
 
   return true;
 }
