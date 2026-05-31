@@ -15655,6 +15655,216 @@ async function searchRomanLyricWindows(query, limit = 5) {
   }
 }
 
+    function shouldRunOnlineRomanLyricWindowSearch(query) {
+  /*
+    Same guard as saved-library Roman lyric search.
+    This lane searches indexed online cache lyrics.
+  */
+  return shouldRunRomanLyricWindowSearch(query);
+}
+
+function normalizeOnlineRomanLyricWindowRpcRow(row) {
+  if (!row || typeof row !== "object") return null;
+
+  let searchMeta = {};
+
+  if (row.search_meta && typeof row.search_meta === "object" && !Array.isArray(row.search_meta)) {
+    searchMeta = row.search_meta;
+  } else if (typeof row.search_meta === "string") {
+    try {
+      searchMeta = JSON.parse(row.search_meta);
+    } catch {
+      searchMeta = {};
+    }
+  }
+
+  const matchedPhrase = cleanLyricsText(
+    row.matched_phrase ||
+    row.preview ||
+    searchMeta.matched_phrase ||
+    ""
+  );
+
+  const matchSource = row.match_source || searchMeta.match_source || "cache_online_roman_lyric_window";
+
+  const confidenceLevel = Number(row.confidence || 0) >= 85
+    ? "high"
+    : Number(row.confidence || 0) >= 70
+      ? "medium"
+      : "low";
+
+  const cacheId = searchMeta.cache_id || row.cache_id || "";
+  const candidateNo = searchMeta.candidate_no || row.candidate_no || "";
+
+  const candidate = {
+    provider: row.provider || "online_cache",
+    title: row.title || "",
+    singer: row.singer || "",
+    movie: row.movie || "",
+    source_name: "Mehfil Cache",
+    source_url: "",
+    script: row.script || "devanagari",
+
+    preview: matchedPhrase,
+    lyrics: "",
+    status: "metadata_only",
+    is_partial: true,
+
+    confidence: Number(row.confidence || 0),
+    lookup_key: cacheId && candidateNo ? `online-cache:${cacheId}:${candidateNo}` : "",
+
+    match_source: matchSource,
+    match_score: Number(row.match_score || searchMeta.match_score || 0),
+
+    is_online_cache_roman_lyric_match: true,
+
+    search_meta: {
+      ...searchMeta,
+      badge: searchMeta.badge || "Online Roman lyric match",
+      confidence_level: confidenceLevel,
+      match_source: matchSource,
+      matched_phrase: matchedPhrase,
+      online_roman_lyric_window_index: true,
+      cache_id: cacheId,
+      candidate_no: candidateNo,
+      needs_user_choice: confidenceLevel !== "high"
+    }
+  };
+
+  if (!candidate.title) return null;
+  if (!candidate.preview || candidate.preview.length < 5) return null;
+
+  return candidate;
+}
+
+async function hydrateOnlineRomanLyricCandidate(candidate) {
+  if (!candidate || !candidate.is_online_cache_roman_lyric_match || !supabaseClient) {
+    return candidate;
+  }
+
+  const meta = getCandidateSearchMeta(candidate);
+  const cacheId = meta.cache_id;
+  const candidateNo = meta.candidate_no;
+
+  if (!cacheId || !candidateNo) {
+    return candidate;
+  }
+
+  try {
+    const { data, error } = await supabaseClient.rpc(
+      "mehfil_get_online_cache_candidate_v1",
+      {
+        p_cache_id: Number(cacheId),
+        p_candidate_no: Number(candidateNo)
+      }
+    );
+
+    if (error) {
+      console.warn("Online Roman lyric candidate hydration skipped:", error.message || error);
+      return candidate;
+    }
+
+    const row = Array.isArray(data) ? data[0] : null;
+
+    if (!row) return candidate;
+
+    const fullLyrics = cleanLyricsText(row.lyrics || "");
+    const hydrated = {
+      ...candidate,
+      provider: row.provider || candidate.provider || "online_cache",
+      title: row.title || candidate.title,
+      singer: row.singer || candidate.singer,
+      movie: row.movie || candidate.movie,
+      source_name: row.source_name || candidate.source_name || "Mehfil Cache",
+      source_url: row.source_url || candidate.source_url || "",
+      script: row.script || candidate.script || "devanagari",
+      lyrics: fullLyrics,
+      status: fullLyrics ? "lyrics_ready" : candidate.status,
+      is_partial: !fullLyrics,
+      search_meta: {
+        ...candidate.search_meta,
+        has_full_online_cache_lyrics: !!fullLyrics
+      }
+    };
+
+    return hydrated;
+  } catch (error) {
+    console.warn("Online Roman lyric candidate hydration failed:", error);
+    return candidate;
+  }
+}
+
+async function searchOnlineRomanLyricWindows(query, limit = 5) {
+  const safeQuery = String(query || "").trim();
+  const safeLimit = Math.max(1, Math.min(Number(limit || 5), 8));
+
+  if (!safeQuery || !supabaseClient) {
+    return [];
+  }
+
+  if (!shouldRunOnlineRomanLyricWindowSearch(safeQuery)) {
+    return [];
+  }
+
+  try {
+    const { data, error } = await supabaseClient.rpc(
+      "mehfil_online_roman_lyric_window_search_v1",
+      {
+        p_query: safeQuery,
+        p_limit: safeLimit
+      }
+    );
+
+    if (error) {
+      console.warn("Online Roman lyric window search skipped:", error.message || error);
+      return [];
+    }
+
+    const seen = new Set();
+
+    const normalized = (Array.isArray(data) ? data : [])
+      .map(row => normalizeOnlineRomanLyricWindowRpcRow(row))
+      .filter(Boolean)
+      .filter(candidate => {
+        const level = getCandidateConfidenceLevel(candidate);
+        return level === "high" || level === "medium";
+      })
+      .sort((a, b) => {
+        const aMeta = getCandidateSearchMeta(a);
+        const bMeta = getCandidateSearchMeta(b);
+
+        const aScore = Number(a.match_score || aMeta.match_score || 0);
+        const bScore = Number(b.match_score || bMeta.match_score || 0);
+
+        if (bScore !== aScore) return bScore - aScore;
+
+        return String(a.title || "").localeCompare(String(b.title || ""));
+      })
+      .filter(candidate => {
+        const key = getCachedTitleAliasDisplayKey(candidate);
+        if (!key || seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      })
+      .slice(0, safeLimit);
+
+    /*
+      Hydrate immediately so opening the result shows full lyrics,
+      not the embarrassing preview-only modal.
+    */
+    const hydrated = [];
+
+    for (const candidate of normalized) {
+      hydrated.push(await hydrateOnlineRomanLyricCandidate(candidate));
+    }
+
+    return hydrated;
+  } catch (error) {
+    console.warn("Online Roman lyric window search failed:", error);
+    return [];
+  }
+}
+
 async function searchCachedTypoRescue(query, limit = 5) {
   const safeQuery = String(query || "").trim();
   const safeLimit = Math.max(1, Math.min(Number(limit || 5), 8));
@@ -17218,6 +17428,38 @@ if (nativeTokenCount > 0) {
     return;
   }
 
+    /*
+    Manual online-cache Roman lyric window search:
+    Searches indexed online cache lyrics before broad typo rescue/provider fallback.
+  */
+  const onlineRomanLyricWindowCandidates = await searchOnlineRomanLyricWindows(safeQuery, 6);
+
+  if (Array.isArray(onlineRomanLyricWindowCandidates) && onlineRomanLyricWindowCandidates.length > 0) {
+    shownCandidates = mergeOnlineCandidates(shownCandidates, onlineRomanLyricWindowCandidates).slice(0, 6);
+
+    renderResults([], safeQuery, { suppressEmptyState: true });
+    renderSearchOnlineCandidates(shownCandidates);
+
+    setSearchOnlineState(
+      `${shownCandidates.length} online Roman lyric match(es) found in Mehfil cache.`,
+      "success"
+    );
+
+    prefetchOnlineCandidateDetails(shownCandidates, 3);
+
+    logMehfilSearchResultsStats(
+      safeQuery,
+      "manual",
+      shownCandidates,
+      "cache_online_roman_lyric_window",
+      {
+        source: "online_roman_lyric_window_rpc"
+      }
+    );
+
+    return;
+  }
+
   const typoRescueCandidates = await searchCachedTypoRescue(safeQuery, 6);
 
   if (Array.isArray(typoRescueCandidates) && typoRescueCandidates.length > 0) {
@@ -17979,6 +18221,72 @@ async function openOnlineCandidate(candidate) {
     setOnlineModalButtonsLoading(false);
     setSaveButtonHighlight(false);
 
+    /*
+    Online-cache Roman lyric matches are already hydrated from online_song_cache.
+    Do not send them through provider/detail lookup if full lyrics are present.
+  */
+  if (
+    candidate &&
+    candidate.is_online_cache_roman_lyric_match &&
+    cleanLyricsText(candidate.lyrics || "").length >= 20
+  ) {
+    hideSearchOnlineBanner();
+
+    const fullLyrics = cleanLyricsText(candidate.lyrics || "");
+    const preview = cleanLyricsText(candidate.preview || "");
+    const meta = getCandidateSearchMeta(candidate);
+
+    openModalKind = "online";
+    openOnlineCandidateData = {
+      ...candidate,
+      lyrics: fullLyrics,
+      status: "lyrics_ready",
+      is_partial: false
+    };
+    openSongId = null;
+
+    document.getElementById("modalTitle").textContent = candidate.title || "";
+    document.getElementById("modalMeta").textContent = joinMeta([candidate.movie, candidate.singer]);
+
+    const modalExtraMeta = document.getElementById("modalExtraMeta");
+    const modalLyrics = document.getElementById("modalLyrics");
+
+    modalExtraMeta.innerHTML = `
+      <div><strong>Source:</strong> Mehfil Cache</div>
+      <div><strong>Confidence:</strong> ${escapeHtml(formatConfidence(candidate.confidence))}</div>
+      <div><strong>Language:</strong> ${escapeHtml(getScriptLabel(candidate.script))}</div>
+      <div><strong>Matched:</strong> ${escapeHtml(preview || meta.matched_phrase || "")}</div>
+      <div><strong>Status:</strong> Full lyrics loaded</div>
+    `;
+    modalExtraMeta.classList.remove("hidden");
+
+    modalLyrics.innerHTML = escapeHtml(fullLyrics);
+
+    setOnlineModalButtonsLoading(false);
+    setSaveButtonHighlight(false);
+
+    /*
+      This is from online cache, not saved local library.
+      Save button may stay available if your app allows saving online cached lyrics.
+    */
+    document.getElementById("modalSaveBtn").classList.toggle("hidden", !isApproved());
+    document.getElementById("modalBookmarkBtn").classList.toggle("hidden", !isApproved());
+    document.getElementById("modalShareNowBtn").classList.toggle("hidden", !isApproved());
+    document.getElementById("modalEditBtn").classList.toggle("hidden", !isApproved());
+    document.getElementById("modalDeleteBtn").classList.add("hidden");
+
+    if (typeof openSongModalShell === "function") {
+      openSongModalShell();
+    } else {
+      document.getElementById("songModal").classList.add("show");
+      document.body.style.overflow = "hidden";
+    }
+
+    pushSongModalHistoryState();
+
+    return;
+  }
+    
     /*
       This is already in the library, so don't show Save.
       Bookmark/share/edit are allowed for approved users.
@@ -20244,6 +20552,51 @@ return;
     return;
   }
 
+    /*
+    Online-cache Roman lyric window search:
+    Catches Roman-typed Hindi lyrics that exist in cached online results,
+    even when they are not saved in public.songs yet.
+
+    Examples:
+    - jo me raat hun -> Khwab
+    - dekho dekho kya woh ped hai -> Bum Bum Bole
+  */
+  const onlineRomanLyricWindowCandidates = await searchOnlineRomanLyricWindows(safeQuery, 5);
+
+  if (cacheRunId !== autoWarmCacheRunId) return;
+
+  if (Array.isArray(onlineRomanLyricWindowCandidates) && onlineRomanLyricWindowCandidates.length > 0) {
+    if (statusTimer) {
+      clearTimeout(statusTimer);
+      statusTimer = null;
+    }
+
+    autoWarmCacheMemory.set(cacheKey, {
+      at: Date.now(),
+      candidates: onlineRomanLyricWindowCandidates.slice(),
+      source: "cache_online_roman_lyric_window"
+    });
+
+    const currentInput = document.getElementById("searchInput");
+
+    if (currentInput && currentInput.value.trim() !== safeQuery) return;
+
+    setAutoWarmCacheResultState(onlineRomanLyricWindowCandidates);
+    renderSearchOnlineCandidates(onlineRomanLyricWindowCandidates);
+
+    logMehfilSearchResultsStats(
+      safeQuery,
+      "typed",
+      onlineRomanLyricWindowCandidates,
+      "cache_online_roman_lyric_window",
+      {
+        source: "online_roman_lyric_window_rpc"
+      }
+    );
+
+    return;
+  }
+    
   const typoRescueCandidates = await searchCachedTypoRescue(safeQuery, 5);
 
   if (cacheRunId !== autoWarmCacheRunId) return;
