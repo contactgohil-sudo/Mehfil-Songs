@@ -16981,11 +16981,29 @@ if (useCache) {
   return data.candidates;
 }
 
-  function prefetchOnlineCandidateDetails(candidates, limit = 3) {
+ function prefetchOnlineCandidateDetails(candidates, limit = 3) {
   const list = Array.isArray(candidates) ? candidates : [];
 
   list
     .filter(candidate => candidate?.lookup_key)
+    .filter(candidate => {
+      const meta = getCandidateSearchMeta(candidate);
+      const lookupKey = String(candidate.lookup_key || "");
+
+      /*
+        Never prefetch provider details for online-cache Roman lyric matches.
+        They already have/will hydrate from online_song_cache.
+        Provider prefetch can turn them into LRCLIB preview-only trash.
+      */
+      const isOnlineRomanLyricMatch =
+        candidate.is_online_cache_roman_lyric_match ||
+        meta.online_roman_lyric_window_index ||
+        candidate.match_source === "cache_online_roman_lyric_window" ||
+        meta.match_source === "cache_online_roman_lyric_window" ||
+        lookupKey.startsWith("online-cache:");
+
+      return !isOnlineRomanLyricMatch;
+    })
     .slice(0, limit)
     .forEach(candidate => {
       if (getCachedOnlineDetail(candidate.lookup_key)) return;
@@ -17006,7 +17024,59 @@ async function fetchOnlineSongDetail(candidate) {
   }
 
   const lookupKey = String(candidate.lookup_key || "");
+  /*
+    Online-cache Roman lyric matches must hydrate from Supabase cache,
+    not from provider/LRCLIB detail fetch.
+  */
+  if (lookupKey.startsWith("online-cache:") && supabaseClient) {
+    const parts = lookupKey.split(":");
+    const cacheId = Number(parts[1] || 0);
+    const candidateNo = Number(parts[2] || 0);
 
+    if (cacheId && candidateNo) {
+      const { data, error } = await supabaseClient.rpc(
+        "mehfil_get_online_cache_candidate_v1",
+        {
+          p_cache_id: cacheId,
+          p_candidate_no: candidateNo
+        }
+      );
+
+      if (!error && Array.isArray(data) && data[0]) {
+        const row = data[0];
+        const fullLyrics = cleanLyricsText(row.lyrics || "");
+
+        if (fullLyrics.length >= 20) {
+          const readySong = {
+            ...candidate,
+            title: row.title || candidate.title || "",
+            singer: row.singer || candidate.singer || "",
+            movie: row.movie || candidate.movie || "",
+            provider: row.provider || candidate.provider || "online_cache",
+            source_name: row.source_name || "Mehfil Cache",
+            source_url: row.source_url || "",
+            script: row.script || candidate.script || "devanagari",
+            lyrics: fullLyrics,
+            preview: candidate.preview || row.preview || "",
+            status: "lyrics_ready",
+            is_partial: false,
+            is_online_cache_roman_lyric_match: true,
+            search_meta: {
+              ...getCandidateSearchMeta(candidate),
+              cache_id: cacheId,
+              candidate_no: candidateNo,
+              match_source: "cache_online_roman_lyric_window",
+              online_roman_lyric_window_index: true,
+              has_full_online_cache_lyrics: true
+            }
+          };
+
+          setCachedOnlineDetail(lookupKey, readySong);
+          return readySong;
+        }
+      }
+    }
+  }
   const cached = getCachedOnlineDetail(lookupKey);
   if (cached) {
     return {
@@ -17445,7 +17515,10 @@ if (nativeTokenCount > 0) {
       "success"
     );
 
-    prefetchOnlineCandidateDetails(shownCandidates, 3);
+/*
+  No provider prefetch here.
+  These candidates hydrate from online_song_cache.
+*/
 
     logMehfilSearchResultsStats(
       safeQuery,
