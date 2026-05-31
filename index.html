@@ -15499,29 +15499,68 @@ function normalizeRomanLyricWindowRpcRow(row) {
       ? "medium"
       : "low";
 
-  const songId = searchMeta.song_id || row.song_id || null;
+  const songId = searchMeta.song_id || row.song_id || row.id || "";
 
   let localSong = null;
 
-  if (songId && Array.isArray(window.songs)) {
-    localSong = window.songs.find(song => String(song.id) === String(songId)) || null;
-  } else if (songId && typeof songs !== "undefined" && Array.isArray(songs)) {
-    localSong = songs.find(song => String(song.id) === String(songId)) || null;
+  /*
+    Roman lyric-window matches are built from public.songs.
+    So opening them must use the local saved song, not online/provider fetch.
+  */
+  const localSongs =
+    Array.isArray(window.songs)
+      ? window.songs
+      : (typeof songs !== "undefined" && Array.isArray(songs) ? songs : []);
+
+  if (songId) {
+    localSong = localSongs.find(song => String(song.id) === String(songId)) || null;
   }
 
+  if (!localSong && row.title) {
+    const rowTitleNorm = normalizeText(row.title);
+    const rowSingerNorm = normalizeText(row.singer || "");
+    const rowMovieNorm = normalizeText(row.movie || "");
+
+    localSong = localSongs.find(song => {
+      const titleOk = normalizeText(song.title || "") === rowTitleNorm;
+      const singerOk =
+        !rowSingerNorm ||
+        normalizeText(song.singer || "").includes(rowSingerNorm) ||
+        rowSingerNorm.includes(normalizeText(song.singer || ""));
+      const movieOk =
+        !rowMovieNorm ||
+        normalizeText(song.movie || "") === rowMovieNorm ||
+        normalizeText(song.movie || "").includes(rowMovieNorm);
+
+      return titleOk && (singerOk || movieOk);
+    }) || null;
+  }
+
+  const fullLyrics = cleanLyricsText(
+    localSong?.lyrics ||
+    searchMeta.lyrics ||
+    searchMeta.full_lyrics ||
+    row.lyrics ||
+    ""
+  );
+
   const candidate = {
-    provider: row.provider || "local",
-    title: row.title || localSong?.title || "",
-    singer: row.singer || localSong?.singer || "",
-    movie: row.movie || localSong?.movie || "",
+    provider: "local",
+    title: localSong?.title || row.title || "",
+    singer: localSong?.singer || row.singer || "",
+    movie: localSong?.movie || row.movie || "",
     source_name: "Mehfil Library",
     source_url: "",
-    script: row.script || "devanagari",
+    script: localSong?.script || row.script || "devanagari",
 
+    /*
+      Card preview should show the matched phrase.
+      Modal/open should use full local lyrics.
+    */
     preview: matchedPhrase,
-    lyrics: localSong?.lyrics || "",
-    status: localSong?.lyrics ? "lyrics_ready" : "metadata_only",
-    is_partial: !localSong?.lyrics,
+    lyrics: fullLyrics,
+    status: fullLyrics ? "lyrics_ready" : "metadata_only",
+    is_partial: !fullLyrics,
 
     id: localSong?.id || songId || "",
     song_id: localSong?.id || songId || "",
@@ -15532,6 +15571,12 @@ function normalizeRomanLyricWindowRpcRow(row) {
     match_source: matchSource,
     match_score: Number(row.match_score || searchMeta.match_score || 0),
 
+    /*
+      Important flag:
+      openOnlineCandidate must treat this as a local-library result.
+    */
+    is_local_library_match: true,
+
     search_meta: {
       ...searchMeta,
       badge: searchMeta.badge || "Roman lyric match",
@@ -15539,6 +15584,8 @@ function normalizeRomanLyricWindowRpcRow(row) {
       match_source: matchSource,
       matched_phrase: matchedPhrase,
       roman_lyric_window_index: true,
+      local_song_id: localSong?.id || songId || "",
+      has_full_local_lyrics: !!fullLyrics,
       needs_user_choice: confidenceLevel !== "high"
     }
   };
@@ -17886,6 +17933,73 @@ async function openOnlineCandidate(candidate) {
   if (!candidate) return;
 
   const modalToken = ++onlineModalLoadToken;
+
+    /*
+    Roman lyric-window matches come from saved local songs.
+    Do not send them through provider/detail lookup.
+    Otherwise they open as "preview only", which is nonsense.
+  */
+  if (
+    candidate &&
+    candidate.is_local_library_match &&
+    cleanLyricsText(candidate.lyrics || "").length >= 20
+  ) {
+    hideSearchOnlineBanner();
+
+    const fullLyrics = cleanLyricsText(candidate.lyrics || "");
+    const preview = cleanLyricsText(candidate.preview || "");
+    const meta = getCandidateSearchMeta(candidate);
+
+    openModalKind = "online";
+    openOnlineCandidateData = {
+      ...candidate,
+      lyrics: fullLyrics,
+      status: "lyrics_ready",
+      is_partial: false
+    };
+    openSongId = null;
+
+    document.getElementById("modalTitle").textContent = candidate.title || "";
+    document.getElementById("modalMeta").textContent = joinMeta([candidate.movie, candidate.singer]);
+
+    const modalExtraMeta = document.getElementById("modalExtraMeta");
+    const modalLyrics = document.getElementById("modalLyrics");
+
+    modalExtraMeta.innerHTML = `
+      <div><strong>Source:</strong> Mehfil Library</div>
+      <div><strong>Confidence:</strong> ${escapeHtml(formatConfidence(candidate.confidence))}</div>
+      <div><strong>Language:</strong> ${escapeHtml(getScriptLabel(candidate.script))}</div>
+      <div><strong>Matched:</strong> ${escapeHtml(preview || meta.matched_phrase || "")}</div>
+      <div><strong>Status:</strong> Full lyrics loaded</div>
+    `;
+    modalExtraMeta.classList.remove("hidden");
+
+    modalLyrics.innerHTML = escapeHtml(fullLyrics);
+
+    setOnlineModalButtonsLoading(false);
+    setSaveButtonHighlight(false);
+
+    /*
+      This is already in the library, so don't show Save.
+      Bookmark/share/edit are allowed for approved users.
+    */
+    document.getElementById("modalSaveBtn").classList.add("hidden");
+    document.getElementById("modalBookmarkBtn").classList.toggle("hidden", !isApproved());
+    document.getElementById("modalShareNowBtn").classList.toggle("hidden", !isApproved());
+    document.getElementById("modalEditBtn").classList.toggle("hidden", !isApproved());
+    document.getElementById("modalDeleteBtn").classList.add("hidden");
+
+    if (typeof openSongModalShell === "function") {
+      openSongModalShell();
+    } else {
+      document.getElementById("songModal").classList.add("show");
+      document.body.style.overflow = "hidden";
+    }
+
+    pushSongModalHistoryState();
+
+    return;
+  }
 
   const embeddedSong = getEmbeddedOnlineSongFromLookupKey(candidate);
   if (embeddedSong && cleanLyricsText(embeddedSong.lyrics || "").length >= 20) {
