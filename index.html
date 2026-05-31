@@ -18175,7 +18175,164 @@ async function openOnlineCandidate(candidate) {
   if (!candidate) return;
 
   const modalToken = ++onlineModalLoadToken;
+  /*
+    PATCH: online Roman lyric matches must open from Mehfil cache full lyrics,
+    not through LRCLIB/provider preview mode.
+  */
+  {
+    const meta = candidate ? getCandidateSearchMeta(candidate) : {};
+    let cacheId = meta.cache_id || candidate?.cache_id || "";
+    let candidateNo = meta.candidate_no || candidate?.candidate_no || "";
 
+    const lookupKey = String(candidate?.lookup_key || "");
+
+    if ((!cacheId || !candidateNo) && lookupKey.startsWith("online-cache:")) {
+      const parts = lookupKey.split(":");
+      cacheId = cacheId || parts[1] || "";
+      candidateNo = candidateNo || parts[2] || "";
+    }
+
+    const isOnlineRomanLyricMatch =
+      !!candidate &&
+      (
+        candidate.is_online_cache_roman_lyric_match ||
+        meta.online_roman_lyric_window_index ||
+        candidate.match_source === "cache_online_roman_lyric_window" ||
+        meta.match_source === "cache_online_roman_lyric_window" ||
+        lookupKey.startsWith("online-cache:")
+      );
+
+    if (isOnlineRomanLyricMatch && cacheId && candidateNo && supabaseClient) {
+      console.log("ONLINE ROMAN MODAL PATCH HIT", {
+        title: candidate.title,
+        cacheId,
+        candidateNo,
+        match_source: candidate.match_source,
+        lookup_key: candidate.lookup_key,
+        hasLyricsBefore: !!candidate.lyrics,
+        lyricsLengthBefore: (candidate.lyrics || "").length,
+        meta
+      });
+
+      let hydratedCandidate = candidate;
+
+      if (typeof hydrateOnlineRomanLyricCandidate === "function") {
+        hydratedCandidate = await hydrateOnlineRomanLyricCandidate(candidate);
+      }
+
+      /*
+        Fallback direct hydration, in case helper failed or candidate lost fields.
+      */
+      if (cleanLyricsText(hydratedCandidate.lyrics || "").length < 20) {
+        const { data, error } = await supabaseClient.rpc(
+          "mehfil_get_online_cache_candidate_v1",
+          {
+            p_cache_id: Number(cacheId),
+            p_candidate_no: Number(candidateNo)
+          }
+        );
+
+        if (!error && Array.isArray(data) && data[0]) {
+          const row = data[0];
+
+          hydratedCandidate = {
+            ...hydratedCandidate,
+            title: row.title || hydratedCandidate.title,
+            singer: row.singer || hydratedCandidate.singer,
+            movie: row.movie || hydratedCandidate.movie,
+            provider: row.provider || hydratedCandidate.provider || "online_cache",
+            source_name: row.source_name || "Mehfil Cache",
+            source_url: row.source_url || "",
+            script: row.script || hydratedCandidate.script || "devanagari",
+            lyrics: cleanLyricsText(row.lyrics || ""),
+            status: "lyrics_ready",
+            is_partial: false,
+            is_online_cache_roman_lyric_match: true,
+            search_meta: {
+              ...meta,
+              ...hydratedCandidate.search_meta,
+              cache_id: cacheId,
+              candidate_no: candidateNo,
+              match_source: "cache_online_roman_lyric_window",
+              online_roman_lyric_window_index: true,
+              has_full_online_cache_lyrics: true
+            }
+          };
+        }
+      }
+
+      const fullLyrics = cleanLyricsText(hydratedCandidate.lyrics || "");
+      const hydratedMeta = getCandidateSearchMeta(hydratedCandidate);
+      const preview = cleanLyricsText(
+        hydratedCandidate.preview ||
+        hydratedMeta.matched_phrase ||
+        candidate.preview ||
+        ""
+      );
+
+      if (fullLyrics.length >= 20) {
+        hideSearchOnlineBanner();
+
+        openModalKind = "online";
+        openOnlineCandidateData = {
+          ...hydratedCandidate,
+          lyrics: fullLyrics,
+          status: "lyrics_ready",
+          is_partial: false,
+          is_online_cache_roman_lyric_match: true
+        };
+        openSongId = null;
+
+        document.getElementById("modalTitle").textContent = hydratedCandidate.title || "";
+        document.getElementById("modalMeta").textContent = joinMeta([
+          hydratedCandidate.movie,
+          hydratedCandidate.singer
+        ]);
+
+        const modalExtraMeta = document.getElementById("modalExtraMeta");
+        const modalLyrics = document.getElementById("modalLyrics");
+
+        modalExtraMeta.innerHTML = `
+          <div><strong>Source:</strong> Mehfil Cache</div>
+          <div><strong>Confidence:</strong> ${escapeHtml(formatConfidence(hydratedCandidate.confidence))}</div>
+          <div><strong>Language:</strong> ${escapeHtml(getScriptLabel(hydratedCandidate.script))}</div>
+          <div><strong>Matched:</strong> ${escapeHtml(preview || hydratedMeta.matched_phrase || "")}</div>
+          <div><strong>Status:</strong> Full lyrics loaded</div>
+        `;
+        modalExtraMeta.classList.remove("hidden");
+
+        modalLyrics.innerHTML = escapeHtml(fullLyrics);
+
+        setOnlineModalButtonsLoading(false);
+        setSaveButtonHighlight(false);
+
+        document.getElementById("modalSaveBtn").classList.toggle("hidden", !isApproved());
+        document.getElementById("modalBookmarkBtn").classList.toggle("hidden", !isApproved());
+        document.getElementById("modalShareNowBtn").classList.toggle("hidden", !isApproved());
+        document.getElementById("modalEditBtn").classList.toggle("hidden", !isApproved());
+        document.getElementById("modalDeleteBtn").classList.add("hidden");
+
+        if (typeof openSongModalShell === "function") {
+          openSongModalShell();
+        } else {
+          document.getElementById("songModal").classList.add("show");
+          document.body.style.overflow = "hidden";
+        }
+
+        pushSongModalHistoryState();
+
+        return;
+      }
+
+      console.warn("ONLINE ROMAN MODAL PATCH FAILED TO HYDRATE", {
+        title: candidate.title,
+        cacheId,
+        candidateNo,
+        lyricsLengthAfter: fullLyrics.length,
+        candidate
+      });
+    }
+  }
     /*
     Roman lyric-window matches come from saved local songs.
     Do not send them through provider/detail lookup.
