@@ -12127,39 +12127,14 @@ function updateMehfilKeyboardUi() {
 }
 
 function scrollBestSearchResultAboveKeyboard() {
-  const searchInput = document.getElementById("searchInput");
-  if (!searchInput || document.activeElement !== searchInput) return;
-
-  const firstOnline =
-    document.querySelector("#searchOnlineCandidates .online-candidate-card") ||
-    document.querySelector("#searchOnlineCandidates .candidate-card") ||
-    document.querySelector("#searchOnlineCandidates .card") ||
-    document.querySelector("#searchOnlineCandidates article") ||
-    document.querySelector("#searchOnlineCandidates > *");
-
-  const firstLocal =
-    document.querySelector("#results .song-card") ||
-    document.querySelector("#searchResults .song-card") ||
-    document.querySelector("#results .card") ||
-    document.querySelector("#searchResults .card");
-
-  const target = firstOnline || firstLocal;
-  if (!target) return;
-
-  const keyboardHeight = getMehfilKeyboardHeight();
-  const viewportBottom = window.innerHeight - keyboardHeight;
-  const rect = target.getBoundingClientRect();
-
   /*
-    If first result is hidden/half-hidden behind keyboard, gently lift it.
+    Disabled intentionally.
+
+    Auto-scrolling while the iPhone keyboard is open causes the page to jump
+    to the bottom of search results. The mobile keyboard fix should only hide
+    bulky banners/empty states, not move the user's viewport.
   */
-  if (rect.bottom > viewportBottom - 18) {
-    const delta = rect.bottom - viewportBottom + 24;
-    window.scrollBy({
-      top: delta,
-      behavior: "smooth"
-    });
-  }
+  return;
 }
 
 function installMehfilMobileKeyboardFix() {
@@ -15432,6 +15407,207 @@ async function searchCachedTitleTypoRescue(query, limit = 5) {
   }
 }
 
+function shouldRunRomanLyricWindowSearch(query) {
+  const raw = String(query || "").trim();
+
+  if (!raw || raw.length < 5) return false;
+
+  /*
+    This lane is for Roman-typed Hindi lyrics.
+    Native-script lyric phrases already have the cached lyric phrase lane.
+  */
+  if (typeof isNativeScriptQueryForSearch === "function" && isNativeScriptQueryForSearch(raw)) {
+    return false;
+  }
+
+  const loose = raw
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^\p{L}\p{N}]+/gu, " ")
+    .trim();
+
+  if (!loose) return false;
+
+  const words = loose.split(/\s+/).filter(Boolean);
+  const compact = loose.replace(/\s+/g, "");
+
+  /*
+    Lyric phrase lane, not title/generic word lane.
+    Allows:
+    - har mulakat pe
+    - jagate jagte ek umr
+    - dhadakte dil k tarane
+    - tere kailasho ka
+  */
+  if (words.length < 3) return false;
+  if (compact.length < 8) return false;
+
+  const blocked = new Set([
+    "dil",
+    "pyar",
+    "pyaar",
+    "kaun",
+    "kon",
+    "koun",
+    "tu",
+    "mera",
+    "meri",
+    "mere",
+    "tere",
+    "hai",
+    "ho",
+    "hi",
+    "tu mera",
+    "mera dil",
+    "mere pyar",
+    "tum meri"
+  ]);
+
+  if (blocked.has(loose)) return false;
+
+  return true;
+}
+
+function normalizeRomanLyricWindowRpcRow(row) {
+  if (!row || typeof row !== "object") return null;
+
+  let searchMeta = {};
+
+  if (row.search_meta && typeof row.search_meta === "object" && !Array.isArray(row.search_meta)) {
+    searchMeta = row.search_meta;
+  } else if (typeof row.search_meta === "string") {
+    try {
+      searchMeta = JSON.parse(row.search_meta);
+    } catch {
+      searchMeta = {};
+    }
+  }
+
+  const matchedPhrase = cleanLyricsText(
+    row.matched_phrase ||
+    row.preview ||
+    searchMeta.matched_phrase ||
+    ""
+  );
+
+  const matchSource = row.match_source || searchMeta.match_source || "cache_roman_lyric_window";
+
+  const confidenceLevel = Number(row.confidence || 0) >= 85
+    ? "high"
+    : Number(row.confidence || 0) >= 70
+      ? "medium"
+      : "low";
+
+  const songId = searchMeta.song_id || row.song_id || null;
+
+  let localSong = null;
+
+  if (songId && Array.isArray(window.songs)) {
+    localSong = window.songs.find(song => String(song.id) === String(songId)) || null;
+  } else if (songId && typeof songs !== "undefined" && Array.isArray(songs)) {
+    localSong = songs.find(song => String(song.id) === String(songId)) || null;
+  }
+
+  const candidate = {
+    provider: row.provider || "local",
+    title: row.title || localSong?.title || "",
+    singer: row.singer || localSong?.singer || "",
+    movie: row.movie || localSong?.movie || "",
+    source_name: "Mehfil Library",
+    source_url: "",
+    script: row.script || "devanagari",
+
+    preview: matchedPhrase,
+    lyrics: localSong?.lyrics || "",
+    status: localSong?.lyrics ? "lyrics_ready" : "metadata_only",
+    is_partial: !localSong?.lyrics,
+
+    id: localSong?.id || songId || "",
+    song_id: localSong?.id || songId || "",
+
+    confidence: Number(row.confidence || 0),
+    lookup_key: "",
+
+    match_source: matchSource,
+    match_score: Number(row.match_score || searchMeta.match_score || 0),
+
+    search_meta: {
+      ...searchMeta,
+      badge: searchMeta.badge || "Roman lyric match",
+      confidence_level: confidenceLevel,
+      match_source: matchSource,
+      matched_phrase: matchedPhrase,
+      roman_lyric_window_index: true,
+      needs_user_choice: confidenceLevel !== "high"
+    }
+  };
+
+  if (!candidate.title) return null;
+  if (!candidate.preview || candidate.preview.length < 5) return null;
+
+  return candidate;
+}
+
+async function searchRomanLyricWindows(query, limit = 5) {
+  const safeQuery = String(query || "").trim();
+  const safeLimit = Math.max(1, Math.min(Number(limit || 5), 8));
+
+  if (!safeQuery || !supabaseClient) {
+    return [];
+  }
+
+  if (!shouldRunRomanLyricWindowSearch(safeQuery)) {
+    return [];
+  }
+
+  try {
+    const { data, error } = await supabaseClient.rpc(
+      "mehfil_roman_lyric_window_search_v1",
+      {
+        p_query: safeQuery,
+        p_limit: safeLimit
+      }
+    );
+
+    if (error) {
+      console.warn("Roman lyric window search skipped:", error.message || error);
+      return [];
+    }
+
+    const seen = new Set();
+
+    return (Array.isArray(data) ? data : [])
+      .map(row => normalizeRomanLyricWindowRpcRow(row))
+      .filter(Boolean)
+      .filter(candidate => {
+        const level = getCandidateConfidenceLevel(candidate);
+        return level === "high" || level === "medium";
+      })
+      .sort((a, b) => {
+        const aMeta = getCandidateSearchMeta(a);
+        const bMeta = getCandidateSearchMeta(b);
+
+        const aScore = Number(a.match_score || aMeta.match_score || 0);
+        const bScore = Number(b.match_score || bMeta.match_score || 0);
+
+        if (bScore !== aScore) return bScore - aScore;
+
+        return String(a.title || "").localeCompare(String(b.title || ""));
+      })
+      .filter(candidate => {
+        const key = getCachedTitleAliasDisplayKey(candidate);
+        if (!key || seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      })
+      .slice(0, safeLimit);
+  } catch (error) {
+    console.warn("Roman lyric window search failed:", error);
+    return [];
+  }
+}
+
 async function searchCachedTypoRescue(query, limit = 5) {
   const safeQuery = String(query || "").trim();
   const safeLimit = Math.max(1, Math.min(Number(limit || 5), 8));
@@ -16961,6 +17137,40 @@ if (nativeTokenCount > 0) {
     Runs before provider/LRCLIB fallback.
     It checks only our prepared Mehfil cache RPC.
   */
+
+    /*
+    Manual Roman lyric window search:
+    Saved Hindi lyrics typed in Roman letters.
+    Runs before broad typo rescue and before live provider fallback.
+  */
+  const romanLyricWindowCandidates = await searchRomanLyricWindows(safeQuery, 6);
+
+  if (Array.isArray(romanLyricWindowCandidates) && romanLyricWindowCandidates.length > 0) {
+    shownCandidates = mergeOnlineCandidates(shownCandidates, romanLyricWindowCandidates).slice(0, 6);
+
+    renderResults([], safeQuery, { suppressEmptyState: true });
+    renderSearchOnlineCandidates(shownCandidates);
+
+    setSearchOnlineState(
+      `${shownCandidates.length} Roman lyric match(es) found in Mehfil library.`,
+      "success"
+    );
+
+    prefetchOnlineCandidateDetails(shownCandidates, 3);
+
+    logMehfilSearchResultsStats(
+      safeQuery,
+      "manual",
+      shownCandidates,
+      "cache_roman_lyric_window",
+      {
+        source: "roman_lyric_window_rpc"
+      }
+    );
+
+    return;
+  }
+
   const typoRescueCandidates = await searchCachedTypoRescue(safeQuery, 6);
 
   if (Array.isArray(typoRescueCandidates) && typoRescueCandidates.length > 0) {
@@ -19871,6 +20081,55 @@ return;
     It must run before old in-memory empty cache, otherwise old failed
     searches can block the new smarter lane.
   */
+
+  /*
+    Roman lyric window search:
+    Catches Hindi lyrics typed in Roman letters.
+
+    Examples:
+    - har mulakat pe -> हर मुलाक़ात पे
+    - jagate jagte ek umr -> जागते जागते इक उम्र
+    - dhadakte dil k tarane -> धड़कते दिल के तराने
+    - tere kailasho ka -> तेरे कैलशों का
+
+    Runs after cached lyric phrase and before broader typo rescue.
+  */
+  const romanLyricWindowCandidates = await searchRomanLyricWindows(safeQuery, 5);
+
+  if (cacheRunId !== autoWarmCacheRunId) return;
+
+  if (Array.isArray(romanLyricWindowCandidates) && romanLyricWindowCandidates.length > 0) {
+    if (statusTimer) {
+      clearTimeout(statusTimer);
+      statusTimer = null;
+    }
+
+    autoWarmCacheMemory.set(cacheKey, {
+      at: Date.now(),
+      candidates: romanLyricWindowCandidates.slice(),
+      source: "cache_roman_lyric_window"
+    });
+
+    const currentInput = document.getElementById("searchInput");
+
+    if (currentInput && currentInput.value.trim() !== safeQuery) return;
+
+    setAutoWarmCacheResultState(romanLyricWindowCandidates);
+    renderSearchOnlineCandidates(romanLyricWindowCandidates);
+
+    logMehfilSearchResultsStats(
+      safeQuery,
+      "typed",
+      romanLyricWindowCandidates,
+      "cache_roman_lyric_window",
+      {
+        source: "roman_lyric_window_rpc"
+      }
+    );
+
+    return;
+  }
+
   const typoRescueCandidates = await searchCachedTypoRescue(safeQuery, 5);
 
   if (cacheRunId !== autoWarmCacheRunId) return;
