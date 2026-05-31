@@ -15384,16 +15384,38 @@ async function searchCachedTitleTypoRescue(query, limit = 5) {
         return level === "high" || level === "medium";
       })
       .sort((a, b) => {
-        const aMeta = getCandidateSearchMeta(a);
-        const bMeta = getCandidateSearchMeta(b);
+  const titleSortNorm = value => String(value || "")
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^\p{L}\p{N}]+/gu, " ")
+    .trim()
+    .replace(/\s+/g, " ");
 
-        const aScore = Number(a.match_score || aMeta.match_score || 0);
-        const bScore = Number(b.match_score || bMeta.match_score || 0);
+  const queryNorm = titleSortNorm(safeQuery);
 
-        if (bScore !== aScore) return bScore - aScore;
+  const aTitleNorm = titleSortNorm(a.title || "");
+  const bTitleNorm = titleSortNorm(b.title || "");
 
-        return String(a.title || "").localeCompare(String(b.title || ""));
-      })
+  const aExact = aTitleNorm === queryNorm ? 1 : 0;
+  const bExact = bTitleNorm === queryNorm ? 1 : 0;
+
+  /*
+    Exact title equality must beat fuzzy typo score.
+    Otherwise "Bum Bum Bhole" beats "Bum Bum Bole", which is clown math.
+  */
+  if (bExact !== aExact) return bExact - aExact;
+
+  const aMeta = getCandidateSearchMeta(a);
+  const bMeta = getCandidateSearchMeta(b);
+
+  const aScore = Number(a.match_score || aMeta.match_score || 0);
+  const bScore = Number(b.match_score || bMeta.match_score || 0);
+
+  if (bScore !== aScore) return bScore - aScore;
+
+  return String(a.title || "").localeCompare(String(b.title || ""));
+})
       .filter(candidate => {
         const key = getCachedTitleAliasDisplayKey(candidate);
         if (!key || seen.has(key)) return false;
@@ -15793,7 +15815,69 @@ async function hydrateOnlineRomanLyricCandidate(candidate) {
     return candidate;
   }
 }
+async function hydrateTitleTypoCandidateFromOnlineCache(candidate) {
+  if (!candidate || !supabaseClient) return candidate;
 
+  const meta = getCandidateSearchMeta(candidate);
+
+  const isTitleTypoPreviewOnly =
+    meta.title_typo_rescue_index ||
+    String(candidate.match_source || "").startsWith("cache_title_typo") ||
+    String(meta.match_source || "").startsWith("cache_title_typo");
+
+  if (!isTitleTypoPreviewOnly) return candidate;
+
+  if (cleanLyricsText(candidate.lyrics || "").length >= 20) return candidate;
+
+  try {
+    const { data, error } = await supabaseClient.rpc(
+      "mehfil_get_online_cache_candidate_by_title_v1",
+      {
+        p_title: candidate.title || "",
+        p_singer: candidate.singer || "",
+        p_movie: candidate.movie || ""
+      }
+    );
+
+    if (error) {
+      console.warn("Title typo cache hydration skipped:", error.message || error);
+      return candidate;
+    }
+
+    const row = Array.isArray(data) ? data[0] : null;
+    if (!row) return candidate;
+
+    const fullLyrics = cleanLyricsText(row.lyrics || "");
+    if (fullLyrics.length < 20) return candidate;
+
+    return {
+      ...candidate,
+      title: row.title || candidate.title || "",
+      singer: row.singer || candidate.singer || "",
+      movie: row.movie || candidate.movie || "",
+      provider: row.provider || candidate.provider || "online_cache",
+      source_name: row.source_name || "Mehfil Cache",
+      source_url: row.source_url || "",
+      script: row.script || candidate.script || "devanagari",
+      lyrics: fullLyrics,
+      preview: candidate.preview || row.preview || "",
+      status: "lyrics_ready",
+      is_partial: false,
+      lookup_key: `online-title-cache:${row.cache_id}:${row.candidate_no}`,
+      is_online_title_cache_hydrated: true,
+      search_meta: {
+        ...meta,
+        cache_id: row.cache_id,
+        candidate_no: row.candidate_no,
+        hydrated_from_online_cache_title: true,
+        has_full_online_cache_lyrics: true
+      }
+    };
+  } catch (error) {
+    console.warn("Title typo cache hydration failed:", error);
+    return candidate;
+  }
+}
 async function searchOnlineRomanLyricWindows(query, limit = 5) {
   const safeQuery = String(query || "").trim();
   const safeLimit = Math.max(1, Math.min(Number(limit || 5), 8));
@@ -18248,6 +18332,82 @@ async function openOnlineCandidate(candidate) {
   if (!candidate) return;
 
   const modalToken = ++onlineModalLoadToken;
+    /*
+    Title typo candidates often have only "Matched title" preview.
+    Before showing preview-only garbage, try to hydrate full lyrics from online_song_cache.
+  */
+  {
+    const meta = candidate ? getCandidateSearchMeta(candidate) : {};
+
+    const isTitleTypoPreviewOnly =
+      !!candidate &&
+      cleanLyricsText(candidate.lyrics || "").length < 20 &&
+      (
+        meta.title_typo_rescue_index ||
+        String(candidate.match_source || "").startsWith("cache_title_typo") ||
+        String(meta.match_source || "").startsWith("cache_title_typo")
+      );
+
+    if (isTitleTypoPreviewOnly && typeof hydrateTitleTypoCandidateFromOnlineCache === "function") {
+      const hydratedCandidate = await hydrateTitleTypoCandidateFromOnlineCache(candidate);
+      const fullLyrics = cleanLyricsText(hydratedCandidate.lyrics || "");
+
+      if (fullLyrics.length >= 20) {
+        hideSearchOnlineBanner();
+
+        openModalKind = "online";
+        openOnlineCandidateData = {
+          ...hydratedCandidate,
+          lyrics: fullLyrics,
+          status: "lyrics_ready",
+          is_partial: false
+        };
+        openSongId = null;
+
+        document.getElementById("modalTitle").textContent = hydratedCandidate.title || "";
+        document.getElementById("modalMeta").textContent = joinMeta([
+          hydratedCandidate.movie,
+          hydratedCandidate.singer
+        ]);
+
+        const modalExtraMeta = document.getElementById("modalExtraMeta");
+        const modalLyrics = document.getElementById("modalLyrics");
+
+        modalExtraMeta.innerHTML = `
+          <div><strong>Source:</strong> Mehfil Cache</div>
+          <div><strong>Confidence:</strong> ${escapeHtml(formatConfidence(hydratedCandidate.confidence))}</div>
+          <div><strong>Language:</strong> ${escapeHtml(getScriptLabel(hydratedCandidate.script))}</div>
+          <div><strong>Matched:</strong> ${escapeHtml(cleanLyricsText(candidate.preview || meta.matched_phrase || hydratedCandidate.title || ""))}</div>
+          <div><strong>Status:</strong> Full lyrics loaded</div>
+        `;
+        modalExtraMeta.classList.remove("hidden");
+
+        modalLyrics.innerHTML = escapeHtml(fullLyrics);
+
+        setOnlineModalButtonsLoading(false);
+        setSaveButtonHighlight(false);
+
+        document.getElementById("modalSaveBtn").classList.toggle("hidden", !isApproved());
+        document.getElementById("modalBookmarkBtn").classList.toggle("hidden", !isApproved());
+        document.getElementById("modalShareNowBtn").classList.toggle("hidden", !isApproved());
+        document.getElementById("modalEditBtn").classList.toggle("hidden", !isApproved());
+        document.getElementById("modalDeleteBtn").classList.add("hidden");
+
+        if (typeof openSongModalShell === "function") {
+          openSongModalShell();
+        } else {
+          document.getElementById("songModal").classList.add("show");
+          document.body.style.overflow = "hidden";
+        }
+
+        pushSongModalHistoryState();
+
+        return;
+      }
+    }
+  }
+  
+  
   /*
     PATCH: online Roman lyric matches must open from Mehfil cache full lyrics,
     not through LRCLIB/provider preview mode.
