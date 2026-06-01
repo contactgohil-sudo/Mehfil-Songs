@@ -17425,7 +17425,11 @@ async function runOnlineLookupForSearch(query, options = {}) {
         "success"
       );
 
-      prefetchOnlineCandidateDetails(shownCandidates, 3);
+      /*
+  Manual search should not prefetch provider details here.
+  Opening the result will hydrate/fetch details on demand.
+  This avoids preview-only modal flicker.
+*/
 
 logMehfilSearchResultsStats(
   safeQuery,
@@ -17511,7 +17515,11 @@ if (nativeTokenCount > 0) {
       "success"
     );
 
-    prefetchOnlineCandidateDetails(shownCandidates, 3);
+    /*
+  Manual search should not prefetch provider details here.
+  Opening the result will hydrate/fetch details on demand.
+  This avoids preview-only modal flicker.
+*/
 
     logMehfilSearchResultsStats(
       safeQuery,
@@ -17567,7 +17575,11 @@ if (nativeTokenCount > 0) {
       "success"
     );
 
-    prefetchOnlineCandidateDetails(shownCandidates, 3);
+    /*
+  Manual search should not prefetch provider details here.
+  Opening the result will hydrate/fetch details on demand.
+  This avoids preview-only modal flicker.
+*/
 
     logMehfilSearchResultsStats(
       safeQuery,
@@ -17718,7 +17730,11 @@ lookupDirectProviderLinksCacheOnly(safeQuery)
     renderSearchOnlineCandidates(shownCandidates);
 
     setSearchOnlineState(message, "success");
-    prefetchOnlineCandidateDetails(shownCandidates, 3);
+    /*
+  Manual search should not prefetch provider details here.
+  Opening the result will hydrate/fetch details on demand.
+  This avoids preview-only modal flicker.
+*/
   }
 
   function finishIfBothDone() {
@@ -17767,7 +17783,11 @@ if (useTitleSuggestions) {
       "success"
     );
 
-    prefetchOnlineCandidateDetails(shownCandidates, 3);
+    /*
+  Manual search should not prefetch provider details here.
+  Opening the result will hydrate/fetch details on demand.
+  This avoids preview-only modal flicker.
+*/
 
     directDone = true;
     edgeDone = true;
@@ -18336,6 +18356,99 @@ async function openOnlineCandidate(candidate) {
   if (!candidate) return;
 
   const modalToken = ++onlineModalLoadToken;
+      /*
+    EARLY TITLE-TYPO HYDRATION PATCH:
+    Do not open title typo candidates as preview-only first.
+    Hydrate from Mehfil Cache before showing the modal.
+  */
+  {
+    const meta = candidate ? getCandidateSearchMeta(candidate) : {};
+
+    const isTitleTypoPreviewOnly =
+      !!candidate &&
+      cleanLyricsText(candidate.lyrics || "").length < 20 &&
+      (
+        meta.title_typo_rescue_index ||
+        String(candidate.match_source || "").startsWith("cache_title_typo") ||
+        String(meta.match_source || "").startsWith("cache_title_typo")
+      );
+
+    if (isTitleTypoPreviewOnly && typeof hydrateTitleTypoCandidateFromOnlineCache === "function") {
+      console.log("TITLE TYPO EARLY HYDRATION HIT", {
+        title: candidate.title,
+        singer: candidate.singer,
+        movie: candidate.movie,
+        match_source: candidate.match_source,
+        status: candidate.status,
+        lyricsLengthBefore: (candidate.lyrics || "").length,
+        meta
+      });
+
+      const hydratedCandidate = await hydrateTitleTypoCandidateFromOnlineCache(candidate);
+      const fullLyrics = cleanLyricsText(hydratedCandidate.lyrics || "");
+      const hydratedMeta = getCandidateSearchMeta(hydratedCandidate);
+
+      if (fullLyrics.length >= 20) {
+        hideSearchOnlineBanner();
+
+        openModalKind = "online";
+        openOnlineCandidateData = {
+          ...hydratedCandidate,
+          lyrics: fullLyrics,
+          status: "lyrics_ready",
+          is_partial: false
+        };
+        openSongId = null;
+
+        document.getElementById("modalTitle").textContent = hydratedCandidate.title || "";
+        document.getElementById("modalMeta").textContent = joinMeta([
+          hydratedCandidate.movie,
+          hydratedCandidate.singer
+        ]);
+
+        const modalExtraMeta = document.getElementById("modalExtraMeta");
+        const modalLyrics = document.getElementById("modalLyrics");
+
+        modalExtraMeta.innerHTML = `
+          <div><strong>Source:</strong> Mehfil Cache</div>
+          <div><strong>Confidence:</strong> ${escapeHtml(formatConfidence(hydratedCandidate.confidence))}</div>
+          <div><strong>Language:</strong> ${escapeHtml(getScriptLabel(hydratedCandidate.script))}</div>
+          <div><strong>Matched:</strong> ${escapeHtml(cleanLyricsText(candidate.preview || hydratedMeta.matched_phrase || hydratedCandidate.title || ""))}</div>
+          <div><strong>Status:</strong> Full lyrics loaded</div>
+        `;
+        modalExtraMeta.classList.remove("hidden");
+
+        modalLyrics.innerHTML = escapeHtml(fullLyrics);
+
+        setOnlineModalButtonsLoading(false);
+        setSaveButtonHighlight(false);
+
+        document.getElementById("modalSaveBtn").classList.toggle("hidden", !isApproved());
+        document.getElementById("modalBookmarkBtn").classList.toggle("hidden", !isApproved());
+        document.getElementById("modalShareNowBtn").classList.toggle("hidden", !isApproved());
+        document.getElementById("modalEditBtn").classList.toggle("hidden", !isApproved());
+        document.getElementById("modalDeleteBtn").classList.add("hidden");
+
+        if (typeof openSongModalShell === "function") {
+          openSongModalShell();
+        } else {
+          document.getElementById("songModal").classList.add("show");
+          document.body.style.overflow = "hidden";
+        }
+
+        pushSongModalHistoryState();
+
+        return;
+      }
+
+      console.warn("TITLE TYPO EARLY HYDRATION FAILED", {
+        title: candidate.title,
+        lyricsLengthAfter: fullLyrics.length,
+        hydratedCandidate
+      });
+    }
+  }
+
     /*
     Title typo candidates often have only "Matched title" preview.
     Before showing preview-only garbage, try to hydrate full lyrics from online_song_cache.
