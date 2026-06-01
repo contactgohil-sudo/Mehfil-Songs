@@ -17630,7 +17630,11 @@ if (nativeTokenCount > 0) {
       "success"
     );
 
-    prefetchOnlineCandidateDetails(shownCandidates, 3);
+    /*
+  No provider prefetch here.
+  Online Roman lyric candidates already hydrate from online_song_cache.
+  Provider prefetch can interfere with full-cache lyrics and cause preview-only modal behavior.
+*/
 
     logMehfilSearchResultsStats(
       safeQuery,
