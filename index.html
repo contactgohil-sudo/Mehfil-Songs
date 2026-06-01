@@ -10398,6 +10398,85 @@ body.mehfil-keyboard-open #searchResults {
   }
 }
 
+/* =========================================================
+   LYRICS AUTO-SCROLL CONTROL — PATCH
+   Adds Play/Pause + speed controls beside opened lyrics.
+   Uses existing floating font-control style.
+   ========================================================= */
+
+#songModal .lyrics-auto-scroll-toggle-btn {
+  background: #111827 !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(17, 24, 39, 0.9) !important;
+  font-size: 13px !important;
+}
+
+#songModal .lyrics-auto-scroll-toggle-btn.lyrics-auto-scroll-active {
+  background: #fff7ed !important;
+  color: #9a3412 !important;
+  border: 1px solid #fed7aa !important;
+}
+
+#songModal .lyrics-auto-scroll-speed-controls {
+  display: grid;
+  gap: 5px;
+}
+
+#songModal .lyrics-auto-scroll-speed-controls.hidden {
+  display: none !important;
+}
+
+#songModal .lyrics-auto-scroll-speed-btn {
+  background: #ffffff !important;
+  color: #111827 !important;
+  border: 1px solid rgba(203, 213, 225, 0.8) !important;
+}
+
+#songModal .lyrics-auto-scroll-speed-label {
+  width: 29px;
+  min-width: 29px;
+  height: 23px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  background: rgba(255, 255, 255, 0.86);
+  color: #344054;
+  border: 1px solid rgba(203, 213, 225, 0.75);
+
+  font-size: 10px;
+  line-height: 1;
+  font-weight: 950;
+  pointer-events: none;
+}
+
+#songModal .lyrics-control-divider {
+  width: 20px;
+  height: 1px;
+  margin: 1px auto;
+  background: rgba(148, 163, 184, 0.45);
+}
+
+@media (max-width: 640px) {
+  #songModal .lyrics-auto-scroll-speed-controls {
+    gap: 4px;
+  }
+
+  #songModal .lyrics-auto-scroll-speed-label {
+    width: 28px;
+    min-width: 28px;
+    height: 22px;
+    font-size: 9px;
+  }
+
+  #songModal .lyrics-auto-scroll-toggle-btn {
+    font-size: 12px !important;
+  }
+}
+
+
+
   </style>
 </head>
 <body>
@@ -10928,8 +11007,18 @@ body.mehfil-keyboard-open #searchResults {
   </div>
 </div>
 
-<div id="lyricsFontControls" class="lyrics-font-controls" aria-label="Lyrics font size controls">
+<div id="lyricsFontControls" class="lyrics-font-controls" aria-label="Lyrics reading controls">
   <div class="lyrics-font-controls-inner">
+    <button id="lyricsAutoScrollToggleBtn" class="lyrics-font-btn lyrics-auto-scroll-toggle-btn" type="button" title="Start auto-scroll" aria-label="Start auto-scroll">▶</button>
+
+    <div id="lyricsAutoScrollSpeedControls" class="lyrics-auto-scroll-speed-controls hidden" aria-label="Auto-scroll speed controls">
+      <button id="lyricsAutoScrollSpeedUpBtn" class="lyrics-font-btn lyrics-auto-scroll-speed-btn" type="button" title="Increase auto-scroll speed" aria-label="Increase auto-scroll speed">+</button>
+      <div id="lyricsAutoScrollSpeedLabel" class="lyrics-auto-scroll-speed-label" aria-live="polite">1.0x</div>
+      <button id="lyricsAutoScrollSpeedDownBtn" class="lyrics-font-btn lyrics-auto-scroll-speed-btn" type="button" title="Decrease auto-scroll speed" aria-label="Decrease auto-scroll speed">−</button>
+    </div>
+
+    <div class="lyrics-control-divider" aria-hidden="true"></div>
+
     <button id="lyricsFontIncreaseBtn" class="lyrics-font-btn" type="button" title="Increase lyrics size" aria-label="Increase lyrics size">+</button>
     <button id="lyricsFontDecreaseBtn" class="lyrics-font-btn" type="button" title="Decrease lyrics size" aria-label="Decrease lyrics size">−</button>
   </div>
@@ -18573,6 +18662,221 @@ const MEHFIL_LYRICS_FONT_DEFAULT = 17;
 let currentLyricsFontSize = MEHFIL_LYRICS_FONT_DEFAULT;
 let lyricsFontSaveTimer = null;
 
+const MEHFIL_LYRICS_AUTOSCROLL_SPEEDS = [0.25, 0.35, 0.5, 0.7, 0.9, 1.1, 1.3];
+const MEHFIL_LYRICS_AUTOSCROLL_DEFAULT_INDEX = 2;
+const MEHFIL_LYRICS_AUTOSCROLL_BASE_PX_PER_SECOND = 24;
+
+let currentLyricsAutoScrollSpeedIndex = MEHFIL_LYRICS_AUTOSCROLL_DEFAULT_INDEX;
+let lyricsAutoScrollActive = false;
+let lyricsAutoScrollFrameId = null;
+let lyricsAutoScrollLastTimestamp = 0;
+let lyricsAutoScrollProgrammaticUntil = 0;
+let lyricsAutoScrollRemainderPx = 0;
+
+function getLyricsAutoScrollStorageKey() {
+  const userId = profile?.id || session?.user?.id || "guest";
+  return `mehfil_lyrics_autoscroll_speed:${userId}`;
+}
+
+function clampLyricsAutoScrollSpeedIndex(index) {
+  const n = Number(index);
+  if (!Number.isFinite(n)) return MEHFIL_LYRICS_AUTOSCROLL_DEFAULT_INDEX;
+  return Math.max(0, Math.min(MEHFIL_LYRICS_AUTOSCROLL_SPEEDS.length - 1, Math.round(n)));
+}
+
+function readSavedLyricsAutoScrollSpeedIndex() {
+  try {
+    const saved = localStorage.getItem(getLyricsAutoScrollStorageKey());
+    if (saved !== null && saved !== "") {
+      return clampLyricsAutoScrollSpeedIndex(saved);
+    }
+  } catch (_) {}
+
+  return MEHFIL_LYRICS_AUTOSCROLL_DEFAULT_INDEX;
+}
+
+function saveLyricsAutoScrollSpeedIndex() {
+  try {
+    localStorage.setItem(
+      getLyricsAutoScrollStorageKey(),
+      String(currentLyricsAutoScrollSpeedIndex)
+    );
+  } catch (_) {}
+}
+
+function getLyricsAutoScrollSpeed() {
+  return MEHFIL_LYRICS_AUTOSCROLL_SPEEDS[currentLyricsAutoScrollSpeedIndex] || 1.0;
+}
+
+function getLyricsScrollContainer() {
+  return document.querySelector("#songModal .modal-card");
+}
+
+function updateLyricsAutoScrollControls() {
+  const toggleBtn = document.getElementById("lyricsAutoScrollToggleBtn");
+  const speedControls = document.getElementById("lyricsAutoScrollSpeedControls");
+  const speedLabel = document.getElementById("lyricsAutoScrollSpeedLabel");
+  const speedUpBtn = document.getElementById("lyricsAutoScrollSpeedUpBtn");
+  const speedDownBtn = document.getElementById("lyricsAutoScrollSpeedDownBtn");
+
+  const speed = getLyricsAutoScrollSpeed();
+
+  if (toggleBtn) {
+    toggleBtn.textContent = lyricsAutoScrollActive ? "❚❚" : "▶";
+    toggleBtn.title = lyricsAutoScrollActive ? "Pause auto-scroll" : "Start auto-scroll";
+    toggleBtn.setAttribute(
+      "aria-label",
+      lyricsAutoScrollActive ? "Pause auto-scroll" : "Start auto-scroll"
+    );
+    toggleBtn.classList.toggle("lyrics-auto-scroll-active", lyricsAutoScrollActive);
+  }
+
+  if (speedControls) {
+    speedControls.classList.toggle("hidden", !lyricsAutoScrollActive);
+  }
+
+  if (speedLabel) {
+    speedLabel.textContent = `${speed.toFixed(1)}x`;
+  }
+
+  if (speedUpBtn) {
+    speedUpBtn.disabled = currentLyricsAutoScrollSpeedIndex >= MEHFIL_LYRICS_AUTOSCROLL_SPEEDS.length - 1;
+  }
+
+  if (speedDownBtn) {
+    speedDownBtn.disabled = currentLyricsAutoScrollSpeedIndex <= 0;
+  }
+}
+
+function bindLyricsAutoScrollScrollGuard() {
+  const card = getLyricsScrollContainer();
+  if (!card || card.dataset.lyricsAutoScrollGuardBound === "true") return;
+
+  card.dataset.lyricsAutoScrollGuardBound = "true";
+
+  card.addEventListener("scroll", () => {
+    if (!lyricsAutoScrollActive) return;
+
+    /*
+      Our own auto-scroll also fires scroll events.
+      Only pause when the user manually scrolls.
+    */
+    if (Date.now() > lyricsAutoScrollProgrammaticUntil) {
+      stopLyricsAutoScroll();
+    }
+  }, { passive: true });
+}
+
+function stopLyricsAutoScroll() {
+  lyricsAutoScrollActive = false;
+  lyricsAutoScrollLastTimestamp = 0;
+  lyricsAutoScrollRemainderPx = 0;
+  
+
+  if (lyricsAutoScrollFrameId) {
+    cancelAnimationFrame(lyricsAutoScrollFrameId);
+    lyricsAutoScrollFrameId = null;
+  }
+
+  updateLyricsAutoScrollControls();
+}
+
+function runLyricsAutoScrollFrame(timestamp) {
+  if (!lyricsAutoScrollActive) return;
+
+  const card = getLyricsScrollContainer();
+  if (!card) {
+    stopLyricsAutoScroll();
+    return;
+  }
+
+  const maxScrollTop = Math.max(0, card.scrollHeight - card.clientHeight);
+
+  if (maxScrollTop <= 0 || card.scrollTop >= maxScrollTop - 2) {
+    stopLyricsAutoScroll();
+    return;
+  }
+
+  if (!lyricsAutoScrollLastTimestamp) {
+    lyricsAutoScrollLastTimestamp = timestamp;
+  }
+
+  const deltaMs = Math.min(80, Math.max(0, timestamp - lyricsAutoScrollLastTimestamp));
+  lyricsAutoScrollLastTimestamp = timestamp;
+
+  const speed = getLyricsAutoScrollSpeed();
+const pixelsPerSecond = MEHFIL_LYRICS_AUTOSCROLL_BASE_PX_PER_SECOND * speed;
+const pixelDelta = pixelsPerSecond * deltaMs / 1000;
+
+lyricsAutoScrollRemainderPx += pixelDelta;
+
+const wholePixelDelta = Math.floor(lyricsAutoScrollRemainderPx);
+
+if (wholePixelDelta >= 1) {
+  lyricsAutoScrollRemainderPx -= wholePixelDelta;
+
+  const nextScrollTop = Math.min(
+    maxScrollTop,
+    card.scrollTop + wholePixelDelta
+  );
+
+  lyricsAutoScrollProgrammaticUntil = Date.now() + 160;
+  card.scrollTop = nextScrollTop;
+}
+
+lyricsAutoScrollFrameId = requestAnimationFrame(runLyricsAutoScrollFrame);
+}
+
+function startLyricsAutoScroll() {
+  const modal = document.getElementById("songModal");
+  const card = getLyricsScrollContainer();
+
+  if (!modal || !modal.classList.contains("show") || !card) return;
+
+  bindLyricsAutoScrollScrollGuard();
+
+  const maxScrollTop = Math.max(0, card.scrollHeight - card.clientHeight);
+
+  if (maxScrollTop <= 0 || card.scrollTop >= maxScrollTop - 2) {
+    return;
+  }
+
+  if (lyricsAutoScrollFrameId) {
+    cancelAnimationFrame(lyricsAutoScrollFrameId);
+    lyricsAutoScrollFrameId = null;
+  }
+
+  lyricsAutoScrollActive = true;
+lyricsAutoScrollLastTimestamp = 0;
+lyricsAutoScrollRemainderPx = 0;
+updateLyricsAutoScrollControls();
+
+  lyricsAutoScrollFrameId = requestAnimationFrame(runLyricsAutoScrollFrame);
+}
+
+function toggleLyricsAutoScroll() {
+  if (lyricsAutoScrollActive) {
+    stopLyricsAutoScroll();
+  } else {
+    startLyricsAutoScroll();
+  }
+}
+
+function changeLyricsAutoScrollSpeed(delta) {
+  currentLyricsAutoScrollSpeedIndex = clampLyricsAutoScrollSpeedIndex(
+    currentLyricsAutoScrollSpeedIndex + delta
+  );
+
+  saveLyricsAutoScrollSpeedIndex();
+  updateLyricsAutoScrollControls();
+}
+
+function applySavedLyricsAutoScrollSpeed() {
+  currentLyricsAutoScrollSpeedIndex = readSavedLyricsAutoScrollSpeedIndex();
+  updateLyricsAutoScrollControls();
+}
+
+
 function clampLyricsFontSize(value) {
   const n = Number(value);
   if (!Number.isFinite(n)) return MEHFIL_LYRICS_FONT_DEFAULT;
@@ -18665,6 +18969,9 @@ function changeLyricsFontSize(delta) {
 
 function openSongModalShell() {
   applySavedLyricsFontSize();
+  applySavedLyricsAutoScrollSpeed();
+  stopLyricsAutoScroll();
+
   const modal = document.getElementById("songModal");
   const card = modal?.querySelector(".modal-card");
 
@@ -18675,9 +18982,14 @@ function openSongModalShell() {
   document.body.style.overflow = "hidden";
 
   requestAnimationFrame(() => {
-    if (card) card.scrollTop = 0;
-    modal.scrollTop = 0;
-  });
+  if (card) {
+    card.scrollTop = 0;
+    bindLyricsAutoScrollScrollGuard();
+  }
+
+  modal.scrollTop = 0;
+  updateLyricsAutoScrollControls();
+});
 }
 
 async function openOnlineCandidate(candidate) {
@@ -21304,20 +21616,43 @@ const exactCachedCandidates = annotateExactOnlineCacheCandidates(
         statusTimer = null;
       }
 
-      autoWarmCacheMemory.set(cacheKey, {
-        at: Date.now(),
-        candidates: exactCachedCandidates.slice(),
-        source: "exact_online_song_cache"
-      });
-
-      if (cacheRunId !== autoWarmCacheRunId) return;
+            if (cacheRunId !== autoWarmCacheRunId) return;
 
       const currentInput = document.getElementById("searchInput");
 
       if (currentInput && currentInput.value.trim() !== safeQuery) return;
 
-      setAutoWarmCacheResultState(exactCachedCandidates);
-renderSearchOnlineCandidates(exactCachedCandidates);
+      let visibleExactCachedCandidates = exactCachedCandidates.slice();
+
+try {
+  const titleTypoCandidates = await searchCachedTitleTypoRescue(safeQuery, 8);
+
+  if (cacheRunId !== autoWarmCacheRunId) return;
+
+  const rankedTitleTypoCandidates = await hydrateAndRankTitleTypoCandidates(
+    titleTypoCandidates,
+    safeQuery,
+    5
+  );
+
+  if (Array.isArray(rankedTitleTypoCandidates) && rankedTitleTypoCandidates.length > 0) {
+    visibleExactCachedCandidates = mergeOnlineCandidates(
+      visibleExactCachedCandidates,
+      rankedTitleTypoCandidates
+    ).slice(0, 6);
+  }
+} catch (variantError) {
+  console.warn("Typed exact-cache variant merge skipped:", variantError);
+}
+autoWarmCacheMemory.set(cacheKey, {
+  at: Date.now(),
+  candidates: visibleExactCachedCandidates.slice(),
+  source: "exact_online_song_cache_with_variants"
+});
+
+
+setAutoWarmCacheResultState(visibleExactCachedCandidates);
+renderSearchOnlineCandidates(visibleExactCachedCandidates);
 return;
     }
 
@@ -21352,16 +21687,39 @@ return;
 
       if (currentInput && currentInput.value.trim() !== safeQuery) return;
 
-      setAutoWarmCacheResultState(titleAliasCandidates);
-renderSearchOnlineCandidates(titleAliasCandidates);
+      let visibleTitleCandidates = titleAliasCandidates.slice();
+
+try {
+  const titleTypoCandidates = await searchCachedTitleTypoRescue(safeQuery, 8);
+
+  if (cacheRunId !== autoWarmCacheRunId) return;
+
+  const rankedTitleTypoCandidates = await hydrateAndRankTitleTypoCandidates(
+    titleTypoCandidates,
+    safeQuery,
+    5
+  );
+
+  if (Array.isArray(rankedTitleTypoCandidates) && rankedTitleTypoCandidates.length > 0) {
+    visibleTitleCandidates = mergeOnlineCandidates(
+      visibleTitleCandidates,
+      rankedTitleTypoCandidates
+    ).slice(0, 6);
+  }
+} catch (variantError) {
+  console.warn("Typed title variant merge skipped:", variantError);
+}
+
+setAutoWarmCacheResultState(visibleTitleCandidates);
+renderSearchOnlineCandidates(visibleTitleCandidates);
 
 logMehfilSearchResultsStats(
   safeQuery,
   "typed",
-  titleAliasCandidates,
-  "cache_title_alias",
+  visibleTitleCandidates,
+  "cache_title_alias_with_variants",
   {
-    source: "cache_title_alias_rpc"
+    source: "cache_title_alias_rpc_plus_title_typo"
   }
 );
 
@@ -21510,14 +21868,18 @@ return;
     return;
   }
     
-  const hydratedTypoRescueCandidates = await hydrateMehfilCachePreviewCandidates(
-  typoRescueCandidates,
-  3
-);
+    const typoRescueCandidates = await searchCachedTypoRescue(safeQuery, 5);
 
   if (cacheRunId !== autoWarmCacheRunId) return;
 
   if (Array.isArray(typoRescueCandidates) && typoRescueCandidates.length > 0) {
+    const hydratedTypoRescueCandidates = await hydrateMehfilCachePreviewCandidates(
+      typoRescueCandidates,
+      3
+    );
+
+    if (cacheRunId !== autoWarmCacheRunId) return;
+
     if (statusTimer) {
       clearTimeout(statusTimer);
       statusTimer = null;
@@ -21525,24 +21887,24 @@ return;
 
     autoWarmCacheMemory.set(cacheKey, {
       at: Date.now(),
-      candidates: typoRescueCandidates.slice(),
-      source: "cache_typo_rescue"
+      candidates: hydratedTypoRescueCandidates.slice(),
+      source: "cache_typo_rescue_hydrated"
     });
 
     const currentInput = document.getElementById("searchInput");
 
     if (currentInput && currentInput.value.trim() !== safeQuery) return;
 
-    setAutoWarmCacheResultState(typoRescueCandidates);
-    renderSearchOnlineCandidates(typoRescueCandidates);
+    setAutoWarmCacheResultState(hydratedTypoRescueCandidates);
+    renderSearchOnlineCandidates(hydratedTypoRescueCandidates);
 
     logMehfilSearchResultsStats(
       safeQuery,
       "typed",
-      typoRescueCandidates,
-      "cache_typo_rescue",
+      hydratedTypoRescueCandidates,
+      "cache_typo_rescue_hydrated",
       {
-        source: "typo_rescue_rpc"
+        source: "typo_rescue_rpc_title_alias_hydrated"
       }
     );
 
@@ -21736,10 +22098,17 @@ async function scheduleSearchRender(query, options = {}) {
     requestAnimationFrame(() => {
       if (runId !== searchRunId) return;
 
-      const displayResults = filterStrongLocalResults(enriched, safeQuery);
-      const hasLocalResults = displayResults.length > 0;
+      let displayResults = filterStrongLocalResults(enriched, safeQuery);
 
-      renderResults(displayResults, safeQuery, { showSnippets });
+if (!displayResults.length && mode === "deep") {
+  const lyricFallbackResults = findLocalLyricFallbackResults(safeQuery);
+
+  if (lyricFallbackResults.length) {
+    displayResults = lyricFallbackResults;
+  }
+}
+
+renderResults(displayResults, safeQuery, { showSnippets });
 
       /*
         Fast mode stays purely local.
@@ -21762,10 +22131,17 @@ async function scheduleSearchRender(query, options = {}) {
     requestAnimationFrame(() => {
       if (runId !== searchRunId) return;
 
-      const displayResults = filterStrongLocalResults(fallbackResults, safeQuery);
-      const hasLocalResults = displayResults.length > 0;
+      let displayResults = filterStrongLocalResults(fallbackResults, safeQuery);
 
-      renderResults(displayResults, safeQuery, { showSnippets });
+if (!displayResults.length && mode === "deep") {
+  const lyricFallbackResults = findLocalLyricFallbackResults(safeQuery);
+
+  if (lyricFallbackResults.length) {
+    displayResults = lyricFallbackResults;
+  }
+}
+
+renderResults(displayResults, safeQuery, { showSnippets });
 
       /*
         Do not auto-call LRCLIB here.
@@ -25950,6 +26326,7 @@ modalBookmarkBtn.dataset.songId = String(songId);
 
  function closeSongModal(options = {}) {
   const fromHistory = !!options.fromHistory;
+    stopLyricsAutoScroll();
 
   onlineModalLoadToken++;
   openSongId = null;
@@ -27669,6 +28046,33 @@ document.getElementById("lyricsFontDecreaseBtn").addEventListener("click", (even
   event.stopPropagation();
   changeLyricsFontSize(-1);
 });
+
+const lyricsAutoScrollToggleBtn = document.getElementById("lyricsAutoScrollToggleBtn");
+if (lyricsAutoScrollToggleBtn) {
+  lyricsAutoScrollToggleBtn.addEventListener("click", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    toggleLyricsAutoScroll();
+  });
+}
+
+const lyricsAutoScrollSpeedUpBtn = document.getElementById("lyricsAutoScrollSpeedUpBtn");
+if (lyricsAutoScrollSpeedUpBtn) {
+  lyricsAutoScrollSpeedUpBtn.addEventListener("click", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    changeLyricsAutoScrollSpeed(1);
+  });
+}
+
+const lyricsAutoScrollSpeedDownBtn = document.getElementById("lyricsAutoScrollSpeedDownBtn");
+if (lyricsAutoScrollSpeedDownBtn) {
+  lyricsAutoScrollSpeedDownBtn.addEventListener("click", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    changeLyricsAutoScrollSpeed(-1);
+  });
+}
 
       document.getElementById("modalBookmarkBtn").addEventListener("click", async () => {
   if (openModalKind === "online" && openOnlineCandidateData) {
