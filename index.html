@@ -15348,6 +15348,8 @@ function normalizeTitleTypoRescueRpcRow(row) {
   return candidate;
 }
 
+
+
 async function searchCachedTitleTypoRescue(query, limit = 5) {
   const safeQuery = String(query || "").trim();
   const safeLimit = Math.max(1, Math.min(Number(limit || 5), 8));
@@ -15816,7 +15818,7 @@ async function hydrateOnlineRomanLyricCandidate(candidate) {
   }
 }
 async function hydrateTitleTypoCandidateFromOnlineCache(candidate) {
-  if (!candidate || !supabaseClient) return candidate;
+  if (!candidate) return candidate;
 
   const meta = getCandidateSearchMeta(candidate);
 
@@ -15829,55 +15831,377 @@ async function hydrateTitleTypoCandidateFromOnlineCache(candidate) {
 
   if (cleanLyricsText(candidate.lyrics || "").length >= 20) return candidate;
 
+  /*
+    Safe title-typo hydration:
+    Use the corrected title from typo rescue and ask the existing title-alias RPC.
+    Do NOT use broad online_song_cache JSON scan.
+  */
   try {
-    const { data, error } = await supabaseClient.rpc(
-      "mehfil_get_online_cache_candidate_by_title_v1",
-      {
-        p_title: candidate.title || "",
-        p_singer: candidate.singer || "",
-        p_movie: candidate.movie || ""
-      }
-    );
-
-    if (error) {
-      console.warn("Title typo cache hydration skipped:", error.message || error);
+    if (typeof searchCachedTitleAliases !== "function") {
       return candidate;
     }
 
-    const row = Array.isArray(data) ? data[0] : null;
-    if (!row) return candidate;
+    const aliasRows = await searchCachedTitleAliases(candidate.title || "", 6);
 
-    const fullLyrics = cleanLyricsText(row.lyrics || "");
-    if (fullLyrics.length < 20) return candidate;
+    const candidateTitleNorm = normalizeText(candidate.title || "");
+    const candidateSingerNorm = normalizeText(candidate.singer || "");
+    const candidateMovieNorm = normalizeText(candidate.movie || "");
+
+    const scoredRows = (Array.isArray(aliasRows) ? aliasRows : [])
+      .filter(row => cleanLyricsText(row.lyrics || "").length >= 20)
+      .map(row => {
+        const rowTitleNorm = normalizeText(row.title || "");
+        const rowSingerNorm = normalizeText(row.singer || "");
+        const rowMovieNorm = normalizeText(row.movie || "");
+
+        let score = 0;
+
+        if (rowTitleNorm === candidateTitleNorm) score += 1000;
+        else if (rowTitleNorm.includes(candidateTitleNorm) || candidateTitleNorm.includes(rowTitleNorm)) score += 650;
+
+        if (candidateSingerNorm && rowSingerNorm) {
+          if (rowSingerNorm === candidateSingerNorm) score += 250;
+          else if (rowSingerNorm.includes(candidateSingerNorm) || candidateSingerNorm.includes(rowSingerNorm)) score += 120;
+        }
+
+        if (candidateMovieNorm && rowMovieNorm) {
+          if (rowMovieNorm === candidateMovieNorm) score += 250;
+          else if (rowMovieNorm.includes(candidateMovieNorm) || candidateMovieNorm.includes(rowMovieNorm)) score += 120;
+        }
+
+        const rowMeta = getCandidateSearchMeta(row);
+        score += Number(row.match_score || rowMeta.match_score || 0) / 10;
+
+        return { row, score };
+      })
+      .sort((a, b) => b.score - a.score);
+
+    const best = scoredRows[0]?.row || null;
+
+    if (!best) {
+      return candidate;
+    }
+
+    const fullLyrics = cleanLyricsText(best.lyrics || "");
+
+    if (fullLyrics.length < 20) {
+      return candidate;
+    }
 
     return {
       ...candidate,
-      title: row.title || candidate.title || "",
-      singer: row.singer || candidate.singer || "",
-      movie: row.movie || candidate.movie || "",
-      provider: row.provider || candidate.provider || "online_cache",
-      source_name: row.source_name || "Mehfil Cache",
-      source_url: row.source_url || "",
-      script: row.script || candidate.script || "devanagari",
+      provider: best.provider || candidate.provider || "lrclib",
+      title: best.title || candidate.title || "",
+      singer: best.singer || candidate.singer || "",
+      movie: best.movie || candidate.movie || "",
+      source_name: best.source_name || "Mehfil Cache",
+      source_url: best.source_url || "",
+      script: best.script || candidate.script || "unknown",
       lyrics: fullLyrics,
-      preview: candidate.preview || row.preview || "",
+      preview: candidate.preview || best.preview || "",
       status: "lyrics_ready",
       is_partial: false,
-      lookup_key: `online-title-cache:${row.cache_id}:${row.candidate_no}`,
-      is_online_title_cache_hydrated: true,
+      lookup_key: best.lookup_key || candidate.lookup_key || "",
+      is_title_alias_fast_hydrated: true,
       search_meta: {
         ...meta,
-        cache_id: row.cache_id,
-        candidate_no: row.candidate_no,
-        hydrated_from_online_cache_title: true,
-        has_full_online_cache_lyrics: true
+        hydrated_from_title_alias_helper: true,
+        has_full_title_alias_lyrics: true,
+        hydrated_match_source: best.match_source || "",
+        hydrated_lookup_key: best.lookup_key || ""
       }
     };
   } catch (error) {
-    console.warn("Title typo cache hydration failed:", error);
+    console.warn("Title typo helper hydration failed:", error);
     return candidate;
   }
 }
+
+function countTitleWordsForRanking(value) {
+  return String(value || "")
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^\p{L}\p{N}]+/gu, " ")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .length;
+}
+
+function rankTitleTypoCandidateForDisplay(candidate, originalQuery = "") {
+  if (!candidate) return -999999;
+
+  const meta = getCandidateSearchMeta(candidate);
+
+  const title = String(candidate.title || "");
+  const queryNorm = String(meta.query_norm || originalQuery || "");
+
+  const titleNorm = normalizeText(title);
+  const queryTextNorm = normalizeText(queryNorm);
+
+  const titleWordCount = countTitleWordsForRanking(title);
+  const queryWordCount = Number(meta.title_all_count || countTitleWordsForRanking(queryNorm));
+
+  const targetTitleCount = Number(meta.target_title_count || titleWordCount);
+
+  const hasLyrics = cleanLyricsText(candidate.lyrics || "").length >= 20;
+
+  let score = Number(candidate.match_score || meta.match_score || 0);
+
+  /*
+    System-level rule:
+    Full/openable results beat preview-only results.
+  */
+  if (hasLyrics) score += 1200;
+
+  /*
+    Exact corrected title should beat extensions.
+    Example: Tum Hi Ho > Tum Hi Ho Bandhu.
+  */
+  if (titleWordCount === queryWordCount) score += 900;
+  else if (titleWordCount > queryWordCount) score -= (titleWordCount - queryWordCount) * 450;
+
+  /*
+    Use DB-provided target count if available.
+  */
+  if (targetTitleCount === queryWordCount) score += 500;
+  else if (targetTitleCount > queryWordCount) score -= (targetTitleCount - queryWordCount) * 300;
+
+  /*
+    Exact initials are useful for typo title rescue.
+  */
+  if (meta.query_initials && meta.title_initials && meta.query_initials === meta.title_initials) {
+    score += 300;
+  }
+
+  /*
+    Exact title after normalization gets a strong boost.
+  */
+  if (titleNorm && queryTextNorm && titleNorm === queryTextNorm) {
+    score += 1000;
+  }
+
+  /*
+    Penalize obvious extension title patterns.
+  */
+  if (/\bbandhu\b|\bversion\b|\bremix\b|\bcover\b|\bfrom\b|\btitle track\b/i.test(title)) {
+    if (titleWordCount > queryWordCount) score -= 350;
+  }
+
+  return score;
+}
+
+async function hydrateAndRankTitleTypoCandidates(candidates, originalQuery = "", maxHydrate = 3) {
+  const list = Array.isArray(candidates) ? candidates.filter(Boolean) : [];
+
+  if (!list.length) return [];
+
+  const hydrated = [];
+
+  for (let i = 0; i < list.length; i++) {
+    const candidate = list[i];
+
+    /*
+      Hydrate only the first few. This avoids hammering the DB while still making
+      the visible top results open cleanly.
+    */
+    if (i < maxHydrate && typeof hydrateTitleTypoCandidateFromOnlineCache === "function") {
+      hydrated.push(await hydrateTitleTypoCandidateFromOnlineCache(candidate));
+    } else {
+      hydrated.push(candidate);
+    }
+  }
+
+  const seen = new Set();
+
+  return hydrated
+    .sort((a, b) => {
+      const bRank = rankTitleTypoCandidateForDisplay(b, originalQuery);
+      const aRank = rankTitleTypoCandidateForDisplay(a, originalQuery);
+
+      if (bRank !== aRank) return bRank - aRank;
+
+      return String(a.title || "").localeCompare(String(b.title || ""));
+    })
+    .filter(candidate => {
+      const key = getCachedTitleAliasDisplayKey(candidate);
+      if (!key || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+}
+
+const mehfilCachePreviewHydrationMemory = new Map();
+
+function getMehfilCachePreviewHydrationKey(candidate) {
+  return [
+    normalizeText(candidate?.title || ""),
+    normalizeText(candidate?.singer || ""),
+    normalizeText(candidate?.movie || "")
+  ].join("|");
+}
+
+function isMehfilCachePreviewOnlyCandidate(candidate) {
+  if (!candidate) return false;
+
+  const meta = getCandidateSearchMeta(candidate);
+  const sourceName = String(candidate.source_name || "").toLowerCase();
+  const source = String(
+    candidate.match_source ||
+    meta.match_source ||
+    candidate.cache_source ||
+    ""
+  ).toLowerCase();
+
+  const hasFullLyrics = cleanLyricsText(candidate.lyrics || "").length >= 20;
+
+  if (hasFullLyrics) return false;
+  if (!candidate.title) return false;
+
+  return (
+    sourceName.includes("mehfil cache") ||
+    source.includes("cache_typo") ||
+    source.includes("cache_field") ||
+    source.includes("typo_rescue") ||
+    source.includes("cache_title")
+  );
+}
+
+async function hydrateMehfilCachePreviewCandidateFromTitleAlias(candidate) {
+  if (!isMehfilCachePreviewOnlyCandidate(candidate)) {
+    return candidate;
+  }
+
+  if (typeof searchCachedTitleAliases !== "function") {
+    return candidate;
+  }
+
+  const hydrationKey = getMehfilCachePreviewHydrationKey(candidate);
+
+  if (mehfilCachePreviewHydrationMemory.has(hydrationKey)) {
+    return {
+      ...candidate,
+      ...mehfilCachePreviewHydrationMemory.get(hydrationKey)
+    };
+  }
+
+  try {
+    const aliasRows = await searchCachedTitleAliases(candidate.title || "", 6);
+
+    const candidateTitleNorm = normalizeText(candidate.title || "");
+    const candidateSingerNorm = normalizeText(candidate.singer || "");
+    const candidateMovieNorm = normalizeText(candidate.movie || "");
+
+    const scoredRows = (Array.isArray(aliasRows) ? aliasRows : [])
+      .filter(row => cleanLyricsText(row.lyrics || "").length >= 20)
+      .map(row => {
+        const rowTitleNorm = normalizeText(row.title || "");
+        const rowSingerNorm = normalizeText(row.singer || "");
+        const rowMovieNorm = normalizeText(row.movie || "");
+
+        let score = 0;
+
+        if (rowTitleNorm === candidateTitleNorm) {
+          score += 1200;
+        } else if (
+          rowTitleNorm.includes(candidateTitleNorm) ||
+          candidateTitleNorm.includes(rowTitleNorm)
+        ) {
+          score += 550;
+        }
+
+        if (candidateSingerNorm && rowSingerNorm) {
+          if (rowSingerNorm === candidateSingerNorm) score += 300;
+          else if (
+            rowSingerNorm.includes(candidateSingerNorm) ||
+            candidateSingerNorm.includes(rowSingerNorm)
+          ) score += 140;
+        }
+
+        if (candidateMovieNorm && rowMovieNorm) {
+          if (rowMovieNorm === candidateMovieNorm) score += 300;
+          else if (
+            rowMovieNorm.includes(candidateMovieNorm) ||
+            candidateMovieNorm.includes(rowMovieNorm)
+          ) score += 140;
+        }
+
+        const rowMeta = getCandidateSearchMeta(row);
+        score += Number(row.match_score || rowMeta.match_score || 0) / 10;
+
+        return { row, score };
+      })
+      .sort((a, b) => b.score - a.score);
+
+    const best = scoredRows[0]?.row || null;
+    const bestScore = Number(scoredRows[0]?.score || 0);
+
+    /*
+      Safety:
+      Do not hydrate random lyric rescue to a totally different title.
+      Require at least a title-level match.
+    */
+    if (!best || bestScore < 600) {
+      return candidate;
+    }
+
+    const fullLyrics = cleanLyricsText(best.lyrics || "");
+
+    if (fullLyrics.length < 20) {
+      return candidate;
+    }
+
+    const hydrated = {
+      ...candidate,
+      provider: best.provider || candidate.provider || "lrclib",
+      title: best.title || candidate.title || "",
+      singer: best.singer || candidate.singer || "",
+      movie: best.movie || candidate.movie || "",
+      source_name: best.source_name || "Mehfil Cache",
+      source_url: best.source_url || "",
+      script: best.script || candidate.script || "unknown",
+      lyrics: fullLyrics,
+      preview: candidate.preview || best.preview || "",
+      status: "lyrics_ready",
+      is_partial: false,
+      lookup_key: best.lookup_key || candidate.lookup_key || "",
+      is_mehfil_cache_hydrated_match: true,
+      search_meta: {
+        ...getCandidateSearchMeta(candidate),
+        hydrated_from_cache_title_alias: true,
+        hydrated_match_source: best.match_source || "",
+        hydrated_score: bestScore,
+        has_full_title_alias_lyrics: true
+      }
+    };
+
+    mehfilCachePreviewHydrationMemory.set(hydrationKey, hydrated);
+
+    return hydrated;
+  } catch (error) {
+    console.warn("Mehfil cache preview hydration failed:", error);
+    return candidate;
+  }
+}
+
+async function hydrateMehfilCachePreviewCandidates(candidates, maxHydrate = 4) {
+  const list = Array.isArray(candidates) ? candidates.filter(Boolean) : [];
+  const output = [];
+
+  for (let i = 0; i < list.length; i++) {
+    const candidate = list[i];
+
+    if (i < maxHydrate) {
+      output.push(await hydrateMehfilCachePreviewCandidateFromTitleAlias(candidate));
+    } else {
+      output.push(candidate);
+    }
+  }
+
+  return output;
+}
+
 async function searchOnlineRomanLyricWindows(query, limit = 5) {
   const safeQuery = String(query || "").trim();
   const safeLimit = Math.max(1, Math.min(Number(limit || 5), 8));
@@ -17490,6 +17814,7 @@ if (nativeTokenCount > 0) {
   }
 
     /*
+      /*
     Manual short-title typo rescue:
     Runs only after normal cached-title/native lanes had their chance,
     and before lyric phrase / long lyric typo rescue.
@@ -17500,38 +17825,42 @@ if (nativeTokenCount > 0) {
     - kajara re -> Kajra Re
     - ae dil he muskil -> Ae Dil Hai Mushkil
 
-    Do NOT run this while typing. It is too slow for keystroke search.
+    System-level rule:
+    hydrate + rank title typo candidates before rendering,
+    so visible cards open full lyrics and exact corrected titles beat longer variants.
   */
   const titleTypoCandidates = await searchCachedTitleTypoRescue(safeQuery, 6);
 
   if (Array.isArray(titleTypoCandidates) && titleTypoCandidates.length > 0) {
-    shownCandidates = mergeOnlineCandidates(shownCandidates, titleTypoCandidates).slice(0, 6);
-
-    renderResults([], safeQuery, { suppressEmptyState: true });
-    renderSearchOnlineCandidates(shownCandidates);
-
-    setSearchOnlineState(
-      `${shownCandidates.length} title typo match(es) found in Mehfil cache.`,
-      "success"
-    );
-
-    /*
-  Manual search should not prefetch provider details here.
-  Opening the result will hydrate/fetch details on demand.
-  This avoids preview-only modal flicker.
-*/
-
-    logMehfilSearchResultsStats(
+    const rankedTitleTypoCandidates = await hydrateAndRankTitleTypoCandidates(
+      titleTypoCandidates,
       safeQuery,
-      "manual",
-      shownCandidates,
-      "cache_title_typo",
-      {
-        source: "title_typo_rescue_rpc"
-      }
+      4
     );
 
-    return;
+    if (Array.isArray(rankedTitleTypoCandidates) && rankedTitleTypoCandidates.length > 0) {
+      shownCandidates = mergeOnlineCandidates(shownCandidates, rankedTitleTypoCandidates).slice(0, 6);
+
+      renderResults([], safeQuery, { suppressEmptyState: true });
+      renderSearchOnlineCandidates(shownCandidates);
+
+      setSearchOnlineState(
+        `${shownCandidates.length} title match(es) found in Mehfil cache.`,
+        "success"
+      );
+
+      logMehfilSearchResultsStats(
+        safeQuery,
+        "manual",
+        shownCandidates,
+        "cache_title_typo_ranked",
+        {
+          source: "title_typo_ranked_hydrated"
+        }
+      );
+
+      return;
+    }
   }
 
     /*
@@ -17631,35 +17960,34 @@ if (nativeTokenCount > 0) {
 
   const typoRescueCandidates = await searchCachedTypoRescue(safeQuery, 6);
 
-  if (Array.isArray(typoRescueCandidates) && typoRescueCandidates.length > 0) {
-    shownCandidates = mergeOnlineCandidates(shownCandidates, typoRescueCandidates).slice(0, 6);
+if (Array.isArray(typoRescueCandidates) && typoRescueCandidates.length > 0) {
+  const hydratedTypoRescueCandidates = await hydrateMehfilCachePreviewCandidates(
+    typoRescueCandidates,
+    4
+  );
 
-    renderResults([], safeQuery, { suppressEmptyState: true });
-    renderSearchOnlineCandidates(shownCandidates);
+  shownCandidates = mergeOnlineCandidates(shownCandidates, hydratedTypoRescueCandidates).slice(0, 6);
 
-    setSearchOnlineState(
-      `${shownCandidates.length} typo-rescue match(es) found in Mehfil cache.`,
-      "success"
-    );
+  renderResults([], safeQuery, { suppressEmptyState: true });
+  renderSearchOnlineCandidates(shownCandidates);
 
-    /*
-  No provider prefetch here.
-  Online Roman lyric candidates already hydrate from online_song_cache.
-  Provider prefetch can interfere with full-cache lyrics and cause preview-only modal behavior.
-*/
+  setSearchOnlineState(
+    `${shownCandidates.length} typo-rescue match(es) found in Mehfil cache.`,
+    "success"
+  );
 
-    logMehfilSearchResultsStats(
-      safeQuery,
-      "manual",
-      shownCandidates,
-      "cache_typo_rescue",
-      {
-        source: "typo_rescue_rpc"
-      }
-    );
+  logMehfilSearchResultsStats(
+    safeQuery,
+    "manual",
+    shownCandidates,
+    "cache_typo_rescue_hydrated",
+    {
+      source: "typo_rescue_rpc_hydrated"
+    }
+  );
 
-    return;
-  }
+  return;
+}
 
   function isCurrentRun() {
     return runId === onlineLookupRunId;
@@ -18356,6 +18684,84 @@ async function openOnlineCandidate(candidate) {
   if (!candidate) return;
 
   const modalToken = ++onlineModalLoadToken;
+      /*
+    Generic Mehfil Cache preview hydration:
+    Covers Typo field match / Typo lyric rescue / broad typo rescue candidates.
+    These candidates often have preview only and empty lookup_key.
+    Hydrate by title alias before opening the modal.
+  */
+  {
+    const hydratedCandidate = await hydrateMehfilCachePreviewCandidateFromTitleAlias(candidate);
+    const fullLyrics = cleanLyricsText(hydratedCandidate.lyrics || "");
+
+    if (
+      hydratedCandidate &&
+      hydratedCandidate.is_mehfil_cache_hydrated_match &&
+      fullLyrics.length >= 20
+    ) {
+      hideSearchOnlineBanner();
+
+      const meta = getCandidateSearchMeta(hydratedCandidate);
+      const preview = cleanLyricsText(
+        candidate.preview ||
+        hydratedCandidate.preview ||
+        meta.matched_phrase ||
+        ""
+      );
+
+      openModalKind = "online";
+      openOnlineCandidateData = {
+        ...hydratedCandidate,
+        lyrics: fullLyrics,
+        status: "lyrics_ready",
+        is_partial: false
+      };
+      openSongId = null;
+
+      document.getElementById("modalTitle").textContent = hydratedCandidate.title || "";
+      document.getElementById("modalMeta").textContent = joinMeta([
+        hydratedCandidate.movie,
+        hydratedCandidate.singer
+      ]);
+
+      const modalExtraMeta = document.getElementById("modalExtraMeta");
+      const modalLyrics = document.getElementById("modalLyrics");
+
+      modalExtraMeta.innerHTML = `
+        <div><strong>Source:</strong> Mehfil Cache</div>
+        <div><strong>Confidence:</strong> ${escapeHtml(formatConfidence(hydratedCandidate.confidence))}</div>
+        <div><strong>Language:</strong> ${escapeHtml(getScriptLabel(hydratedCandidate.script))}</div>
+        <div><strong>Matched:</strong> ${escapeHtml(preview || meta.matched_phrase || "")}</div>
+        <div><strong>Status:</strong> Full lyrics loaded</div>
+      `;
+      modalExtraMeta.classList.remove("hidden");
+
+      modalLyrics.innerHTML = escapeHtml(fullLyrics);
+
+      setOnlineModalButtonsLoading(false);
+      setSaveButtonHighlight(false);
+
+      document.getElementById("modalSaveBtn").classList.toggle("hidden", !isApproved());
+      document.getElementById("modalBookmarkBtn").classList.toggle("hidden", !isApproved());
+      document.getElementById("modalShareNowBtn").classList.toggle("hidden", !isApproved());
+      document.getElementById("modalEditBtn").classList.toggle("hidden", !isApproved());
+      document.getElementById("modalDeleteBtn").classList.add("hidden");
+
+      if (typeof openSongModalShell === "function") {
+        openSongModalShell();
+      } else {
+        document.getElementById("songModal").classList.add("show");
+        document.body.style.overflow = "hidden";
+      }
+
+      pushSongModalHistoryState();
+
+      return;
+    }
+
+    candidate = hydratedCandidate || candidate;
+  }
+
       /*
     EARLY TITLE-TYPO HYDRATION PATCH:
     Do not open title typo candidates as preview-only first.
@@ -21104,7 +21510,10 @@ return;
     return;
   }
     
-  const typoRescueCandidates = await searchCachedTypoRescue(safeQuery, 5);
+  const hydratedTypoRescueCandidates = await hydrateMehfilCachePreviewCandidates(
+  typoRescueCandidates,
+  3
+);
 
   if (cacheRunId !== autoWarmCacheRunId) return;
 
