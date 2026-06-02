@@ -23091,6 +23091,55 @@ renderLibraryViewsIfVisible();
       }
     }
 
+    function getMehfilFirstNameForDisplay(sourceProfile = profile) {
+  const rawName = String(
+    sourceProfile?.name ||
+    sourceProfile?.full_name ||
+    session?.user?.user_metadata?.name ||
+    session?.user?.email ||
+    ""
+  ).trim();
+
+  if (!rawName) return "Mehfil";
+
+  const cleaned = rawName
+    .replace(/\s+/g, " ")
+    .replace(/[<>{}[\]\\]/g, "")
+    .trim();
+
+  if (!cleaned) return "Mehfil";
+
+  /*
+    If fallback is email, use the first part before @,
+    then split common email separators.
+  */
+  if (cleaned.includes("@")) {
+    const emailLocal = cleaned.split("@")[0] || "";
+    const emailFirst = emailLocal.split(/[._-]+/).find(Boolean) || "";
+    return emailFirst ? capitalizeMehfilFirstName(emailFirst) : "Mehfil";
+  }
+
+  const firstName = cleaned.split(" ").find(Boolean) || "";
+
+  return firstName ? capitalizeMehfilFirstName(firstName) : "Mehfil";
+}
+
+function capitalizeMehfilFirstName(name) {
+  const value = String(name || "").trim();
+
+  if (!value) return "Mehfil";
+
+  return value.charAt(0).toUpperCase() + value.slice(1);
+}
+
+function updatePersonalMehfilBrand() {
+  const brandEl = document.querySelector("#appScreen .brand");
+  if (!brandEl) return;
+
+  const firstName = getMehfilFirstNameForDisplay(profile);
+  brandEl.textContent = `${firstName}'s Mehfil`;
+}
+
     function formatCombinedSongCount() {
   const cached = Number(onlineCacheSongCount || 0);
   const local = Number(localLibrarySongCount || 0);
@@ -23165,7 +23214,8 @@ function updateHeaderAccessAndCount() {
   const welcomeEl = document.getElementById("welcomeLine");
   const countEl = document.getElementById("libraryCountText");
   const dotEl = document.querySelector("#appScreen .brand-meta-dot");
-
+  updatePersonalMehfilBrand();
+  
   if (isAdmin()) {
     if (welcomeEl) welcomeEl.textContent = "Admin";
     if (countEl) {
@@ -25829,7 +25879,7 @@ async function resendVerificationEmail(email) {
       email: safeEmail
     });
 
-    showStatus("appStatus", `Verification email resent to ${safeEmail}.`, "success");
+    showTemporaryStatus("appStatus", `Verification email resent to ${safeEmail}.`, "success", 3500);
     await loadUsersAdminData();
   } catch (error) {
     console.error("RESEND VERIFICATION ERROR:", error);
@@ -25853,7 +25903,7 @@ async function repairMissingProfile(userId) {
       userId: safeUserId
     });
 
-    showStatus("appStatus", "Missing profile repaired. You can approve the user now.", "success");
+    showTemporaryStatus("appStatus", "Missing profile repaired. You can approve the user now.", "success", 3500);
     await loadUsersAdminData();
   } catch (error) {
     console.error("REPAIR PROFILE ERROR:", error);
@@ -25884,7 +25934,7 @@ async function rejectAccessRequest(userId, email) {
       userId: safeUserId
     });
 
-    showStatus("appStatus", `Rejected access request for ${safeEmail || "user"}.`, "success");
+    showTemporaryStatus("appStatus", `Rejected access request for ${safeEmail || "user"}.`, "success", 3500);
     await loadUsersAdminData();
   } catch (error) {
     console.error("REJECT ACCESS REQUEST ERROR:", error);
@@ -25915,7 +25965,7 @@ async function removeUserAccess(userId, email) {
       userId: safeUserId
     });
 
-    showStatus("appStatus", `Access removed for ${safeEmail || "user"}.`, "success");
+    showTemporaryStatus("appStatus", `Access removed for ${safeEmail || "user"}.`, "success", 3500);
     await loadUsersAdminData();
   } catch (error) {
     console.error("REMOVE ACCESS ERROR:", error);
@@ -25952,7 +26002,7 @@ async function deleteRegisteredUserAccountData(userId, email) {
       userId: safeUserId
     });
 
-    showStatus("appStatus", `Deleted account data for ${safeEmail || "user"}.`, "success");
+    showTemporaryStatus("appStatus", `Deleted account data for ${safeEmail || "user"}.`, "success", 3500);
     await loadUsersAdminData();
   } catch (error) {
     console.error("DELETE ACCOUNT DATA ERROR:", error);
