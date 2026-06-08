@@ -25851,13 +25851,28 @@ async function approveUser(profileId) {
   }
 
   try {
-    await runSignupAdminAction("approve", {
-      user_id: userId,
-      userId
-    });
+    const result = await runSignupAdminAction("approve", {
+  user_id: userId,
+  userId
+});
 
-    showTemporaryStatus("appStatus", "User approved.", "success", 4500);
-    await loadUsersAdminData();
+if (result?.email_sent === true) {
+  showTemporaryStatus(
+    "appStatus",
+    "User approved and notification email sent.",
+    "success",
+    4500
+  );
+} else {
+  showTemporaryStatus(
+    "appStatus",
+    "User approved, but the notification email could not be sent. Check the Edge Function logs.",
+    "warn",
+    7000
+  );
+}
+
+await loadUsersAdminData();
   } catch (error) {
     console.error("APPROVE USER ERROR:", error);
     showStatus("appStatus", error?.message || "Could not approve user.", "error");
