@@ -10475,6 +10475,9 @@ body.mehfil-keyboard-open #searchResults {
   }
 }
 
+    #songModal .modal-card {
+  scroll-behavior: auto !important;
+}
 
 
   </style>
@@ -18669,9 +18672,10 @@ const MEHFIL_LYRICS_AUTOSCROLL_BASE_PX_PER_SECOND = 24;
 let currentLyricsAutoScrollSpeedIndex = MEHFIL_LYRICS_AUTOSCROLL_DEFAULT_INDEX;
 let lyricsAutoScrollActive = false;
 let lyricsAutoScrollFrameId = null;
-let lyricsAutoScrollLastTimestamp = 0;
 let lyricsAutoScrollProgrammaticUntil = 0;
-let lyricsAutoScrollRemainderPx = 0;
+
+let lyricsAutoScrollAnchorTimestamp = 0;
+let lyricsAutoScrollAnchorTop = 0;
 
 function getLyricsAutoScrollStorageKey() {
   const userId = profile?.id || session?.user?.id || "guest";
@@ -18769,8 +18773,8 @@ function bindLyricsAutoScrollScrollGuard() {
 
 function stopLyricsAutoScroll() {
   lyricsAutoScrollActive = false;
-  lyricsAutoScrollLastTimestamp = 0;
-  lyricsAutoScrollRemainderPx = 0;
+  lyricsAutoScrollAnchorTimestamp = 0;
+lyricsAutoScrollAnchorTop = 0;
   
 
   if (lyricsAutoScrollFrameId) {
@@ -18785,46 +18789,57 @@ function runLyricsAutoScrollFrame(timestamp) {
   if (!lyricsAutoScrollActive) return;
 
   const card = getLyricsScrollContainer();
+
   if (!card) {
     stopLyricsAutoScroll();
     return;
   }
 
-  const maxScrollTop = Math.max(0, card.scrollHeight - card.clientHeight);
+  const maxScrollTop = Math.max(
+    0,
+    card.scrollHeight - card.clientHeight
+  );
 
-  if (maxScrollTop <= 0 || card.scrollTop >= maxScrollTop - 2) {
+  if (
+    maxScrollTop <= 0 ||
+    card.scrollTop >= maxScrollTop - 1
+  ) {
     stopLyricsAutoScroll();
     return;
   }
 
-  if (!lyricsAutoScrollLastTimestamp) {
-    lyricsAutoScrollLastTimestamp = timestamp;
+  if (!lyricsAutoScrollAnchorTimestamp) {
+    lyricsAutoScrollAnchorTimestamp = timestamp;
+    lyricsAutoScrollAnchorTop = card.scrollTop;
   }
 
-  const deltaMs = Math.min(80, Math.max(0, timestamp - lyricsAutoScrollLastTimestamp));
-  lyricsAutoScrollLastTimestamp = timestamp;
+  const elapsedSeconds =
+    (timestamp - lyricsAutoScrollAnchorTimestamp) / 1000;
 
-  const speed = getLyricsAutoScrollSpeed();
-const pixelsPerSecond = MEHFIL_LYRICS_AUTOSCROLL_BASE_PX_PER_SECOND * speed;
-const pixelDelta = pixelsPerSecond * deltaMs / 1000;
+  const pixelsPerSecond =
+    MEHFIL_LYRICS_AUTOSCROLL_BASE_PX_PER_SECOND *
+    getLyricsAutoScrollSpeed();
 
-lyricsAutoScrollRemainderPx += pixelDelta;
-
-const wholePixelDelta = Math.floor(lyricsAutoScrollRemainderPx);
-
-if (wholePixelDelta >= 1) {
-  lyricsAutoScrollRemainderPx -= wholePixelDelta;
-
-  const nextScrollTop = Math.min(
+  const targetScrollTop = Math.min(
     maxScrollTop,
-    card.scrollTop + wholePixelDelta
+    lyricsAutoScrollAnchorTop +
+      pixelsPerSecond * elapsedSeconds
   );
 
-  lyricsAutoScrollProgrammaticUntil = Date.now() + 160;
-  card.scrollTop = nextScrollTop;
-}
+  lyricsAutoScrollProgrammaticUntil = Date.now() + 80;
 
-lyricsAutoScrollFrameId = requestAnimationFrame(runLyricsAutoScrollFrame);
+  card.scrollTo({
+    top: targetScrollTop,
+    behavior: "auto"
+  });
+
+  if (targetScrollTop >= maxScrollTop - 1) {
+    stopLyricsAutoScroll();
+    return;
+  }
+
+  lyricsAutoScrollFrameId =
+    requestAnimationFrame(runLyricsAutoScrollFrame);
 }
 
 function startLyricsAutoScroll() {
@@ -18847,8 +18862,9 @@ function startLyricsAutoScroll() {
   }
 
   lyricsAutoScrollActive = true;
-lyricsAutoScrollLastTimestamp = 0;
-lyricsAutoScrollRemainderPx = 0;
+lyricsAutoScrollAnchorTimestamp = 0;
+lyricsAutoScrollAnchorTop = card.scrollTop;
+
 updateLyricsAutoScrollControls();
 
   lyricsAutoScrollFrameId = requestAnimationFrame(runLyricsAutoScrollFrame);
@@ -18867,6 +18883,13 @@ function changeLyricsAutoScrollSpeed(delta) {
     currentLyricsAutoScrollSpeedIndex + delta
   );
 
+  if (lyricsAutoScrollActive) {
+  const card = getLyricsScrollContainer();
+
+  lyricsAutoScrollAnchorTop = card?.scrollTop || 0;
+  lyricsAutoScrollAnchorTimestamp = 0;
+}
+  
   saveLyricsAutoScrollSpeedIndex();
   updateLyricsAutoScrollControls();
 }
