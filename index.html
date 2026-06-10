@@ -10433,8 +10433,8 @@ body.mehfil-keyboard-open #searchResults {
 }
 
 #songModal .lyrics-auto-scroll-speed-label {
-  width: 29px;
-  min-width: 29px;
+  width: 38px;
+  min-width: 38px;
   height: 23px;
   border-radius: 999px;
   display: inline-flex;
@@ -10464,8 +10464,8 @@ body.mehfil-keyboard-open #searchResults {
   }
 
   #songModal .lyrics-auto-scroll-speed-label {
-    width: 28px;
-    min-width: 28px;
+    width: 36px;
+    min-width: 36px;
     height: 22px;
     font-size: 9px;
   }
@@ -11016,7 +11016,7 @@ body.mehfil-keyboard-open #searchResults {
 
     <div id="lyricsAutoScrollSpeedControls" class="lyrics-auto-scroll-speed-controls hidden" aria-label="Auto-scroll speed controls">
       <button id="lyricsAutoScrollSpeedUpBtn" class="lyrics-font-btn lyrics-auto-scroll-speed-btn" type="button" title="Increase auto-scroll speed" aria-label="Increase auto-scroll speed">+</button>
-      <div id="lyricsAutoScrollSpeedLabel" class="lyrics-auto-scroll-speed-label" aria-live="polite">1.0x</div>
+      <div id="lyricsAutoScrollSpeedLabel" class="lyrics-auto-scroll-speed-label" aria-live="polite">0.5x</div>
       <button id="lyricsAutoScrollSpeedDownBtn" class="lyrics-font-btn lyrics-auto-scroll-speed-btn" type="button" title="Decrease auto-scroll speed" aria-label="Decrease auto-scroll speed">−</button>
     </div>
 
@@ -18672,7 +18672,10 @@ const MEHFIL_LYRICS_AUTOSCROLL_BASE_PX_PER_SECOND = 24;
 let currentLyricsAutoScrollSpeedIndex = MEHFIL_LYRICS_AUTOSCROLL_DEFAULT_INDEX;
 let lyricsAutoScrollActive = false;
 let lyricsAutoScrollFrameId = null;
-let lyricsAutoScrollProgrammaticUntil = 0;
+let lyricsAutoScrollInteractionPaused = false;
+let lyricsAutoScrollResumeTimer = null;
+let lyricsAutoScrollTouchStartY = null;
+let lyricsAutoScrollTouchMoved = false;
 
 let lyricsAutoScrollAnchorTimestamp = 0;
 let lyricsAutoScrollAnchorTop = 0;
@@ -18716,6 +18719,21 @@ function getLyricsScrollContainer() {
   return document.querySelector("#songModal .modal-card");
 }
 
+function formatLyricsAutoScrollSpeedLabel(speed) {
+  const value = Number(speed);
+
+  if (!Number.isFinite(value)) {
+    return "0.5x";
+  }
+
+  const formatted = value
+    .toFixed(2)
+    .replace(/0+$/, "")
+    .replace(/\.$/, "");
+
+  return `${formatted}x`;
+}
+    
 function updateLyricsAutoScrollControls() {
   const toggleBtn = document.getElementById("lyricsAutoScrollToggleBtn");
   const speedControls = document.getElementById("lyricsAutoScrollSpeedControls");
@@ -18740,7 +18758,7 @@ function updateLyricsAutoScrollControls() {
   }
 
   if (speedLabel) {
-    speedLabel.textContent = `${speed.toFixed(1)}x`;
+    speedLabel.textContent = formatLyricsAutoScrollSpeedLabel(speed);
   }
 
   if (speedUpBtn) {
@@ -18751,31 +18769,180 @@ function updateLyricsAutoScrollControls() {
     speedDownBtn.disabled = currentLyricsAutoScrollSpeedIndex <= 0;
   }
 }
+function clearLyricsAutoScrollResumeTimer() {
+  if (lyricsAutoScrollResumeTimer) {
+    clearTimeout(lyricsAutoScrollResumeTimer);
+    lyricsAutoScrollResumeTimer = null;
+  }
+}
 
+function pauseLyricsAutoScrollForUserInteraction() {
+  if (!lyricsAutoScrollActive || lyricsAutoScrollInteractionPaused) {
+    return;
+  }
+
+  lyricsAutoScrollInteractionPaused = true;
+  clearLyricsAutoScrollResumeTimer();
+
+  if (lyricsAutoScrollFrameId) {
+    cancelAnimationFrame(lyricsAutoScrollFrameId);
+    lyricsAutoScrollFrameId = null;
+  }
+
+  const card = getLyricsScrollContainer();
+
+  lyricsAutoScrollAnchorTimestamp = 0;
+  lyricsAutoScrollAnchorTop = card?.scrollTop || 0;
+}
+
+function scheduleLyricsAutoScrollResume(delay = 900) {
+  clearLyricsAutoScrollResumeTimer();
+
+  if (!lyricsAutoScrollActive || !lyricsAutoScrollInteractionPaused) {
+    return;
+  }
+
+  lyricsAutoScrollResumeTimer = setTimeout(() => {
+    lyricsAutoScrollResumeTimer = null;
+
+    if (!lyricsAutoScrollActive) {
+      return;
+    }
+
+    const modal = document.getElementById("songModal");
+    const card = getLyricsScrollContainer();
+
+    if (!modal?.classList.contains("show") || !card) {
+      stopLyricsAutoScroll();
+      return;
+    }
+
+    const maxScrollTop = Math.max(
+      0,
+      card.scrollHeight - card.clientHeight
+    );
+
+    if (maxScrollTop <= 0 || card.scrollTop >= maxScrollTop - 1) {
+      stopLyricsAutoScroll();
+      return;
+    }
+
+    lyricsAutoScrollInteractionPaused = false;
+    lyricsAutoScrollAnchorTimestamp = 0;
+    lyricsAutoScrollAnchorTop = card.scrollTop;
+
+    lyricsAutoScrollFrameId =
+      requestAnimationFrame(runLyricsAutoScrollFrame);
+  }, delay);
+}
+    
 function bindLyricsAutoScrollScrollGuard() {
   const card = getLyricsScrollContainer();
-  if (!card || card.dataset.lyricsAutoScrollGuardBound === "true") return;
+
+  if (
+    !card ||
+    card.dataset.lyricsAutoScrollGuardBound === "true"
+  ) {
+    return;
+  }
 
   card.dataset.lyricsAutoScrollGuardBound = "true";
 
-  card.addEventListener("scroll", () => {
+  card.addEventListener("touchstart", (event) => {
     if (!lyricsAutoScrollActive) return;
 
-    /*
-      Our own auto-scroll also fires scroll events.
-      Only pause when the user manually scrolls.
-    */
-    if (Date.now() > lyricsAutoScrollProgrammaticUntil) {
-      stopLyricsAutoScroll();
+    if (event.target?.closest?.("#lyricsFontControls")) {
+      return;
     }
+
+    const touch = event.touches?.[0];
+
+    if (!touch) return;
+
+    /*
+      Prevent an existing resume timer from restarting
+      while the user still has a finger on the lyrics.
+    */
+    clearLyricsAutoScrollResumeTimer();
+
+    lyricsAutoScrollTouchStartY = touch.clientY;
+    lyricsAutoScrollTouchMoved = false;
+  }, { passive: true });
+
+  card.addEventListener("touchmove", (event) => {
+    if (
+      !lyricsAutoScrollActive ||
+      lyricsAutoScrollTouchStartY === null
+    ) {
+      return;
+    }
+
+    const touch = event.touches?.[0];
+
+    if (!touch) return;
+
+    const movement = Math.abs(
+      touch.clientY - lyricsAutoScrollTouchStartY
+    );
+
+    /*
+      Ignore tiny finger movement caused by a normal tap.
+    */
+    if (movement < 10) {
+      return;
+    }
+
+    lyricsAutoScrollTouchMoved = true;
+    pauseLyricsAutoScrollForUserInteraction();
+  }, { passive: true });
+
+  const finishTouchInteraction = () => {
+    if (
+      lyricsAutoScrollActive &&
+      lyricsAutoScrollInteractionPaused
+    ) {
+      /*
+        Wait briefly for iPhone momentum scrolling to settle,
+        then continue from the user's new location.
+      */
+      scheduleLyricsAutoScrollResume(900);
+    }
+
+    lyricsAutoScrollTouchStartY = null;
+    lyricsAutoScrollTouchMoved = false;
+  };
+
+  card.addEventListener(
+    "touchend",
+    finishTouchInteraction,
+    { passive: true }
+  );
+
+  card.addEventListener(
+    "touchcancel",
+    finishTouchInteraction,
+    { passive: true }
+  );
+
+  card.addEventListener("wheel", () => {
+    if (!lyricsAutoScrollActive) return;
+
+    pauseLyricsAutoScrollForUserInteraction();
+    scheduleLyricsAutoScrollResume(500);
   }, { passive: true });
 }
 
 function stopLyricsAutoScroll() {
+  clearLyricsAutoScrollResumeTimer();
+
   lyricsAutoScrollActive = false;
+  lyricsAutoScrollInteractionPaused = false;
+
   lyricsAutoScrollAnchorTimestamp = 0;
-lyricsAutoScrollAnchorTop = 0;
-  
+  lyricsAutoScrollAnchorTop = 0;
+
+  lyricsAutoScrollTouchStartY = null;
+  lyricsAutoScrollTouchMoved = false;
 
   if (lyricsAutoScrollFrameId) {
     cancelAnimationFrame(lyricsAutoScrollFrameId);
@@ -18783,10 +18950,13 @@ lyricsAutoScrollAnchorTop = 0;
   }
 
   updateLyricsAutoScrollControls();
-}
-
-function runLyricsAutoScrollFrame(timestamp) {
-  if (!lyricsAutoScrollActive) return;
+}function runLyricsAutoScrollFrame(timestamp) {
+  if (
+    !lyricsAutoScrollActive ||
+    lyricsAutoScrollInteractionPaused
+  ) {
+    return;
+  }
 
   const card = getLyricsScrollContainer();
 
@@ -18826,12 +18996,11 @@ function runLyricsAutoScrollFrame(timestamp) {
       pixelsPerSecond * elapsedSeconds
   );
 
-  lyricsAutoScrollProgrammaticUntil = Date.now() + 80;
-
-  card.scrollTo({
-    top: targetScrollTop,
-    behavior: "auto"
-  });
+  /*
+    Direct assignment is lighter than creating a scrollTo
+    options object on every animation frame.
+  */
+  card.scrollTop = targetScrollTop;
 
   if (targetScrollTop >= maxScrollTop - 1) {
     stopLyricsAutoScroll();
@@ -18861,7 +19030,14 @@ function startLyricsAutoScroll() {
     lyricsAutoScrollFrameId = null;
   }
 
-  lyricsAutoScrollActive = true;
+  clearLyricsAutoScrollResumeTimer();
+
+lyricsAutoScrollActive = true;
+lyricsAutoScrollInteractionPaused = false;
+
+lyricsAutoScrollTouchStartY = null;
+lyricsAutoScrollTouchMoved = false;
+
 lyricsAutoScrollAnchorTimestamp = 0;
 lyricsAutoScrollAnchorTop = card.scrollTop;
 
@@ -18876,6 +19052,18 @@ function toggleLyricsAutoScroll() {
   } else {
     startLyricsAutoScroll();
   }
+
+  document.addEventListener("visibilitychange", () => {
+  if (!lyricsAutoScrollActive) return;
+
+  if (document.hidden) {
+    pauseLyricsAutoScrollForUserInteraction();
+    return;
+  }
+
+  scheduleLyricsAutoScrollResume(200);
+});
+  
 }
 
 function changeLyricsAutoScrollSpeed(delta) {
