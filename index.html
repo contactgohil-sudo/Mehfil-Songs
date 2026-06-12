@@ -18437,6 +18437,7 @@ function runForcedOnlineSearch() {
     searchRunId++;
     autoWarmCacheRunId++;
     clearAutoWarmCacheTimer();
+    clearLyricIntentAutoSearchTimer();
 
     renderSearchOnlineCandidates([]);
     setAutoWarmCacheResultState([]);
@@ -21646,6 +21647,11 @@ const AUTO_WARM_CACHE_DEBOUNCE_MS = 220;
 const AUTO_WARM_CACHE_MEMORY_TTL_MS = 5 * 60 * 1000;
 const autoWarmCacheMemory = new Map();
 
+let lyricIntentAutoSearchTimer = null;
+
+const LYRIC_INTENT_AUTO_SEARCH_DEBOUNCE_MS = 220;
+
+
 function getAutoWarmCacheMemoryKey(query) {
   const raw = String(query || "").trim();
 
@@ -21669,6 +21675,226 @@ function clearAutoWarmCacheTimer() {
     clearTimeout(autoWarmCacheTimer);
     autoWarmCacheTimer = null;
   }
+}
+
+function clearLyricIntentAutoSearchTimer() {
+  if (lyricIntentAutoSearchTimer) {
+    clearTimeout(lyricIntentAutoSearchTimer);
+    lyricIntentAutoSearchTimer = null;
+  }
+}
+
+function isLikelyRomanLyricIntentQuery(query) {
+  const raw = String(query || "").trim();
+
+  if (!raw) return false;
+
+  /*
+    Native-script searches already have their own safety handling.
+    This detector is for Roman-typed Hindi lyrics:
+    "aankhe meri bas dekhe"
+    "jo me raat hun"
+    "dekho dekho kya woh ped hai"
+  */
+  if (typeof isNativeScriptQueryForSearch === "function" && isNativeScriptQueryForSearch(raw)) {
+    return false;
+  }
+
+  const words = raw
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .match(/[a-z0-9]+/g) || [];
+
+  if (words.length < 4 || words.length > 10) {
+    return false;
+  }
+
+  const lyricFlowWords = new Set([
+    "mera", "meri", "mere",
+    "tera", "teri", "tere",
+    "tum", "tumhe", "tujhe",
+    "mujhe", "main", "mein",
+    "bas", "hai", "ho", "hun",
+    "dil", "jaan", "raat", "din",
+    "aankhe", "aankhen", "aankhein", "ankhe",
+    "dekhe", "dekho", "dekh"
+  ]);
+
+  const usefulWords = words.filter(word => word.length >= 3);
+  const flowHits = words.filter(word =>
+    lyricFlowWords.has(word) ||
+    (typeof WEAK_QUERY_WORDS !== "undefined" && WEAK_QUERY_WORDS.has(word))
+  ).length;
+
+  /*
+    Conservative rule:
+    4+ words, at least 3 useful words, and some lyric-flow signal.
+  */
+  return usefulWords.length >= 3 && flowHits >= 1;
+}
+
+function isSearchInputStillCurrent(query) {
+  const input = document.getElementById("searchInput");
+
+  return !input || input.value.trim() === String(query || "").trim();
+}
+
+function renderLyricIntentPendingState(query) {
+  renderResults([], query, {
+    suppressEmptyState: true
+  });
+
+  renderSearchOnlineCandidates([]);
+  setAutoWarmCacheResultState([]);
+
+  setSearchOnlineState(
+    "Checking Mehfil lyrics...",
+    "pending"
+  );
+}
+
+async function runLyricIntentCacheSearchForTyping(query, cacheRunId) {
+  const safeQuery = String(query || "").trim();
+
+  if (!safeQuery) return false;
+
+  const stillCurrent = () =>
+    cacheRunId === autoWarmCacheRunId &&
+    isSearchInputStillCurrent(safeQuery);
+
+  const cacheKey = getAutoWarmCacheMemoryKey(safeQuery);
+
+  if (!stillCurrent()) return false;
+
+  renderLyricIntentPendingState(safeQuery);
+
+  /*
+    1) Cached lyric phrase index.
+  */
+  const cachedLyricPhraseCandidates =
+    await searchCachedLyricPhrases(safeQuery, 5);
+
+  if (!stillCurrent()) return false;
+
+  if (
+    Array.isArray(cachedLyricPhraseCandidates) &&
+    cachedLyricPhraseCandidates.length > 0
+  ) {
+    const visible = showCachedLyricPhraseResults(
+      safeQuery,
+      cachedLyricPhraseCandidates,
+      "Found matching lyrics in Mehfil cache.",
+      "typed"
+    );
+
+    autoWarmCacheMemory.set(cacheKey, {
+      at: Date.now(),
+      candidates: Array.isArray(visible) ? visible.slice() : [],
+      source: "lyric_intent_phrase_cache"
+    });
+
+    logMehfilSearchResultsStats(
+      safeQuery,
+      "typed",
+      Array.isArray(visible) ? visible : cachedLyricPhraseCandidates,
+      "lyric_intent_phrase_cache",
+      {
+        source: "lyric_phrase_rpc_first"
+      }
+    );
+
+    return true;
+  }
+
+  /*
+    2) Saved-song Roman lyric windows.
+  */
+  const romanLyricWindowCandidates =
+    await searchRomanLyricWindows(safeQuery, 5);
+
+  if (!stillCurrent()) return false;
+
+  if (
+    Array.isArray(romanLyricWindowCandidates) &&
+    romanLyricWindowCandidates.length > 0
+  ) {
+    autoWarmCacheMemory.set(cacheKey, {
+      at: Date.now(),
+      candidates: romanLyricWindowCandidates.slice(),
+      source: "lyric_intent_saved_roman_window"
+    });
+
+    setAutoWarmCacheResultState(romanLyricWindowCandidates);
+    renderSearchOnlineCandidates(romanLyricWindowCandidates);
+
+    setSearchOnlineState(
+      "Found matching lyrics in Mehfil cache.",
+      "success"
+    );
+
+    logMehfilSearchResultsStats(
+      safeQuery,
+      "typed",
+      romanLyricWindowCandidates,
+      "lyric_intent_saved_roman_window",
+      {
+        source: "roman_lyric_window_rpc_first"
+      }
+    );
+
+    return true;
+  }
+
+  /*
+    3) Online-cache Roman lyric windows.
+       This is the lane that now catches:
+       "aankhe meri bas dekhe" -> Chanda Sitare
+  */
+  const onlineRomanLyricWindowCandidates =
+    await searchOnlineRomanLyricWindows(safeQuery, 5);
+
+  if (!stillCurrent()) return false;
+
+  if (
+    Array.isArray(onlineRomanLyricWindowCandidates) &&
+    onlineRomanLyricWindowCandidates.length > 0
+  ) {
+    autoWarmCacheMemory.set(cacheKey, {
+      at: Date.now(),
+      candidates: onlineRomanLyricWindowCandidates.slice(),
+      source: "lyric_intent_online_roman_window"
+    });
+
+    setAutoWarmCacheResultState(onlineRomanLyricWindowCandidates);
+    renderSearchOnlineCandidates(onlineRomanLyricWindowCandidates);
+
+    setSearchOnlineState(
+      "Found matching lyrics in Mehfil cache.",
+      "success"
+    );
+
+    logMehfilSearchResultsStats(
+      safeQuery,
+      "typed",
+      onlineRomanLyricWindowCandidates,
+      "lyric_intent_online_roman_window",
+      {
+        source: "online_roman_lyric_window_rpc_first"
+      }
+    );
+
+    return true;
+  }
+
+  if (stillCurrent() && getVisibleLocalSearchResultCount() === 0) {
+    setSearchOnlineState(
+      "No lyric match found yet. Tap 🔎 for full search.",
+      "info"
+    );
+  }
+
+  return false;
 }
 
 function isAutoWarmCacheSearchEligible(query) {
@@ -22281,9 +22507,10 @@ function handleNoStrongLocalResultBeforeOnline(query, options = {}) {
 
 async function scheduleSearchRender(query, options = {}) {
   const {
-    mode = "deep",
-    showSnippets = true
-  } = options;
+  mode = "deep",
+  showSnippets = true,
+  suppressWeakLyricIntentResults = false
+} = options;
 
   const runId = ++searchRunId;
   rejectStaleWorkerSearches(runId);
@@ -22319,6 +22546,19 @@ if (!displayResults.length && mode === "deep") {
   }
 }
 
+if (
+  suppressWeakLyricIntentResults &&
+  isLikelyRomanLyricIntentQuery(safeQuery) &&
+  !displayResults.length
+) {
+  renderResults([], safeQuery, {
+    showSnippets,
+    suppressEmptyState: true
+  });
+
+  return;
+}
+
 renderResults(displayResults, safeQuery, { showSnippets });
 
       /*
@@ -22350,6 +22590,19 @@ if (!displayResults.length && mode === "deep") {
   if (lyricFallbackResults.length) {
     displayResults = lyricFallbackResults;
   }
+}
+
+if (
+  suppressWeakLyricIntentResults &&
+  isLikelyRomanLyricIntentQuery(safeQuery) &&
+  !displayResults.length
+) {
+  renderResults([], safeQuery, {
+    showSnippets,
+    suppressEmptyState: true
+  });
+
+  return;
 }
 
 renderResults(displayResults, safeQuery, { showSnippets });
@@ -28028,44 +28281,80 @@ if (mehfilRegularsPanel) {
   }
 
   clearAutoWarmCacheTimer();
+  clearLyricIntentAutoSearchTimer();
 
-  if (!nextValue.trim()) {
-    searchRunId++;
-    autoWarmCacheRunId++;
-    renderResults([], "");
-    return;
-  }
+if (!nextValue.trim()) {
+  searchRunId++;
+  autoWarmCacheRunId++;
+  renderResults([], "");
+  renderSearchOnlineCandidates([]);
+  setSearchOnlineState("");
+  return;
+}
 
+const lyricIntent = isLikelyRomanLyricIntentQuery(nextValue);
+
+if (lyricIntent) {
   /*
-    Fast saved/local result. Keep this fast.
+    Lyric-intent mode:
+    Do not show weak random results first.
+    Check lyric cache lanes before broad/title-ish results.
   */
-  searchInputTimer = setTimeout(() => {
-    scheduleSearchRender(nextValue, {
-      mode: "fast",
-      showSnippets: false
-    });
-  }, 90);
+  searchRunId++;
 
-  /*
-    Warmed Mehfil cache. Runs in parallel.
-    This does NOT call LRCLIB live.
-    This does NOT call Brave.
-  */
-  autoWarmCacheTimer = setTimeout(() => {
+  renderLyricIntentPendingState(nextValue);
+
+  lyricIntentAutoSearchTimer = setTimeout(() => {
     const cacheRunId = ++autoWarmCacheRunId;
 
-    runAutoWarmCacheSearchForTyping(nextValue, cacheRunId);
-  }, AUTO_WARM_CACHE_DEBOUNCE_MS);
+    runLyricIntentCacheSearchForTyping(nextValue, cacheRunId);
+  }, LYRIC_INTENT_AUTO_SEARCH_DEBOUNCE_MS);
 
   /*
-    Deeper saved/local result. Still useful for lyrics/snippets.
+    Still allow strong saved/local lyric matches,
+    but suppress empty/weak local garbage.
   */
   deepSearchTimer = setTimeout(() => {
     scheduleSearchRender(nextValue, {
       mode: "deep",
-      showSnippets: true
+      showSnippets: true,
+      suppressWeakLyricIntentResults: true
     });
   }, 520);
+
+  return;
+}
+
+/*
+  Fast saved/local result. Keep this fast.
+*/
+searchInputTimer = setTimeout(() => {
+  scheduleSearchRender(nextValue, {
+    mode: "fast",
+    showSnippets: false
+  });
+}, 90);
+
+/*
+  Warmed Mehfil cache. Runs in parallel.
+  This does NOT call LRCLIB live.
+  This does NOT call Brave.
+*/
+autoWarmCacheTimer = setTimeout(() => {
+  const cacheRunId = ++autoWarmCacheRunId;
+
+  runAutoWarmCacheSearchForTyping(nextValue, cacheRunId);
+}, AUTO_WARM_CACHE_DEBOUNCE_MS);
+
+/*
+  Deeper saved/local result. Still useful for lyrics/snippets.
+*/
+deepSearchTimer = setTimeout(() => {
+  scheduleSearchRender(nextValue, {
+    mode: "deep",
+    showSnippets: true
+  });
+}, 520);
 });
     document.getElementById("onlineSearchBtn").addEventListener("click", runForcedOnlineSearch);
    document.getElementById("clearBtn").addEventListener("click", () => {
@@ -28082,6 +28371,7 @@ if (mehfilRegularsPanel) {
   searchRunId++;
   autoWarmCacheRunId++;
   clearAutoWarmCacheTimer();
+  clearLyricIntentAutoSearchTimer();
 
   document.getElementById("searchInput").value = "";
   lastQuery = "";
